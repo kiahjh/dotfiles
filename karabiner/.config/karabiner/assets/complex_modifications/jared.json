@@ -26,6 +26,25 @@
       ]
     },
     {
+      "description": "forward delete without hosing",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "delete_forward",
+            "modifiers": {
+              "optional": ["any"]
+            }
+          },
+          "to": [
+            {
+              "key_code": "delete_or_backspace"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "description": "backspace > shift with other keys, escape if alone",
       "manipulators": [
         {

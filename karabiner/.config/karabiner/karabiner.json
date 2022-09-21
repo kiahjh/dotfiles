@@ -190,6 +190,27 @@
                                 "type": "basic"
                             }
                         ]
+                    },
+                    {
+                        "description": "forward delete without hosing",
+                        "manipulators": [
+                            {
+                                "from": {
+                                    "key_code": "delete_forward",
+                                    "modifiers": {
+                                        "optional": [
+                                            "any"
+                                        ]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "delete_or_backspace"
+                                    }
+                                ],
+                                "type": "basic"
+                            }
+                        ]
                     }
                 ]
             },
@@ -209,16 +230,6 @@
                         {
                             "from": {
                                 "key_code": "close_bracket"
-                            },
-                            "to": [
-                                {
-                                    "key_code": "delete_or_backspace"
-                                }
-                            ]
-                        },
-                        {
-                            "from": {
-                                "key_code": "delete_forward"
                             },
                             "to": [
                                 {
@@ -307,7 +318,7 @@
                             ]
                         }
                     ],
-                    "treat_as_built_in_keyboard": false
+                    "treat_as_built_in_keyboard": true
                 },
                 {
                     "disable_built_in_keyboard_if_exists": false,
