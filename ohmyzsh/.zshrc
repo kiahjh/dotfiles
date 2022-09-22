@@ -1,4 +1,5 @@
 export ZSH="$HOME/.oh-my-zsh"
+export GIT_EDITOR=vim
 
 ZSH_THEME="robbyrussell"
 
@@ -14,3 +15,21 @@ FLROOT="/Users/jared/fl"
 if [ -f ${FLROOT}/bash_aliases.sh ]; then
   source ${FLROOT}/bash_aliases.sh
 fi
+
+
+# aliases
+alias st='~/jaredh159/Swiftest/.build/debug/Swiftest'
+alias m='make'
+alias lnhelp='cat ~/.lnhelp'
+alias taghelp='cat ~/.taghelp'
+alias run='npm run "$@"'
+alias diffall="git difftool HEAD"
+alias diff="git diff -- . ':(exclude)package-lock.json' ':(exclude)ios/FriendsLibrary.xcodeproj/project.pbxproj'"
+alias stignore="echo .DS_Store >> .gitignore && echo \"*.swp\" >> .gitignore && echo node_modules/ >> .gitignore && echo .env >> .gitignore"
+alias s="git status"
+alias l="git l"
+alias cowpath="echo $PATH | perl -pe 's/:/\n/g' | cowsay"
+alias back="cd -"
+alias ndate="node -e \"process.stdout.write(new Date().toISOString())\" | pbcopy"
+alias grep="rg"
+
