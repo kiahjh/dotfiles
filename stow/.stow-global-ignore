@@ -2,5 +2,5 @@
 .git
 .gitignore
 .stow-local-ignore
-readme.*
+readme.md
 Makefile
