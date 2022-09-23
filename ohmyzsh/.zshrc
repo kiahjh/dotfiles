@@ -8,6 +8,10 @@ plugins=(git)
 source $ZSH/oh-my-zsh.sh
 source $ZSH/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 
+bindkey -s ^f "tmux-sessionizer.sh\n"
+bindkey -s ^k "clear\n"
+bindkey -s ^t "git commit -am '"
+
 # when you transfer to headless mini, start with pulling latest cli changes + npm install + run compile, etc...
 alias flpub='fell clone && fell branch && fell status && fell sync && fl publish --slack'
 
@@ -18,6 +22,7 @@ fi
 
 
 # aliases
+alias vim="nvim"
 alias st='~/jaredh159/Swiftest/.build/debug/Swiftest'
 alias m='make'
 alias lnhelp='cat ~/.lnhelp'
@@ -32,4 +37,6 @@ alias cowpath="echo $PATH | perl -pe 's/:/\n/g' | cowsay"
 alias back="cd -"
 alias ndate="node -e \"process.stdout.write(new Date().toISOString())\" | pbcopy"
 alias grep="rg"
+alias review="make fix && make check && github ."
+
 

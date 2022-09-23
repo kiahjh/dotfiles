@@ -5,5 +5,6 @@ stow:
 	stow tmux
 	stow ohmyzsh
 	stow stow
+	stow bin
 
 .PHONY: stow

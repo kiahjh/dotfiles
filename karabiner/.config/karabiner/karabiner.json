@@ -267,6 +267,99 @@
                                 "type": "basic"
                             }
                         ]
+                    },
+                    {
+                        "description": "a + f (held down) = open Alfred",
+                        "manipulators": [
+                            {
+                                "from": {
+                                    "modifiers": {
+                                        "optional": [
+                                            "any"
+                                        ]
+                                    },
+                                    "simultaneous": [
+                                        {
+                                            "key_code": "a"
+                                        },
+                                        {
+                                            "key_code": "f"
+                                        }
+                                    ]
+                                },
+                                "parameters": {
+                                    "basic.to_if_held_down_threshold_milliseconds": 100
+                                },
+                                "to_if_held_down": [
+                                    {
+                                        "shell_command": "open -a 'Alfred 4.app'"
+                                    }
+                                ],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "description": "hold down k + t = open kitty",
+                        "manipulators": [
+                            {
+                                "from": {
+                                    "modifiers": {
+                                        "optional": [
+                                            "any"
+                                        ]
+                                    },
+                                    "simultaneous": [
+                                        {
+                                            "key_code": "t"
+                                        },
+                                        {
+                                            "key_code": "k"
+                                        }
+                                    ]
+                                },
+                                "parameters": {
+                                    "basic.to_if_held_down_threshold_milliseconds": 100
+                                },
+                                "to_if_held_down": [
+                                    {
+                                        "shell_command": "open -a Kitty.app"
+                                    }
+                                ],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "description": "hold down v + s = open visual studio code",
+                        "manipulators": [
+                            {
+                                "from": {
+                                    "modifiers": {
+                                        "optional": [
+                                            "any"
+                                        ]
+                                    },
+                                    "simultaneous": [
+                                        {
+                                            "key_code": "v"
+                                        },
+                                        {
+                                            "key_code": "s"
+                                        }
+                                    ]
+                                },
+                                "parameters": {
+                                    "basic.to_if_held_down_threshold_milliseconds": 100
+                                },
+                                "to_if_held_down": [
+                                    {
+                                        "shell_command": "open -a 'Visual Studio Code.app'"
+                                    }
+                                ],
+                                "type": "basic"
+                            }
+                        ]
                     }
                 ]
             },
@@ -300,16 +393,6 @@
                             "to": [
                                 {
                                     "key_code": "up_arrow"
-                                }
-                            ]
-                        },
-                        {
-                            "from": {
-                                "key_code": "end"
-                            },
-                            "to": [
-                                {
-                                    "key_code": "left_shift"
                                 }
                             ]
                         },
@@ -390,6 +473,16 @@
                             "to": [
                                 {
                                     "key_code": "down_arrow"
+                                }
+                            ]
+                        },
+                        {
+                            "from": {
+                                "key_code": "caps_lock"
+                            },
+                            "to": [
+                                {
+                                    "key_code": "japanese_eisuu"
                                 }
                             ]
                         }

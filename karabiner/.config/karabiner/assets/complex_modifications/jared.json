@@ -2,6 +2,93 @@
   "title": "jareds bag of tricks",
   "rules": [
     {
+      "description": "a + f (held down) = open Alfred",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "simultaneous": [
+              {
+                "key_code": "a"
+              },
+              {
+                "key_code": "f"
+              }
+            ],
+            "modifiers": {
+              "optional": ["any"]
+            }
+          },
+          "parameters": {
+            "basic.to_if_held_down_threshold_milliseconds": 100
+          },
+          "to_if_held_down": [
+            {
+              "shell_command": "open -a 'Alfred 4.app'"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "hold down v + s = open visual studio code",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "simultaneous": [
+              {
+                "key_code": "v"
+              },
+              {
+                "key_code": "s"
+              }
+            ],
+            "modifiers": {
+              "optional": ["any"]
+            }
+          },
+          "parameters": {
+            "basic.to_if_held_down_threshold_milliseconds": 100
+          },
+          "to_if_held_down": [
+            {
+              "shell_command": "open -a 'Visual Studio Code.app'"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "hold down k + t = open kitty",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "simultaneous": [
+              {
+                "key_code": "t"
+              },
+              {
+                "key_code": "k"
+              }
+            ],
+            "modifiers": {
+              "optional": ["any"]
+            }
+          },
+          "parameters": {
+            "basic.to_if_held_down_threshold_milliseconds": 100
+          },
+          "to_if_held_down": [
+            {
+              "shell_command": "open -a Kitty.app"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "description": "d + f = backtick",
       "manipulators": [
         {
@@ -75,7 +162,7 @@
             }
           ],
           "parameters": {
-            "basic.to_if_alone_timeout_milliseconds": 200
+            "basic.to_if_alone_timeout_milliseconds": 2000
           }
         }
       ]
