@@ -12,6 +12,9 @@ bindkey -s ^f "tmux-sessionizer.sh\n"
 bindkey -s ^k "clear\n"
 bindkey -s ^t "git commit -am '"
 
+# fixes kitty + tmux for some reason...
+unset MANPATH
+
 # when you transfer to headless mini, start with pulling latest cli changes + npm install + run compile, etc...
 alias flpub='fell clone && fell branch && fell status && fell sync && fl publish --slack'
 
@@ -38,5 +41,3 @@ alias back="cd -"
 alias ndate="node -e \"process.stdout.write(new Date().toISOString())\" | pbcopy"
 alias grep="rg"
 alias review="make fix && make check && github ."
-
-

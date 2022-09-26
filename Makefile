@@ -6,5 +6,6 @@ stow:
 	stow ohmyzsh
 	stow stow
 	stow bin
+	stow kitty
 
 .PHONY: stow
