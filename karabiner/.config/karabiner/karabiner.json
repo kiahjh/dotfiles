@@ -166,32 +166,6 @@
                         ]
                     },
                     {
-                        "description": "space > shift with other keys, space if alone",
-                        "manipulators": [
-                            {
-                                "from": {
-                                    "key_code": "spacebar",
-                                    "modifiers": {
-                                        "optional": [
-                                            "any"
-                                        ]
-                                    }
-                                },
-                                "to": [
-                                    {
-                                        "key_code": "right_shift"
-                                    }
-                                ],
-                                "to_if_alone": [
-                                    {
-                                        "key_code": "spacebar"
-                                    }
-                                ],
-                                "type": "basic"
-                            }
-                        ]
-                    },
-                    {
                         "description": "forward delete without hosing",
                         "manipulators": [
                             {
@@ -378,6 +352,16 @@
                     "simple_modifications": [
                         {
                             "from": {
+                                "key_code": "caps_lock"
+                            },
+                            "to": [
+                                {
+                                    "key_code": "japanese_eisuu"
+                                }
+                            ]
+                        },
+                        {
+                            "from": {
                                 "key_code": "close_bracket"
                             },
                             "to": [
@@ -473,16 +457,6 @@
                             "to": [
                                 {
                                     "key_code": "down_arrow"
-                                }
-                            ]
-                        },
-                        {
-                            "from": {
-                                "key_code": "caps_lock"
-                            },
-                            "to": [
-                                {
-                                    "key_code": "japanese_eisuu"
                                 }
                             ]
                         }
