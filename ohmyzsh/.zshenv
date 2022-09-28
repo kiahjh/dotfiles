@@ -12,3 +12,7 @@ path+=/opt/homebrew/bin
 path+=/opt/homebrew/opt/postgresql@12/bin
 path+=~/.npm-global/bin
 export PATH
+
+# for vim fzf preview highlighting
+BAT_THEME='Visual Studio Dark+'
+COLORTERM="truecolor"
