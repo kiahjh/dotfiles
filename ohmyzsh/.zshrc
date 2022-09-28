@@ -15,6 +15,14 @@ bindkey -s ^t "git commit -am '"
 # fixes kitty + tmux for some reason...
 unset MANPATH
 
+# usage: `release 1.2.1`
+release() {
+  git tag v$1
+  git push origin master
+  git push origin tag v$1
+  gh release create v$1 --title v$1 --notes ""
+}
+
 # when you transfer to headless mini, start with pulling latest cli changes + npm install + run compile, etc...
 alias flpub='fell clone && fell branch && fell status && fell sync && fl publish --slack'
 
