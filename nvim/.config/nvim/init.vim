@@ -25,17 +25,25 @@ Plug 'junegunn/fzf.vim'
 Plug 'tomasiser/vim-code-dark'
 Plug 'kyazdani42/nvim-web-devicons'
 Plug 'neovim/nvim-lspconfig'
+Plug 'hrsh7th/nvim-compe'
 call plug#end()
 
 set termguicolors
 colorscheme codedark
 
+" LSP config
+nnoremap <silent> gd <cmd>lua vim.lsp.buf.definition()<CR>
+nnoremap <silent> gD <cmd>lua vim.lsp.buf.declaration()<CR>
+nnoremap <silent> gr <cmd>lua vim.lsp.buf.references()<CR>
+nnoremap <silent> gi <cmd>lua vim.lsp.buf.implementation()<CR>
+nnoremap <silent> gh <cmd>lua vim.lsp.buf.hover()<CR>
+nnoremap <silent> <C-k> <cmd>lua vim.lsp.buf.signature_help()<CR>
+nnoremap <silent> <C-n> <cmd>lua vim.lsp.diagnostic.goto_prev()<CR>
+nnoremap <silent> <C-p> <cmd>lua vim.lsp.diagnostic.goto_next()<CR>
+
 lua << END
 
 require'lspconfig'.tsserver.setup{}
-
-local bufopts = { noremap=true, silent=true, buffer=bufnr }
-vim.keymap.set('n', 'gh', vim.diagnostic.open_float, opts)
 
 END
 
