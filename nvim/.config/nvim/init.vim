@@ -1,9 +1,7 @@
 syntax on
 
-set guicursor= " thick cursor in insert mode
-
 set shortmess=a
-set cmdheight=2
+set cmdheight=1
 set number
 set relativenumber
 set scrolloff=12
@@ -25,10 +23,21 @@ call plug#begin()
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
 Plug 'tomasiser/vim-code-dark'
+Plug 'kyazdani42/nvim-web-devicons'
+Plug 'neovim/nvim-lspconfig'
 call plug#end()
 
 set termguicolors
 colorscheme codedark
+
+lua << END
+
+require'lspconfig'.tsserver.setup{}
+
+local bufopts = { noremap=true, silent=true, buffer=bufnr }
+vim.keymap.set('n', 'gh', vim.diagnostic.open_float, opts)
+
+END
 
 " for fzf preview highlighting
 let $BAT_THEME='Visual Studio Dark+'

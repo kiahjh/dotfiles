@@ -2,6 +2,35 @@
   "title": "jareds bag of tricks",
   "rules": [
     {
+      "description": "e + r (held down) = open Brave",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "simultaneous": [
+              {
+                "key_code": "e"
+              },
+              {
+                "key_code": "r"
+              }
+            ],
+            "modifiers": {
+              "optional": ["any"]
+            }
+          },
+          "parameters": {
+            "basic.to_if_held_down_threshold_milliseconds": 100
+          },
+          "to_if_held_down": [
+            {
+              "shell_command": "open -a 'Brave Browser.app'"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "description": "a + f (held down) = open Alfred",
       "manipulators": [
         {
@@ -137,6 +166,33 @@
               "key_code": "equal_sign"
             }
           ]
+        }
+      ]
+    },
+    {
+      "description": "comma shifty",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "comma",
+            "modifiers": {
+              "optional": ["any"]
+            }
+          },
+          "to": [
+            {
+              "key_code": "right_shift"
+            }
+          ],
+          "to_if_alone": [
+            {
+              "key_code": "comma"
+            }
+          ],
+          "parameters": {
+            "basic.to_if_alone_timeout_milliseconds": 2000
+          }
         }
       ]
     },
