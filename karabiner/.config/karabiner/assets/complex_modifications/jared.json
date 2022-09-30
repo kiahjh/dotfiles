@@ -31,6 +31,67 @@
       ]
     },
     {
+      "description": "s + l (held down) = open Slack",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "simultaneous": [
+              {
+                "key_code": "s"
+              },
+              {
+                "key_code": "l"
+              }
+            ],
+            "modifiers": {
+              "optional": ["any"]
+            }
+          },
+          "parameters": {
+            "basic.to_if_held_down_threshold_milliseconds": 100
+          },
+          "to_if_held_down": [
+            {
+              "shell_command": "open -a 'Slack.app'"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "t + h + i (held down) = open Things",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "simultaneous": [
+              {
+                "key_code": "t"
+              },
+              {
+                "key_code": "h"
+              },
+              {
+                "key_code": "i"
+              }
+            ],
+            "modifiers": {
+              "optional": ["any"]
+            }
+          },
+          "parameters": {
+            "basic.to_if_held_down_threshold_milliseconds": 100
+          },
+          "to_if_held_down": [
+            {
+              "shell_command": "open -a 'Things3.app'"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "description": "a + f (held down) = open Alfred",
       "manipulators": [
         {
@@ -164,6 +225,28 @@
           "to": [
             {
               "key_code": "equal_sign"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "comma shifty fixer",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "spacebar",
+            "modifiers": {
+              "mandatory": ["right_shift"]
+            }
+          },
+          "to": [
+            {
+              "key_code": "comma"
+            },
+            {
+              "key_code": "spacebar"
             }
           ]
         }

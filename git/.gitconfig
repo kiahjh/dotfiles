@@ -5,7 +5,7 @@
     keepBackup = true
     prompt = false
 [core]
-    editor = vim
+	editor = nvim
 	pager = diff-so-fancy | less --tabs=4 -RFX
 [color "diff-highlight"]
   oldNormal = red bold
@@ -26,13 +26,14 @@
 [diff]
     tool = Kaleidoscope
 [alias]
-    lg = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+  lg = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
 	resetone = reset HEAD~1
 	co = checkout
   save = !git add -A && git commit -m 'SAVEPOINT'
 	st = status
   s = status
 	br = branch
+  sr = !git log --oneline --no-color --max-count=10
 	alias = ! git config --get-regexp ^alias\\. | sed -e s/^alias\\.// -e s/\\ /\\ =\\ /
 	l = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit -n 5
 [color]

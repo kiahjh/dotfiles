@@ -11,6 +11,8 @@ set softtabstop=2
 set expandtab
 set autoindent
 set smarttab
+set termguicolors
+set splitbelow
 
 " Install vim-plug if not found
 if empty(glob('~/.vim/autoload/plug.vim'))
@@ -26,10 +28,16 @@ Plug 'tomasiser/vim-code-dark'
 Plug 'kyazdani42/nvim-web-devicons'
 Plug 'neovim/nvim-lspconfig'
 Plug 'hrsh7th/nvim-compe'
+Plug 'prettier/vim-prettier'
+Plug 'keith/swift'
+Plug 'github/copilot.vim'
+Plug 'tpope/vim-commentary'
+Plug 'vim-scripts/scrollfix'
 call plug#end()
 
-set termguicolors
 colorscheme codedark
+
+let g:scrollfix=80
 
 " LSP config
 nnoremap <silent> gd <cmd>lua vim.lsp.buf.definition()<CR>
@@ -41,11 +49,17 @@ nnoremap <silent> <C-k> <cmd>lua vim.lsp.buf.signature_help()<CR>
 nnoremap <silent> <C-n> <cmd>lua vim.lsp.diagnostic.goto_prev()<CR>
 nnoremap <silent> <C-p> <cmd>lua vim.lsp.diagnostic.goto_next()<CR>
 
-lua << END
+augroup filetype
+  au! BufRead,BufNewFile *.swift set ft=swift
+augroup END
 
-require'lspconfig'.tsserver.setup{}
+" prettier
+autocmd BufWritePre,InsertLeave *.js,*.jsx,*.mjs,*.ts,*.tsx,*.css,*.less,*.scss,*.json,*.graphql,*.md,*.vue,*.svelte,*.yaml,*.html Prettier
 
-END
+lua require('init')
+
+" make swift comment out with `//`
+autocmd FileType swift setlocal commentstring=//\ %s
 
 " for fzf preview highlighting
 let $BAT_THEME='Visual Studio Dark+'
@@ -63,3 +77,24 @@ let mapleader = " "
 nnoremap <leader>rc :source ~/.config/nvim/init.vim<CR>
 nnoremap <C-p> :GFiles<CR>
 nnoremap <leader>pf :Files<CR>
+ 
+" clear the highlighted search
+nnoremap <leader>c :noh<CR>
+
+nnoremap <leader>ww :q!<CR>
+
+" move lines up and down
+vnoremap J :move '>+1<CR>gv=gv
+vnoremap K :move '<-2<CR>gv=gv
+
+" leave terminal mode with escape
+tnoremap <Esc> <C-\><C-n>
+nnoremap <leader>tt :20 split term://zsh<CR>
+autocmd TermOpen * startinsert
+autocmd TermOpen * setlocal nonumber norelativenumber
+
+" C-j open terminal
+nnoremap <C-j> :silent !tmux split-window -p 33<CR>
+
+" gold
+nnoremap <C-f> :silent !tmux neww tmux-sessionizer.sh<CR> 
