@@ -33,10 +33,13 @@ Plug 'keith/swift'
 Plug 'github/copilot.vim'
 Plug 'tpope/vim-commentary'
 Plug 'vim-scripts/scrollfix'
+Plug 'preservim/nerdtree'
+Plug 'ntpeters/vim-better-whitespace'
 call plug#end()
 
 colorscheme codedark
 
+" give room to breathe at bottom of screen
 let g:scrollfix=80
 
 " LSP config
@@ -55,6 +58,9 @@ augroup END
 
 " prettier
 autocmd BufWritePre,InsertLeave *.js,*.jsx,*.mjs,*.ts,*.tsx,*.css,*.less,*.scss,*.json,*.graphql,*.md,*.vue,*.svelte,*.yaml,*.html Prettier
+
+" strip whitespace on save
+autocmd BufWritePre *.* StripWhitespace
 
 lua require('init')
 
@@ -77,11 +83,11 @@ let mapleader = " "
 nnoremap <leader>rc :source ~/.config/nvim/init.vim<CR>
 nnoremap <C-p> :GFiles<CR>
 nnoremap <leader>pf :Files<CR>
- 
+
 " clear the highlighted search
 nnoremap <leader>c :noh<CR>
 
-nnoremap <leader>ww :q!<CR>
+nnoremap <leader>ww :q<CR>
 
 " move lines up and down
 vnoremap J :move '>+1<CR>gv=gv
@@ -97,4 +103,9 @@ autocmd TermOpen * setlocal nonumber norelativenumber
 nnoremap <C-j> :silent !tmux split-window -p 33<CR>
 
 " gold
-nnoremap <C-f> :silent !tmux neww tmux-sessionizer.sh<CR> 
+nnoremap <C-f> :silent !tmux neww tmux-sessionizer.sh<CR>
+
+" nerdtree
+let g:NERDTreeIgnore = ['\.git$', 'node_modules', 'dist', '.build', '\.DS_Store']
+let NERDTreeShowHidden=1
+nnoremap <C-b> :NERDTreeToggle<CR>
