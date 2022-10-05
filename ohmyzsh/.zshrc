@@ -1,10 +1,11 @@
 export ZSH="$HOME/.oh-my-zsh"
-export GIT_EDITOR=vim
+export GIT_EDITOR=nvim
 
 ZSH_THEME="robbyrussell"
 
 plugins=(git)
 
+source $HOME/.zshenv
 source $ZSH/oh-my-zsh.sh
 source $ZSH/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 
@@ -31,6 +32,9 @@ if [ -f ${FLROOT}/bash_aliases.sh ]; then
   source ${FLROOT}/bash_aliases.sh
 fi
 
+new() {
+  tmux new-window -n "$1"
+}
 
 # aliases
 alias vim="nvim"

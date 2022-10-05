@@ -1,3 +1,13 @@
+# for vim fzf preview highlighting
+BAT_THEME='Visual Studio Dark+'
+COLORTERM="truecolor"
+
+# keep on latest npm, no matter what node version is used
+export N_PRESERVE_NPM=1
+
+# fl stuff
+export PUPPETEER_PRODUCT=firefox
+
 # clear out the path, start brand new
 PATH=""
 
@@ -13,6 +23,3 @@ path+=/opt/homebrew/opt/postgresql@12/bin
 path+=~/.npm-global/bin
 export PATH
 
-# for vim fzf preview highlighting
-BAT_THEME='Visual Studio Dark+'
-COLORTERM="truecolor"

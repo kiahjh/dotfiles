@@ -11,7 +11,7 @@
   oldNormal = red bold
   oldHighlight = red bold 52
   newNormal = green bold
-  newHighlight = green bold 22  
+  newHighlight = green bold 22
 [push]
   default = simple
 [mergetool "Kaleidoscope"]
@@ -33,6 +33,7 @@
   st = status
   s = status
   br = branch
+  rr = branch
   sr = !git log --oneline --no-color --max-count=10
   alias = ! git config --get-regexp ^alias\\. | sed -e s/^alias\\.// -e s/\\ /\\ =\\ /
   l = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit -n 5
