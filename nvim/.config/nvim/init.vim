@@ -97,12 +97,6 @@ vnoremap J :move '>+1<CR>gv=gv
 
 nnoremap <C-\> :vsplit<CR>
 
-" leave terminal mode with escape
-tnoremap <Esc> <C-\><C-n>
-nnoremap <leader>tt :20 split term://zsh<CR>
-autocmd TermOpen * startinsert
-autocmd TermOpen * setlocal nonumber norelativenumber
-
 " C-j open terminal
 nnoremap <C-j> :silent !tmux split-window -p 33<CR>
 
@@ -114,3 +108,5 @@ let g:NERDTreeIgnore = ['\.git$', 'node_modules', 'dist', '.build', '\.DS_Store'
 let NERDTreeShowHidden=1
 nnoremap <C-b> :NERDTreeToggle<CR>
 nnoremap <C-g> :NERDTreeFind<CR>
+
+lua require('jared.keymaps')
