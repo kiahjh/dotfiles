@@ -34,6 +34,7 @@
   s = status
   br = branch
   rr = branch
+  mm = !git add . && git commit --amend --no-edit
   sr = !git log --oneline --no-color --max-count=10
   alias = ! git config --get-regexp ^alias\\. | sed -e s/^alias\\.// -e s/\\ /\\ =\\ /
   l = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit -n 5

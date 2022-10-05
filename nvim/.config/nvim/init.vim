@@ -1,34 +1,16 @@
+lua require("jared.plugins")
+
 syntax on
 
-" Install vim-plug if not found
-if empty(glob('~/.vim/autoload/plug.vim'))
-  silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs
-    \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-endif
-
-" plugins
-call plug#begin()
-Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
-Plug 'junegunn/fzf.vim'
-Plug 'tomasiser/vim-code-dark'
-Plug 'kyazdani42/nvim-web-devicons'
-Plug 'neovim/nvim-lspconfig'
-Plug 'hrsh7th/nvim-compe'
-Plug 'prettier/vim-prettier'
-Plug 'vim-syntastic/syntastic'
-Plug 'keith/swift'
-Plug 'github/copilot.vim'
-Plug 'tpope/vim-commentary'
-Plug 'vim-scripts/scrollfix'
-Plug 'preservim/nerdtree'
-Plug 'jparise/vim-graphql'
-Plug 'ntpeters/vim-better-whitespace'
-call plug#end()
+let g:better_whitespace_ctermcolor='DarkRed'
+let g:better_whitespace_guicolor='DarkRed'
 
 colorscheme codedark
 
 " give room to breathe at bottom of screen
 let g:scrollfix=70
+
+lua require('jared.keymaps')
 
 " LSP config
 nnoremap <silent> <leader>e <cmd>lua vim.diagnostic.open_float()<CR>
@@ -107,6 +89,16 @@ nnoremap <C-f> :silent !tmux neww tmux-sessionizer.sh<CR>
 let g:NERDTreeIgnore = ['\.git$', 'node_modules', 'dist', '.build', '\.DS_Store']
 let NERDTreeShowHidden=1
 nnoremap <C-b> :NERDTreeToggle<CR>
-nnoremap <C-g> :NERDTreeFind<CR>
 
-lua require('jared.keymaps')
+" <s>how <f>ile
+nnoremap <leader>sf :NERDTreeFind<CR>
+
+" start a session
+nnoremap <leader>ss :Obsess<CR>
+
+" macros
+
+" @d - turn backtick prop to <d>ouble quotes
+let @d="f{xr\"f`xr\"j^"
+" @i - explicit returns to <i>implicit
+let @i="^/returndaw?{x/(%jdd"

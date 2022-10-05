@@ -31,20 +31,10 @@ keymap("v", "K", ":move .-2<CR>==", opts)
 keymap("x", "J", ":move '>+1<CR>gv-gv", opts)
 keymap("x", "K", ":move '<-2<CR>gv-gv", opts)
 
-keymap("n", "<leader>e", "<cmd>lua vim.diagnostic.open_float()<CR>", opts)
-keymap("n", "gd", "<cmd>lua vim.lsp.buf.definition()<CR>", opts)
-keymap("n", "gD", "<cmd>lua vim.lsp.buf.declaration()<CR>", opts)
-keymap("n", "gr", "<cmd>lua vim.lsp.buf.references()<CR>", opts)
-keymap("n", "gi", "<cmd>lua vim.lsp.buf.implementation()<CR>", opts)
-keymap("n", "gh", "<cmd>lua vim.lsp.buf.hover()<CR>", opts)
-keymap("n", "<C-k>", "<cmd>lua vim.lsp.buf.signature_help()<CR>", opts)
-
--- nnoremap <silent> <leader>e <cmd>lua vim.diagnostic.open_float()<CR>
--- nnoremap <silent> gd <cmd>lua vim.lsp.buf.definition()<CR>
--- nnoremap <silent> gD <cmd>lua vim.lsp.buf.declaration()<CR>
--- nnoremap <silent> gr <cmd>lua vim.lsp.buf.references()<CR>
--- nnoremap <silent> gi <cmd>lua vim.lsp.buf.implementation()<CR>
--- nnoremap <silent> gh <cmd>lua vim.lsp.buf.hover()<CR>
--- nnoremap <silent> <C-k> <cmd>lua vim.lsp.buf.signature_help()<CR>
--- " nnoremap <silent> <C-n> <cmd>lua vim.diagnostic.goto_prev()<CR>
--- " nnoremap <silent> <C-p> <cmd>lua vim.diagnostic.goto_next()<CR>
+-- keymap("n", "<leader>e", "<cmd>lua vim.diagnostic.open_float()<CR>", opts)
+-- keymap("n", "gd", "<cmd>lua vim.lsp.buf.definition()<CR>", opts)
+-- keymap("n", "gD", "<cmd>lua vim.lsp.buf.declaration()<CR>", opts)
+-- keymap("n", "gr", "<cmd>lua vim.lsp.buf.references()<CR>", opts)
+-- keymap("n", "gi", "<cmd>lua vim.lsp.buf.implementation()<CR>", opts)
+-- keymap("n", "gh", "<cmd>lua vim.lsp.buf.hover()<CR>", opts)
+-- keymap("n", "<C-k>", "<cmd>lua vim.lsp.buf.signature_help()<CR>", opts)

@@ -38,6 +38,7 @@ new() {
 
 # aliases
 alias vim="nvim"
+alias vims="nvim -S Session.vim"
 alias st='~/jaredh159/Swiftest/.build/debug/Swiftest'
 alias m='make'
 alias lnhelp='cat ~/.lnhelp'
