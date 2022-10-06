@@ -10,7 +10,6 @@ source $ZSH/oh-my-zsh.sh
 source $ZSH/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 bindkey -s ^f "tmux-sessionizer.sh\n"
-bindkey -s ^k "clear\n"
 bindkey -s ^t "git commit -am '"
 
 # fixes kitty + tmux for some reason...
@@ -47,7 +46,7 @@ alias run='npm run "$@"'
 alias diffall="git difftool HEAD"
 alias diff="git diff -- . ':(exclude)package-lock.json' ':(exclude)ios/FriendsLibrary.xcodeproj/project.pbxproj'"
 alias stignore="echo .DS_Store >> .gitignore && echo \"*.swp\" >> .gitignore && echo node_modules/ >> .gitignore && echo .env >> .gitignore"
-alias s="git status"
+alias s="git s"
 alias l="git l"
 alias cowpath="echo $PATH | perl -pe 's/:/\n/g' | cowsay"
 alias back="cd -"

@@ -43,9 +43,6 @@ vim.opt.cursorline = true
 -- faster completion (4000ms default)
 vim.opt.updatetime = 300
 
--- cause `-`, `=`, and `-` to not create "words" for vim
-vim.cmd [[set iskeyword+=-]]
-
 -- vim.opt.backup = false                          -- creates a backup file
 -- vim.opt.clipboard = "unnamedplus"               -- allows neovim to access the system clipboard
 -- vim.opt.completeopt = { "menuone" "noselect" }, -- mostly just for cmp

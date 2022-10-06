@@ -31,7 +31,7 @@
   co = checkout
   save = !git add -A && git commit -m 'SAVEPOINT'
   st = status
-  s = status
+  s = status --short
   br = branch
   rr = branch
   mm = !git add . && git commit --amend --no-edit
