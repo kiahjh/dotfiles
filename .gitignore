@@ -3,3 +3,4 @@
 node_modules/
 .env
 karabiner/.config/karabiner/automatic_backups/
+nvim/.config/nvim/plugin/packer_compiled.lua

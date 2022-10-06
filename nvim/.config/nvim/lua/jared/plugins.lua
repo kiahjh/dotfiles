@@ -53,7 +53,13 @@ return packer.startup(function(use)
   use "junegunn/fzf.vim"
 
   -- vscode dark colorscheme
-  use "tomasiser/vim-code-dark"
+  -- use "tomasiser/vim-code-dark"
+
+  -- some really nice ones from this repo
+  -- use "lunarvim/colorschemes"
+
+  -- current colorscheme
+  use 'folke/tokyonight.nvim'
 
   -- lsp and completion
   use "neovim/nvim-lspconfig"

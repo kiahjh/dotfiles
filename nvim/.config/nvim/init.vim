@@ -5,12 +5,12 @@ syntax on
 let g:better_whitespace_ctermcolor='DarkRed'
 let g:better_whitespace_guicolor='DarkRed'
 
-colorscheme codedark
 
 " give room to breathe at bottom of screen
 let g:scrollfix=70
 
 lua require('jared.keymaps')
+lua require("jared.colorscheme")
 
 " LSP config
 nnoremap <silent> <leader>e <cmd>lua vim.diagnostic.open_float()<CR>
