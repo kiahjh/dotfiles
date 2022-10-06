@@ -60,7 +60,7 @@ vnoremap ; :
 vnoremap : ;
 
 " highlight on yank
-au TextYankPost * silent! lua vim.highlight.on_yank {higroup="IncSearch", timeout=150}
+au TextYankPost * silent! lua vim.highlight.on_yank {higroup="IncSearch"}
 
 let mapleader = " "
 nnoremap <leader>rc :source ~/.config/nvim/init.vim<CR>
@@ -88,6 +88,7 @@ nnoremap <C-f> :silent !tmux neww tmux-sessionizer.sh<CR>
 " nerdtree
 let g:NERDTreeIgnore = ['\.git$', 'node_modules', 'dist', '.build', '\.DS_Store']
 let NERDTreeShowHidden=1
+let NERDTreeWinSize=36
 nnoremap <C-b> :NERDTreeToggle<CR>
 
 " <s>how <f>ile

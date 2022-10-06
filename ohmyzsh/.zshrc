@@ -10,7 +10,6 @@ source $ZSH/oh-my-zsh.sh
 source $ZSH/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 bindkey -s ^f "tmux-sessionizer.sh\n"
-bindkey -s ^k "clear\n"
 bindkey -s ^t "git commit -am '"
 
 # fixes kitty + tmux for some reason...
