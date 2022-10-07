@@ -1,4 +1,3 @@
-ear
 !/usr/bin/env bash
 
 SESSION=$(find ~ ~/gertie ~/fl ~/fl/en ~/fl/es ~/playground ~/fl/apps ~/fl/libs ~/jaredh159 ~/jaredh159/twrnc ~/sites -mindepth 1 -maxdepth 1 -type d | fzf);
