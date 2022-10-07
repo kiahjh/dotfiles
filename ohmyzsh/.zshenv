@@ -8,10 +8,6 @@ export N_PRESERVE_NPM=1
 # fl stuff
 export PUPPETEER_PRODUCT=firefox
 
-# make italics work in tmux
-# @see https://gist.github.com/gutoyr/4192af1aced7a1b555df06bd3781a722
-export TERM=screen-256color
-
 # clear out the path, start brand new
 PATH=""
 
