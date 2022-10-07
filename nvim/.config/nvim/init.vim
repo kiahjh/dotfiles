@@ -1,31 +1,32 @@
-lua require("jared.plugins")
+lua require("user.plugins")
 
 syntax on
 
 let g:better_whitespace_ctermcolor='DarkRed'
 let g:better_whitespace_guicolor='DarkRed'
 
-
 " give room to breathe at bottom of screen
 let g:scrollfix=70
 
-lua require('jared.keymaps')
-lua require("jared.colorscheme")
+lua require('user.keymaps')
+lua require("user.colorscheme")
+lua require("user.cmp")
+lua require("user.lsp")
 
 " LSP config
-nnoremap <silent> <leader>e <cmd>lua vim.diagnostic.open_float()<CR>
-nnoremap <silent> gd <cmd>lua vim.lsp.buf.definition()<CR>
-nnoremap <silent> gD <cmd>lua vim.lsp.buf.declaration()<CR>
-nnoremap <silent> gr <cmd>lua vim.lsp.buf.references()<CR>
-nnoremap <silent> gi <cmd>lua vim.lsp.buf.implementation()<CR>
-nnoremap <silent> gh <cmd>lua vim.lsp.buf.hover()<CR>
-nnoremap <silent> <C-k> <cmd>lua vim.lsp.buf.signature_help()<CR>
+" nnoremap <silent> <leader>e <cmd>lua vim.diagnostic.open_float()<CR>
+" nnoremap <silent> gd <cmd>lua vim.lsp.buf.definition()<CR>
+" nnoremap <silent> gD <cmd>lua vim.lsp.buf.declaration()<CR>
+" nnoremap <silent> gr <cmd>lua vim.lsp.buf.references()<CR>
+" nnoremap <silent> gi <cmd>lua vim.lsp.buf.implementation()<CR>
+" nnoremap <silent> gh <cmd>lua vim.lsp.buf.hover()<CR>
+" nnoremap <silent> <C-k> <cmd>lua vim.lsp.buf.signature_help()<CR>
 " nnoremap <silent> <C-n> <cmd>lua vim.diagnostic.goto_prev()<CR>
 " nnoremap <silent> <C-p> <cmd>lua vim.diagnostic.goto_next()<CR>
 
 " TODO: switch whole file to lua
 " options should go after plugins, to prevent plugins from setting stuff
-lua require('jared.options')
+lua require('user.options')
 
 augroup filetype
   au! BufRead,BufNewFile *.swift exec "set filetype=swift shiftwidth=2 tabstop=2"
@@ -51,7 +52,7 @@ autocmd FileType swift setlocal commentstring=//\ %s
 " for fzf preview highlighting
 let $BAT_THEME='Visual Studio Dark+'
 
-inoremap <silent><expr> <CR> compe#confirm('<CR>')
+" inoremap <silent><expr> <CR> compe#confirm('<CR>')
 
 " swap ; and ;
 nnoremap ; :

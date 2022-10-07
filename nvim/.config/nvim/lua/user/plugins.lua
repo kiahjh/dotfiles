@@ -61,9 +61,22 @@ return packer.startup(function(use)
   -- current colorscheme
   use 'folke/tokyonight.nvim'
 
-  -- lsp and completion
+  -- completion
+  use "hrsh7th/nvim-cmp"  -- The completion plugin
+  use "hrsh7th/cmp-buffer"  -- buffer completions
+  use "hrsh7th/cmp-path"  -- path completions
+  use "hrsh7th/cmp-cmdline"  -- path completions
+  use "saadparwaiz1/cmp_luasnip"  -- snippet completions
+  use "hrsh7th/cmp-nvim-lsp"
+  use "hrsh7th/cmp-nvim-lua"
+
+  -- LSP
   use "neovim/nvim-lspconfig"
-  use "hrsh7th/nvim-compe"
+  use "williamboman/nvim-lsp-installer"
+
+  -- snippets
+  use { "L3MON4D3/LuaSnip" } -- engine
+  use { "rafamadriz/friendly-snippets" } -- bunch of snippets
 
   -- prettier
   use "prettier/vim-prettier"
