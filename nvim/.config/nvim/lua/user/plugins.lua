@@ -92,7 +92,7 @@ return packer.startup(function(use)
   use "tpope/vim-commentary"
 
   -- gives me extra space at the bottom of a file like vscode
-  use "vim-scripts/scrollfix"
+  -- use "vim-scripts/scrollfix"
 
   -- nerdtree
   use "preservim/nerdtree"
@@ -105,6 +105,9 @@ return packer.startup(function(use)
 
   -- automatically make sessions
   use "tpope/vim-obsession"
+
+  -- treesiter
+  use { "nvim-treesitter/nvim-treesitter", run = ":TSUpdate" }
 
   -- automatically set up configuration after cloning packer.nvim
   if PACKER_BOOTSTRAP then

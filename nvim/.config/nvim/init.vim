@@ -12,6 +12,7 @@ lua require('user.keymaps')
 lua require("user.colorscheme")
 lua require("user.cmp")
 lua require("user.lsp")
+lua require("user.treesitter")
 
 " LSP config
 " nnoremap <silent> <leader>e <cmd>lua vim.diagnostic.open_float()<CR>
@@ -35,6 +36,9 @@ augroup END
 " cause enter in quickfix to also close quickfix
 :autocmd FileType qf nnoremap <buffer> <CR> <CR>:cclose<CR>
 
+" this disables getting newlines starting with comment leader
+autocmd BufNewFile,BufRead * setlocal formatoptions-=cro
+
 " prettier
 autocmd BufWritePre *.js,*.jsx,*.mjs,*.ts,*.tsx,*.css,*.json,*.graphql,*.yaml,*.yml,*.html,*.md Prettier
 
@@ -43,8 +47,6 @@ autocmd BufWritePost *.swift silent! exec "silent! !swiftformat --quiet %" | red
 
 " strip whitespace on save
 autocmd BufWritePre *.* StripWhitespace
-
-lua require('init')
 
 " make swift comment out with `//`
 autocmd FileType swift setlocal commentstring=//\ %s
@@ -97,6 +99,11 @@ nnoremap <leader>sf :NERDTreeFind<CR>
 
 " start a session
 nnoremap <leader>ss :Obsess<CR>
+
+" folding
+set foldmethod=indent
+set foldlevelstart=99
+set foldnestmax=19
 
 " macros
 
