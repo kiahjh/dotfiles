@@ -14,6 +14,7 @@ lua require("user.cmp")
 lua require("user.lsp")
 lua require("user.treesitter")
 lua require("user.gitsigns")
+lua require("user.lualine")
 
 " LSP config
 " nnoremap <silent> <leader>e <cmd>lua vim.diagnostic.open_float()<CR>

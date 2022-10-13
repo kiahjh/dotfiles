@@ -91,6 +91,9 @@ return packer.startup(function(use)
   -- commenting out lines/chunks
   use "tpope/vim-commentary"
 
+  -- statusline
+  use "nvim-lualine/lualine.nvim"
+
   -- gives me extra space at the bottom of a file like vscode
   -- use "vim-scripts/scrollfix"
 
