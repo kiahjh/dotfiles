@@ -28,6 +28,9 @@ vim.opt.smarttab = true
 vim.opt.termguicolors = true
 vim.opt.swapfile = false
 
+-- search/replace `/g` by default
+vim.opt.gdefault = true
+
 vim.opt.fileencoding = "utf-8"
 vim.opt.hlsearch = true
 

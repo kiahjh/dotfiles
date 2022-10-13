@@ -12,11 +12,13 @@ configs.setup({
   ensure_installed = { -- or "all"
     "swift",
     "typescript",
+    "tsx",
     "javascript",
     "lua",
     "make",
     "markdown",
     "markdown_inline",
+    "graphql",
     "bash"
   },
 	ignore_install = {},

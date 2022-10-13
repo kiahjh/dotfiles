@@ -13,6 +13,7 @@ lua require("user.colorscheme")
 lua require("user.cmp")
 lua require("user.lsp")
 lua require("user.treesitter")
+lua require("user.gitsigns")
 
 " LSP config
 " nnoremap <silent> <leader>e <cmd>lua vim.diagnostic.open_float()<CR>
@@ -82,11 +83,11 @@ vnoremap J :move '>+1<CR>gv=gv
 
 nnoremap <C-\> :vsplit<CR>
 
-" C-j open terminal
-nnoremap <C-j> :silent !tmux split-window -p 33<CR>
+" C-j open terminal (saving buffers first)
+nnoremap <C-j> :silent! wa!<CR> <bar> :silent !tmux split-window -p 33<CR>
 
 " gold
-nnoremap <C-f> :silent !tmux neww tmux-sessionizer.sh<CR>
+nnoremap <C-f> :silent! wa!<CR> <bar> :silent !tmux neww tmux-sessionizer.sh<CR>
 
 " nerdtree
 let g:NERDTreeIgnore = ['\.git$', 'node_modules', 'dist', '.build', '\.DS_Store']
@@ -100,6 +101,9 @@ nnoremap <leader>sf :NERDTreeFind<CR>
 " start a session
 nnoremap <leader>ss :Obsess<CR>
 
+" -- write all writable buffers, ignoring unnamed and non-writable
+nnoremap <silent> <leader>wa :silent! wa!<CR> <bar> :echo "Wrote all writable buffers"<CR>
+
 " folding
 set foldmethod=indent
 set foldlevelstart=99
@@ -111,3 +115,5 @@ set foldnestmax=19
 let @d="f{xr\"f`xr\"j^"
 " @i - explicit returns to <i>implicit
 let @i="^/returndaw?{x/(%jdd"
+" @c wrap classnames prop in cx
+let @c="f\"s{cx(`f\"s`, className)}"

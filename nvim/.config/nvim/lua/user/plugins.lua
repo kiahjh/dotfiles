@@ -106,6 +106,9 @@ return packer.startup(function(use)
   -- automatically make sessions
   use "tpope/vim-obsession"
 
+  -- git indicators in gutter, and more git stuff
+  use "lewis6991/gitsigns.nvim"
+
   -- treesiter
   use { "nvim-treesitter/nvim-treesitter", run = ":TSUpdate" }
 
