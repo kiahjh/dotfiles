@@ -8,6 +8,7 @@ let g:better_whitespace_guicolor='DarkRed'
 " give room to breathe at bottom of screen
 let g:scrollfix=70
 
+lua require("user.nvimtree")
 lua require('user.keymaps')
 lua require("user.colorscheme")
 lua require("user.cmp")
@@ -18,17 +19,6 @@ lua require("user.lualine")
 lua require("user.shade")
 lua require("user.telescope")
 lua require("user.lightbulb")
-
-" LSP config
-" nnoremap <silent> <leader>e <cmd>lua vim.diagnostic.open_float()<CR>
-" nnoremap <silent> gd <cmd>lua vim.lsp.buf.definition()<CR>
-" nnoremap <silent> gD <cmd>lua vim.lsp.buf.declaration()<CR>
-" nnoremap <silent> gr <cmd>lua vim.lsp.buf.references()<CR>
-" nnoremap <silent> gi <cmd>lua vim.lsp.buf.implementation()<CR>
-" nnoremap <silent> gh <cmd>lua vim.lsp.buf.hover()<CR>
-" nnoremap <silent> <C-k> <cmd>lua vim.lsp.buf.signature_help()<CR>
-" nnoremap <silent> <C-n> <cmd>lua vim.diagnostic.goto_prev()<CR>
-" nnoremap <silent> <C-p> <cmd>lua vim.diagnostic.goto_next()<CR>
 
 " TODO: switch whole file to lua
 " options should go after plugins, to prevent plugins from setting stuff
@@ -74,7 +64,7 @@ let mapleader = " "
 nnoremap <leader>rc :source ~/.config/nvim/init.vim<CR>
 nnoremap <C-p> :Telescope git_files<CR>
 nnoremap <leader>pf :Telescope find_files find_command=rg,--hidden,--files<CR>
-nnoremap <leader>f :Rg<CR>
+nnoremap <leader>f :Telescope live_grep<CR>
 
 " clear the highlighted search
 nnoremap <leader>c :noh<CR>
@@ -93,14 +83,9 @@ nnoremap <C-j> :silent! wa!<CR> <bar> :silent !tmux split-window -p 33<CR>
 " gold
 nnoremap <C-f> :silent! wa!<CR> <bar> :silent !tmux neww tmux-sessionizer.sh<CR>
 
-" nerdtree
-let g:NERDTreeIgnore = ['\.git$', 'node_modules', 'dist', '.build', '\.DS_Store']
-let NERDTreeShowHidden=1
-let NERDTreeWinSize=36
-nnoremap <C-b> :NERDTreeToggle<CR>
-
-" <s>how <f>ile
-nnoremap <leader>sf :NERDTreeFind<CR>
+" nvim-tree
+nnoremap <C-b> :NvimTreeToggle<CR>
+nnoremap <leader>sf :NvimTreeFindFile<CR>
 
 " start a session
 nnoremap <leader>ss :Obsess<CR>

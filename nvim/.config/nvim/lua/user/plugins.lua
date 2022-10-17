@@ -97,8 +97,11 @@ return packer.startup(function(use)
   -- gives me extra space at the bottom of a file like vscode
   -- use "vim-scripts/scrollfix"
 
-  -- nerdtree
-  use "preservim/nerdtree"
+  -- nvim-tree
+  use {
+    'nvim-tree/nvim-tree.lua',
+    requires = { 'nvim-tree/nvim-web-devicons' } -- for file icons
+  }
 
   -- syntax highlighting for gql fragments in .tsx
   use "jparise/vim-graphql"
