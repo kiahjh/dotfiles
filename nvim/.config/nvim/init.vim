@@ -15,6 +15,9 @@ lua require("user.lsp")
 lua require("user.treesitter")
 lua require("user.gitsigns")
 lua require("user.lualine")
+lua require("user.shade")
+lua require("user.telescope")
+lua require("user.lightbulb")
 
 " LSP config
 " nnoremap <silent> <leader>e <cmd>lua vim.diagnostic.open_float()<CR>
@@ -69,8 +72,8 @@ au TextYankPost * silent! lua vim.highlight.on_yank {higroup="IncSearch"}
 
 let mapleader = " "
 nnoremap <leader>rc :source ~/.config/nvim/init.vim<CR>
-nnoremap <C-p> :GFiles<CR>
-nnoremap <leader>pf :Files<CR>
+nnoremap <C-p> :Telescope git_files<CR>
+nnoremap <leader>pf :Telescope find_files find_command=rg,--hidden,--files<CR>
 nnoremap <leader>f :Rg<CR>
 
 " clear the highlighted search
@@ -105,6 +108,12 @@ nnoremap <leader>ss :Obsess<CR>
 " -- write all writable buffers, ignoring unnamed and non-writable
 nnoremap <silent> <leader>wa :silent! wa!<CR> <bar> :echo "Wrote all writable buffers"<CR>
 
+" -- start a local Rename
+nnoremap <silent> <leader>rr @r
+
+" -- show code actions
+nnoremap <leader>aa :lua vim.lsp.buf.code_action()<CR>
+
 " folding
 set foldmethod=indent
 set foldlevelstart=99
@@ -118,3 +127,5 @@ let @d="f{xr\"f`xr\"j^"
 let @i="^/returndaw?{x/(%jdd"
 " @c wrap classnames prop in cx
 let @c="f\"s{cx(`f\"s`, className)}"
+" @c start a local rename
+let @r="*Nciw"

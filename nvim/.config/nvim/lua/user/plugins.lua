@@ -48,15 +48,15 @@ return packer.startup(function(use)
   use "nvim-lua/popup.nvim"
   use "nvim-lua/plenary.nvim"
 
-  -- fuzzy finder
-  use { "junegunn/fzf", run = ":call fzf#install()" }
-  use "junegunn/fzf.vim"
+  -- telescope
+  use "nvim-telescope/telescope.nvim"
+  use "nvim-telescope/telescope-ui-select.nvim"
 
-  -- vscode dark colorscheme
-  -- use "tomasiser/vim-code-dark"
-
-  -- some really nice ones from this repo
-  -- use "lunarvim/colorschemes"
+  -- lightbulbs for code actions
+  use {
+    'kosayoda/nvim-lightbulb',
+    requires = 'antoinemadec/FixCursorHold.nvim',
+  }
 
   -- current colorscheme
   use 'folke/tokyonight.nvim'
@@ -114,6 +114,12 @@ return packer.startup(function(use)
 
   -- treesiter
   use { "nvim-treesitter/nvim-treesitter", run = ":TSUpdate" }
+
+  -- surround
+  use "tpope/vim-surround"
+
+  -- dim inactive windows
+  use "sunjon/shade.nvim"
 
   -- automatically set up configuration after cloning packer.nvim
   if PACKER_BOOTSTRAP then
