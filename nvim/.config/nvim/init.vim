@@ -108,6 +108,9 @@ nnoremap <silent> <leader>rr @r
 " -- show code actions
 nnoremap <leader>aa :lua vim.lsp.buf.code_action()<CR>
 
+" -- add className prop
+nnoremap <silent> <leader>cc @b
+
 " -- restart lsp
 nnoremap <leader>lsp :LspRestart<CR>
 
@@ -117,10 +120,12 @@ set foldlevelstart=99
 set foldnestmax=19
 
 " macros
-
+" fdo
 " @d - turn backtick prop to <d>ouble quotes
 let @d="f{xr\"f`xr\"j^"
 " @c wrap classnames prop in cx
 let @c="f\"s{cx(`f\"s`, className)}"
 " @c start a local rename
 let @r="*Nciw"
+" @b add className prop
+let @b="ea className=\"\"i"
