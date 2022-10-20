@@ -16,6 +16,7 @@ null_ls.setup({
         "@typescript-eslint/no-unused-vars: off",
         "--rule",
         "@typescript-eslint/quotes: off",
+        "--cache",
       },
     }),
   },
