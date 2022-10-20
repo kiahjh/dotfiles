@@ -20,6 +20,7 @@ lua require("user.shade")
 lua require("user.telescope")
 lua require("user.lightbulb")
 lua require("user.autopairs")
+lua require("user.null-ls")
 
 " TODO: switch whole file to lua
 " options should go after plugins, to prevent plugins from setting stuff
@@ -35,22 +36,11 @@ augroup END
 " this disables getting newlines starting with comment leader
 autocmd BufNewFile,BufRead * setlocal formatoptions-=cro
 
-" prettier
-autocmd BufWritePre *.js,*.jsx,*.mjs,*.ts,*.tsx,*.css,*.json,*.graphql,*.yaml,*.yml,*.html,*.md Prettier
-
-" swift format on save
-autocmd BufWritePost *.swift silent! exec "silent! !swiftformat --quiet %" | redraw
-
 " strip whitespace on save
 autocmd BufWritePre *.* StripWhitespace
 
 " make swift comment out with `//`
 autocmd FileType swift setlocal commentstring=//\ %s
-
-" for fzf preview highlighting
-let $BAT_THEME='Visual Studio Dark+'
-
-" inoremap <silent><expr> <CR> compe#confirm('<CR>')
 
 " swap ; and ;
 nnoremap ; :

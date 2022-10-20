@@ -73,6 +73,7 @@ return packer.startup(function(use)
   -- LSP
   use "neovim/nvim-lspconfig"
   use "williamboman/nvim-lsp-installer"
+  use "jose-elias-alvarez/null-ls.nvim"
 
   -- snippets
   use { "L3MON4D3/LuaSnip" } -- engine

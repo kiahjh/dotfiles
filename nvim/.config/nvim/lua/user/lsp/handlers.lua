@@ -3,9 +3,9 @@ local M = {}
 M.setup = function()
   local signs = {
     { name = "DiagnosticSignError", text = "" }, -- 
-    { name = "DiagnosticSignWarn", text = "•" },  -- 
-    { name = "DiagnosticSignHint", text = "•" },  -- 
-    { name = "DiagnosticSignInfo", text = "•" },  -- 
+    { name = "DiagnosticSignWarn", text = "•" }, -- 
+    { name = "DiagnosticSignHint", text = "•" }, -- 
+    { name = "DiagnosticSignInfo", text = "•" }, -- 
   }
 
   for _, sign in ipairs(signs) do
@@ -48,7 +48,7 @@ local function lsp_highlight_document(client)
         autocmd CursorHold <buffer> lua vim.lsp.buf.document_highlight()
         autocmd CursorMoved <buffer> lua vim.lsp.buf.clear_references()
       augroup END
-    ]],
+    ]] ,
       false
     )
   end
@@ -77,10 +77,28 @@ local function lsp_keymaps(bufnr)
   vim.cmd [[ command! Format execute 'lua vim.lsp.buf.formatting()' ]]
 end
 
+local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
+
 M.on_attach = function(client, bufnr)
+  if client.supports_method("textDocument/formatting")
+      or client.resolved_capabilities.document_formatting
+      or client.name == "sourcekit" then
+    vim.api.nvim_clear_autocmds({ group = augroup, buffer = bufnr })
+    vim.api.nvim_create_autocmd("BufWritePre", {
+      group = augroup,
+      buffer = bufnr,
+      callback = function()
+        vim.lsp.buf.formatting_sync()
+      end,
+    })
+  end
+
+  -- when you upgrade to nvim 0.8, you can use the recommended
+  -- way of picking the right formatter
   if client.name == "tsserver" then
     client.resolved_capabilities.document_formatting = false
   end
+
   lsp_keymaps(bufnr)
   lsp_highlight_document(client)
 end
