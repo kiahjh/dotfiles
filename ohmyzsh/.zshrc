@@ -1,7 +1,10 @@
 export ZSH="$HOME/.oh-my-zsh"
 export GIT_EDITOR=nvim
 
-ZSH_THEME="robbyrussell"
+# ZSH_THEME="robbyrussell"
+
+ZSH_THEME="agnoster"
+DEFAULT_USER="jared"
 
 plugins=(git)
 
