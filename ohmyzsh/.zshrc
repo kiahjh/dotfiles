@@ -46,6 +46,7 @@ alias taghelp='cat ~/.taghelp'
 alias run='npm run "$@"'
 alias diffall="git difftool HEAD"
 alias diff="git diff -- . ':(exclude)package-lock.json' ':(exclude)ios/FriendsLibrary.xcodeproj/project.pbxproj'"
+alias giff="git add . ; github ."
 alias stignore="echo .DS_Store >> .gitignore && echo \"*.swp\" >> .gitignore && echo node_modules/ >> .gitignore && echo .env >> .gitignore"
 alias s="git s"
 alias l="git l"
