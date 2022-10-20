@@ -2,7 +2,7 @@
   "title": "jareds bag of tricks",
   "rules": [
     {
-      "description": "e + r (held down) = open Brave",
+      "description": "ctrl + [e + r] (held down) = open Brave",
       "manipulators": [
         {
           "type": "basic",
@@ -16,7 +16,8 @@
               }
             ],
             "modifiers": {
-              "optional": ["any"]
+              "optional": ["any"],
+              "mandatory": ["right_control"]
             }
           },
           "parameters": {
@@ -86,6 +87,35 @@
           "to_if_held_down": [
             {
               "shell_command": "open -a 'Things3.app'"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "s + d = left shift",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "simultaneous": [
+              {
+                "key_code": "s"
+              },
+              {
+                "key_code": "d"
+              }
+            ],
+            "modifiers": {
+              "optional": ["any"]
+            }
+          },
+          "parameters": {
+            "basic.to_if_held_down_threshold_milliseconds": 10
+          },
+          "to_if_held_down": [
+            {
+              "key_code": "left_shift"
             }
           ]
         }
