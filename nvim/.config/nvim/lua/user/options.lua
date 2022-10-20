@@ -13,6 +13,9 @@ vim.opt.number = true
 vim.opt.relativenumber = true
 vim.opt.numberwidth = 4
 
+-- save buffer whenever switching buffers, exiting, etc.
+vim.opt.autowriteall = true
+
 -- make room for diagnostics, prevent jump when they appear
 vim.opt.signcolumn = "yes"
 

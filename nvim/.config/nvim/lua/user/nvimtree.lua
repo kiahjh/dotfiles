@@ -17,6 +17,13 @@ require("nvim-tree").setup {
   diagnostics = {
     enable = true,
   },
+  actions = {
+    open_file = {
+      window_picker = {
+        enable = false,
+      },
+    },
+  },
   filters = {
     custom = {
       -- never show these dirs

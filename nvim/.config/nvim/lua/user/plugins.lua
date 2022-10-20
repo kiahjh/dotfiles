@@ -94,6 +94,10 @@ return packer.startup(function(use)
   -- statusline
   use "nvim-lualine/lualine.nvim"
 
+
+  -- autopairs
+  use "windwp/nvim-autopairs"
+
   -- gives me extra space at the bottom of a file like vscode
   -- use "vim-scripts/scrollfix"
 
