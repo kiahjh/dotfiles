@@ -3,7 +3,7 @@ if not status_ok then
   return
 end
 
-autopairs.setup {
+autopairs.setup({
   disable_filetype = { "TelescopePrompt" },
   disable_in_macro = true,
-}
+})

@@ -5,7 +5,7 @@ vim.opt.smartcase = true
 
 -- shortmess allows you to eliminate many messages vim gives
 vim.opt.shortmess = "a"
-vim.opt.shortmess:append "c"
+vim.opt.shortmess:append("c")
 
 vim.opt.cmdheight = 1
 
@@ -53,7 +53,7 @@ vim.opt.updatetime = 300
 vim.g.copilot_no_tab_map = true
 vim.g.copilot_assume_mapped = true
 vim.g.copilot_node_command = "/usr/local/n/versions/node/16.17.1/bin/node"
-vim.g.copilot_filetypes = { ['TelescopePrompt'] = false }
+vim.g.copilot_filetypes = { ["TelescopePrompt"] = false }
 
 -- vim.opt.backup = false                          -- creates a backup file
 -- vim.opt.clipboard = "unnamedplus"               -- allows neovim to access the system clipboard
@@ -71,6 +71,4 @@ vim.g.copilot_filetypes = { ['TelescopePrompt'] = false }
 -- vim.opt.wrap = false                            -- display lines as one long line
 -- vim.opt.guifont = "monospace:h17"               -- the font used in graphical neovim applications
 
-
 -- vim.cmd "set whichwrap+=<,>,[,],h,l"
-

@@ -36,8 +36,8 @@ keymap("x", "K", ":move '<-2<CR>gv-gv", opts)
 
 -- copilot
 vim.api.nvim_set_keymap("i", "<C-l>", 'copilot#Accept("<CR>")', { noremap = true, silent = false, expr = true })
-vim.api.nvim_set_keymap("i", "<C-;>", 'copilot#Dismiss()', { noremap = true, silent = false, expr = true })
-vim.api.nvim_set_keymap("i", "<C-j>", 'copilot#Next()', { noremap = true, silent = false, expr = true })
+vim.api.nvim_set_keymap("i", "<C-;>", "copilot#Dismiss()", { noremap = true, silent = false, expr = true })
+vim.api.nvim_set_keymap("i", "<C-j>", "copilot#Next()", { noremap = true, silent = false, expr = true })
 
 -- keymap("n", "<leader>e", "<cmd>lua vim.diagnostic.open_float()<CR>", opts)
 -- keymap("n", "gd", "<cmd>lua vim.lsp.buf.definition()<CR>", opts)

@@ -9,21 +9,21 @@ if not status_ok then
 end
 
 configs.setup({
-  ensure_installed = { -- or "all"
-    "swift",
-    "typescript",
-    "tsx",
-    "javascript",
-    "lua",
-    "make",
-    "markdown",
-    "markdown_inline",
-    "graphql",
-    "bash"
-  },
+	ensure_installed = { -- or "all"
+		"swift",
+		"typescript",
+		"tsx",
+		"javascript",
+		"lua",
+		"make",
+		"markdown",
+		"markdown_inline",
+		"graphql",
+		"bash",
+	},
 	ignore_install = {},
 	sync_install = false,
-  highlight = {
+	highlight = {
 		enable = true,
 		disable = {},
 	},
@@ -31,9 +31,9 @@ configs.setup({
 		enable = true,
 	},
 	indent = {
-    enable = true,
-    disable = {}
-  },
+		enable = true,
+		disable = {},
+	},
 	context_commentstring = {
 		enable = true,
 		enable_autocmd = false,

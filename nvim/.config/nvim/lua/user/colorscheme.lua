@@ -1,9 +1,9 @@
-vim.cmd "colorscheme default"
+vim.cmd("colorscheme default")
 
 local colorscheme = "tokyonight"
 
 local status_ok, _ = pcall(vim.cmd, "colorscheme " .. colorscheme)
 if not status_ok then
-  vim.notify("Failed to load colorscheme: `" .. colorscheme .. "`")
-  return
+	vim.notify("Failed to load colorscheme: `" .. colorscheme .. "`")
+	return
 end
