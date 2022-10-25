@@ -5,9 +5,6 @@ syntax on
 let g:better_whitespace_ctermcolor='DarkRed'
 let g:better_whitespace_guicolor='DarkRed'
 
-" give room to breathe at bottom of screen
-let g:scrollfix=70
-
 lua require("user.nvimtree")
 lua require('user.keymaps')
 lua require("user.colorscheme")
@@ -22,7 +19,7 @@ lua require("user.lightbulb")
 lua require("user.autopairs")
 lua require("user.null-ls")
 
-" TODO: switch whole file to lua
+" todo: switch whole file to lua
 " options should go after plugins, to prevent plugins from setting stuff
 lua require('user.options')
 
@@ -73,8 +70,11 @@ vnoremap <leader>P "+P
 " clear the highlighted search
 nnoremap <leader>h :noh<CR>
 
-nnoremap <leader>q :q<CR>
-nnoremap <leader>s :w<CR>
+" close a buffer without killing window split
+nnoremap <leader>dd :b# <bar> bd# <CR>
+
+" save, then delete all non-visible buffers
+nnoremap <silent> <C-q> :silent! wa! <bar> :Bdelete hidden<CR>
 
 " git add
 nnoremap <silent> <leader>gaa :silent! !git add .<CR> <bar> :echo "git added ."<CR>
@@ -112,7 +112,7 @@ nnoremap <leader>aa :lua vim.lsp.buf.code_action()<CR>
 nnoremap <silent> <leader>cc @b
 
 " -- restart lsp
-nnoremap <leader>lsp :LspRestart<CR>
+nnoremap <leader>ll :LspRestart<CR>
 
 " folding
 set foldmethod=indent

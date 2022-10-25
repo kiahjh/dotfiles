@@ -3,16 +3,16 @@ local fn = vim.fn
 -- Automatically install packer
 local install_path = fn.stdpath("data") .. "/site/pack/packer/start/packer.nvim"
 if fn.empty(fn.glob(install_path)) > 0 then
-  PACKER_BOOTSTRAP = fn.system({
-    "git",
-    "clone",
-    "--depth",
-    "1",
-    "https://github.com/wbthomason/packer.nvim",
-    install_path,
-  })
-  print("Installing packer close and reopen Neovim...")
-  vim.cmd([[packadd packer.nvim]])
+	PACKER_BOOTSTRAP = fn.system({
+		"git",
+		"clone",
+		"--depth",
+		"1",
+		"https://github.com/wbthomason/packer.nvim",
+		install_path,
+	})
+	print("Installing packer close and reopen Neovim...")
+	vim.cmd([[packadd packer.nvim]])
 end
 
 -- Autocommand that reloads neovim whenever you save the plugins.lua file
@@ -26,101 +26,104 @@ vim.cmd([[
 -- Use a protected call so we don't error out on first use
 local status_ok, packer = pcall(require, "packer")
 if not status_ok then
-  print("couldn't require packer")
-  return
+	print("couldn't require packer")
+	return
 end
 
 -- Have packer use a popup window
 packer.init({
-  display = {
-    open_fn = function()
-      return require("packer.util").float({ border = "rounded" })
-    end,
-  },
+	display = {
+		open_fn = function()
+			return require("packer.util").float({ border = "rounded" })
+		end,
+	},
 })
 
 return packer.startup(function(use)
-  -- lets packer manage itself
-  use("wbthomason/packer.nvim")
+	-- lets packer manage itself
+	use("wbthomason/packer.nvim")
 
-  -- lots of plugins rely on these two (i think)
-  use("nvim-lua/popup.nvim")
-  use("nvim-lua/plenary.nvim")
+	-- lots of plugins rely on these two (i think)
+	use("nvim-lua/popup.nvim")
+	use("nvim-lua/plenary.nvim")
 
-  -- telescope
-  use("nvim-telescope/telescope.nvim")
-  use("nvim-telescope/telescope-ui-select.nvim")
+	-- telescope
+	use("nvim-telescope/telescope.nvim")
+	use("nvim-telescope/telescope-ui-select.nvim")
 
-  -- lightbulbs for code actions
-  use({
-    "kosayoda/nvim-lightbulb",
-    requires = "antoinemadec/FixCursorHold.nvim",
-  })
+	-- lightbulbs for code actions
+	use({
+		"kosayoda/nvim-lightbulb",
+		requires = "antoinemadec/FixCursorHold.nvim",
+	})
 
-  -- current colorscheme
-  use("folke/tokyonight.nvim")
+	-- current colorscheme
+	use("folke/tokyonight.nvim")
 
-  -- completion
-  use("hrsh7th/nvim-cmp") -- The completion plugin
-  use("hrsh7th/cmp-buffer") -- buffer completions
-  use("hrsh7th/cmp-path") -- path completions
-  use("hrsh7th/cmp-cmdline") -- path completions
-  use("hrsh7th/cmp-nvim-lsp")
-  use("hrsh7th/cmp-nvim-lua")
+	-- completion
+	use("hrsh7th/nvim-cmp") -- The completion plugin
+	use("hrsh7th/cmp-buffer") -- buffer completions
+	use("hrsh7th/cmp-path") -- path completions
+	use("hrsh7th/cmp-cmdline") -- path completions
+	use("hrsh7th/cmp-nvim-lsp")
+	use("hrsh7th/cmp-nvim-lua")
 
-  -- LSP
-  use("neovim/nvim-lspconfig")
-  use("williamboman/nvim-lsp-installer")
-  use("jose-elias-alvarez/null-ls.nvim")
+	-- LSP
+	use("neovim/nvim-lspconfig")
+	use("williamboman/nvim-lsp-installer")
+	use("jose-elias-alvarez/null-ls.nvim")
 
-  -- prettier
-  use("prettier/vim-prettier")
+	-- prettier (do i need this? isn't null-ls handling it?)
+	use("prettier/vim-prettier")
 
-  -- swift
-  use("vim-syntastic/syntastic")
-  use("keith/swift")
+	-- for closing buffers
+	use("Asheq/close-buffers.vim")
 
-  -- copilot
-  use("github/copilot.vim")
+	-- swift
+	use("vim-syntastic/syntastic")
+	use("keith/swift")
 
-  -- commenting out lines/chunks
-  use("tpope/vim-commentary")
+	-- copilot
+	use("github/copilot.vim")
 
-  -- statusline
-  use("nvim-lualine/lualine.nvim")
+	-- commenting out lines/chunks
+	use("tpope/vim-commentary")
 
-  -- autopairs
-  use("windwp/nvim-autopairs")
+	-- statusline
+	use("nvim-lualine/lualine.nvim")
 
-  -- nvim-tree
-  use({
-    "nvim-tree/nvim-tree.lua",
-    requires = { "nvim-tree/nvim-web-devicons" }, -- for file icons
-  })
+	-- autopairs
+	use("windwp/nvim-autopairs")
 
-  -- syntax highlighting for gql fragments in .tsx
-  use("jparise/vim-graphql")
+	-- nvim-tree
+	use({
+		"nvim-tree/nvim-tree.lua",
+		requires = { "nvim-tree/nvim-web-devicons" }, -- for file icons
+	})
 
-  -- highlights/trims trailing whitespace
-  use("ntpeters/vim-better-whitespace")
+	-- syntax highlighting for gql fragments in .tsx
+	use("jparise/vim-graphql")
 
-  -- automatically make sessions
-  use("tpope/vim-obsession")
+	-- highlights/trims trailing whitespace
+	use("ntpeters/vim-better-whitespace")
 
-  -- git indicators in gutter, and more git stuff
-  use("lewis6991/gitsigns.nvim")
+	-- automatically make sessions
+	use("tpope/vim-obsession")
 
-  -- treesiter
-  use({ "nvim-treesitter/nvim-treesitter", run = ":TSUpdate" })
+	-- git indicators in gutter, and more git stuff
+	use("lewis6991/gitsigns.nvim")
 
-  -- surround
-  use("tpope/vim-surround")
+	-- treesiter
+	use({ "nvim-treesitter/nvim-treesitter", run = ":TSUpdate" })
 
-  -- dim inactive windows
-  use("sunjon/shade.nvim")
+	-- surround
+	use("tpope/vim-surround")
 
-  -- automatically set up configuration after cloning packer.nvim
-  if PACKER_BOOTSTRAP then
-    require("packer").sync()
-  end
+	-- dim inactive windows
+	use("sunjon/shade.nvim")
+
+	-- automatically set up configuration after cloning packer.nvim
+	if PACKER_BOOTSTRAP then
+		require("packer").sync()
+	end
 end)

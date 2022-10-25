@@ -3,9 +3,9 @@ local M = {}
 M.setup = function()
 	local signs = {
 		{ name = "DiagnosticSignError", text = "" }, -- 
-		{ name = "DiagnosticSignWarn", text = "•" }, -- 
-		{ name = "DiagnosticSignHint", text = "•" }, -- 
-		{ name = "DiagnosticSignInfo", text = "•" }, -- 
+		{ name = "DiagnosticSignWarn", text = "" }, -- 
+		{ name = "DiagnosticSignHint", text = "" }, -- 
+		{ name = "DiagnosticSignInfo", text = "" }, -- 
 	}
 
 	for _, sign in ipairs(signs) do
@@ -13,8 +13,11 @@ M.setup = function()
 	end
 
 	local config = {
-		-- disable virtual text
-		virtual_text = false, -- the right floaters...
+		-- virtual_text -- the right floaters...
+		virtual_text = {
+			-- use :help vim.diagnostic.config for info on configuration
+			severity = { min = vim.diagnostic.severity.WARN },
+		},
 		-- show signs
 		signs = {
 			active = signs,
@@ -45,8 +48,8 @@ local function lsp_highlight_document(client)
 			[[
       augroup lsp_document_highlight
         autocmd! * <buffer>
-        autocmd CursorHold <buffer> lua vim.lsp.buf.document_highlight()
-        autocmd CursorMoved <buffer> lua vim.lsp.buf.clear_references()
+        autocmd CursorHold <buffer> silent! lua vim.lsp.buf.document_highlight()
+        autocmd CursorMoved <buffer> silent! lua vim.lsp.buf.clear_references()
       augroup END
     ]],
 			false
