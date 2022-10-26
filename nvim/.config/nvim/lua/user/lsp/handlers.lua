@@ -76,6 +76,8 @@ local function lsp_keymaps(bufnr)
 	keymap(bufnr, "n", "<space>e", "<cmd>lua vim.diagnostic.open_float()<CR>", opts)
 	keymap(bufnr, "n", "[d", "<cmd>lua vim.diagnostic.goto_prev()<CR>", opts)
 	keymap(bufnr, "n", "]d", "<cmd>lua vim.diagnostic.goto_next()<CR>", opts)
+
+	vim.cmd([[ command! Format execute 'lua vim.lsp.buf.formatting()' ]])
 end
 
 local lsp_formatting = function(bufnr)
@@ -101,30 +103,17 @@ M.on_attach = function(client, bufnr)
 		})
 	end
 
-	-- if
-	-- 	client.supports_method("textDocument/formatting")
-	-- 	or client.server_capabilities.documentFormatting
-	-- 	or client.name == "sourcekit"
-	-- then
-	-- 	vim.api.nvim_clear_autocmds({ group = augroup, buffer = bufnr })
-	-- 	vim.api.nvim_create_autocmd("BufWritePre", {
-	-- 		group = augroup,
-	-- 		buffer = bufnr,
-	-- 		callback = function()
-	-- 			vim.lsp.buf.formatting_sync()
-	-- 		end,
-	-- 	})
-	-- end
-
-	-- -- when you upgrade to nvim 0.8, you can use the recommended
-	-- -- way of picking the right formatter
-	-- if client.name == "tsserver" then
-	-- 	client.server_capabilities.documentFormatting = false
-	-- end
-
-	-- if client.name == "sumneko_lua" then
-	-- 	client.server_capabilities.documentFormatting = false
-	-- end
+	-- not sure why i have to do this for swift...
+	if client.name == "sourcekit" then
+		vim.api.nvim_clear_autocmds({ group = augroup, buffer = bufnr })
+		vim.api.nvim_create_autocmd("BufWritePre", {
+			group = augroup,
+			buffer = bufnr,
+			callback = function()
+				vim.lsp.buf.formatting_sync()
+			end,
+		})
+	end
 
 	lsp_keymaps(bufnr)
 	lsp_highlight_document(client)
