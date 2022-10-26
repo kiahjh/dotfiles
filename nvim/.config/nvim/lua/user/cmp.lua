@@ -4,6 +4,9 @@ if not cmp_status_ok then
 	return
 end
 
+-- snippet engine, required for completions
+local luasnip = require("luasnip")
+
 local check_backspace = function()
 	local col = vim.fn.col(".") - 1
 	return col == 0 or vim.fn.getline("."):sub(col, col):match("%s")
@@ -39,10 +42,18 @@ local kind_icons = {
 }
 -- find more here: https://www.nerdfonts.com/cheat-sheet
 
+require("luasnip/loaders/from_vscode").lazy_load()
+
 local cmp_autopairs = require("nvim-autopairs.completion.cmp")
 cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done())
 
 cmp.setup({
+	snippet = {
+		expand = function(args)
+			luasnip.lsp_expand(args.body) -- For `luasnip` users.
+		end,
+	},
+
 	mapping = cmp.mapping.preset.insert({
 		["<C-k>"] = cmp.mapping.select_prev_item(),
 		["<C-j>"] = cmp.mapping.select_next_item(),
@@ -59,6 +70,10 @@ cmp.setup({
 		["<Tab>"] = cmp.mapping(function(fallback)
 			if cmp.visible() then
 				cmp.select_next_item()
+			elseif luasnip.expandable() then
+				luasnip.expand()
+			elseif luasnip.expand_or_jumpable() then
+				luasnip.expand_or_jump()
 			elseif check_backspace() then
 				fallback()
 			else
@@ -71,6 +86,8 @@ cmp.setup({
 		["<S-Tab>"] = cmp.mapping(function(fallback)
 			if cmp.visible() then
 				cmp.select_prev_item()
+			elseif luasnip.jumpable(-1) then
+				luasnip.jump(-1)
 			else
 				fallback()
 			end
@@ -87,6 +104,7 @@ cmp.setup({
 				nvim_lsp = "[lsp]",
 				nvim_lua = "[lua]",
 				buffer = "[bf]",
+				luasnip = "[luasnip]",
 				path = "[path]",
 				emoji = "",
 			})[entry.source.name]
@@ -105,6 +123,7 @@ cmp.setup({
 		},
 		{ name = "path" },
 		{ name = "nvim_lua" },
+		{ name = "luasnip" },
 	},
 	confirm_opts = {
 		behavior = cmp.ConfirmBehavior.Replace,
