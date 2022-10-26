@@ -76,7 +76,7 @@ return packer.startup(function(use)
 	use("jose-elias-alvarez/null-ls.nvim")
 
 	-- prettier (do i need this? isn't null-ls handling it?)
-	use("prettier/vim-prettier")
+	-- use("prettier/vim-prettier")
 
 	-- for closing buffers
 	use("Asheq/close-buffers.vim")

@@ -39,6 +39,9 @@ autocmd BufWritePre *.* StripWhitespace
 " make swift comment out with `//`
 autocmd FileType swift setlocal commentstring=//\ %s
 
+" auto save whenever focus is lost
+autocmd FocusLost * silent! wa
+
 " swap ; and ;
 nnoremap ; :
 nnoremap : ;
