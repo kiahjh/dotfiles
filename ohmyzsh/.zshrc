@@ -38,6 +38,12 @@ new() {
   tmux new-window -n "$1"
 }
 
+uuid() {
+  UUID=$(/usr/local/bin/uuid | perl -pe "s/\s//g");
+  printf $UUID | pbcopy;
+  printf "\n$UUID (copied to clipboard)\n\n";
+}
+
 # aliases
 alias vim="nvim"
 alias vims="nvim -S Session.vim"
