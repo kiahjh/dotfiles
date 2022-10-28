@@ -1,0 +1,16 @@
+#!/usr/bin/env osascript
+
+activate application "Xcode"
+
+tell application "System Events"
+  tell process "Xcode"
+    keystroke "." using command down
+  end tell
+end tell
+
+delay 0.1
+
+tell application "Kitty"
+  activate
+end tell
+

@@ -117,6 +117,10 @@ nnoremap <silent> <leader>cc @b
 " -- restart lsp
 nnoremap <leader>ll :LspRestart<CR>
 
+" -- xcode run/stox
+nnoremap <leader>33 :silent !xcode-build<CR>
+nnoremap <leader>88 :silent !xcode-stop<CR>
+
 " folding
 set foldmethod=indent
 set foldlevelstart=99
