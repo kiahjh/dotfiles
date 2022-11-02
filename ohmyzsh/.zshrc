@@ -34,6 +34,14 @@ if [ -f ${FLROOT}/bash_aliases.sh ]; then
   source ${FLROOT}/bash_aliases.sh
 fi
 
+acommit() {
+  git commit -am "$1"
+}
+
+mcommit() {
+  git commit -m "$1"
+}
+
 new() {
   tmux new-window -n "$1"
 }
@@ -45,6 +53,7 @@ uuid() {
 }
 
 # aliases
+alias issue="gh issue create --repo gertrude-app/project"
 alias vim="nvim"
 alias vims="nvim -S Session.vim"
 alias ssh="kitty +kitten ssh"
