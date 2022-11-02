@@ -5,12 +5,16 @@ COLORTERM="truecolor"
 # keep on latest npm, no matter what node version is used
 export N_PRESERVE_NPM=1
 
-# fl stuff
+# flp stuff
 export PUPPETEER_PRODUCT=firefox
+
+# pnpm
+export PNPM_HOME="/Users/jared/Library/pnpm"
 
 # clear out the path, start brand new
 PATH=""
 
+path+=$PNPM_HOME
 path+=~/.local/scripts
 path+=/usr/local/bin
 path+=/usr/local/sbin
@@ -23,5 +27,6 @@ path+=/opt/homebrew/bin
 path+=/opt/homebrew/opt/postgresql@12/bin
 path+=~/.npm-global/bin
 path+=/Applications/kitty.app/Contents/MacOS
+
 export PATH
 
