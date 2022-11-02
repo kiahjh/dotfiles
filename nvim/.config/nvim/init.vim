@@ -9,8 +9,6 @@ let g:better_whitespace_guicolor='None'
 lua require("user.nvimtree")
 lua require('user.keymaps')
 lua require("user.colorscheme")
-lua require("user.cmp")
-lua require("user.lsp")
 lua require("user.treesitter")
 lua require("user.gitsigns")
 lua require("user.lualine")
@@ -19,6 +17,8 @@ lua require("user.lightbulb")
 lua require("user.toggleterm")
 lua require("user.autopairs")
 lua require("user.null-ls")
+lua require("user.cmp")
+lua require("user.lsp")
 
 " todo: switch whole file to lua
 " options should go after plugins, to prevent plugins from setting stuff
