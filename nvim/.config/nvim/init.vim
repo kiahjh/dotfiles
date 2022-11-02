@@ -2,8 +2,9 @@ lua require("user.plugins")
 
 syntax on
 
-let g:better_whitespace_ctermcolor='DarkRed'
-let g:better_whitespace_guicolor='DarkRed'
+" no color till i figure out how to prevent it in toggleterm
+let g:better_whitespace_ctermcolor='None'
+let g:better_whitespace_guicolor='None'
 
 lua require("user.nvimtree")
 lua require('user.keymaps')
@@ -15,6 +16,7 @@ lua require("user.gitsigns")
 lua require("user.lualine")
 lua require("user.telescope")
 lua require("user.lightbulb")
+lua require("user.toggleterm")
 lua require("user.autopairs")
 lua require("user.null-ls")
 

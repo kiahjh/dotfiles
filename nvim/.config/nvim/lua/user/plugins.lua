@@ -121,6 +121,9 @@ return packer.startup(function(use)
   -- surround
   use("tpope/vim-surround")
 
+  -- toggleterm
+  use("akinsho/toggleterm.nvim")
+
   -- automatically set up configuration after cloning packer.nvim
   if PACKER_BOOTSTRAP then
     require("packer").sync()
