@@ -2,10 +2,6 @@ lua require("user.plugins")
 
 syntax on
 
-" no color till i figure out how to prevent it in toggleterm
-let g:better_whitespace_ctermcolor='None'
-let g:better_whitespace_guicolor='None'
-
 lua require("user.nvimtree")
 lua require('user.keymaps')
 lua require("user.colorscheme")
@@ -121,6 +117,17 @@ nnoremap <leader>ll :LspRestart<CR>
 " -- xcode run/stox
 nnoremap <leader>33 :silent !xcode-build<CR>
 nnoremap <leader>88 :silent !xcode-stop<CR>
+
+" -- temp
+nnoremap <leader>pp :let @+=expand('%:p')<CR>
+
+" -- whitespace highlighting
+let g:better_whitespace_ctermcolor='DarkRed'
+let g:better_whitespace_guicolor='DarkRed'
+" -- prevent highlighting in terminal buffers
+augroup vimrc
+  autocmd TermOpen * :DisableWhitespace
+augroup END
 
 " folding
 set foldmethod=indent
