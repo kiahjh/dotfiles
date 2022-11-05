@@ -24,9 +24,6 @@ augroup filetype
   au! BufRead,BufNewFile *.swift exec "set filetype=swift shiftwidth=2 tabstop=2"
 augroup END
 
-" cause enter in quickfix to also close quickfix
-:autocmd FileType qf nnoremap <buffer> <CR> <CR>:cclose<CR>
-
 " this disables getting newlines starting with comment leader
 autocmd BufNewFile,BufRead * setlocal formatoptions-=cro
 
@@ -91,6 +88,12 @@ nnoremap <C-j> :silent !tmux split-window -p 33<CR>
 
 " gold
 nnoremap <C-f> :silent !tmux neww tmux-sessionizer.sh<CR>
+
+" vim unimpaired style quickfix navigate
+nnoremap ]q :cnext<CR><CR>
+nnoremap [q :cprev<CR><CR>
+" cause enter in quickfix to also close quickfix
+:autocmd FileType qf nnoremap <buffer> <CR> <CR>:cclose<CR>
 
 " nvim-tree
 nnoremap <C-b> :NvimTreeToggle<CR>
