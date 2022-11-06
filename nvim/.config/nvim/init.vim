@@ -50,8 +50,9 @@ let mapleader = " "
 nnoremap <leader>rc :source ~/.config/nvim/init.vim<CR>
 nnoremap <C-p> :Telescope git_files<CR>
 nnoremap <leader>pf :Telescope find_files find_command=rg,--hidden,--files<CR>
-nnoremap <leader>f :Telescope live_grep<CR>
-nnoremap <Leader>b :lua require'telescope.builtin'.buffers(require('telescope.themes').get_dropdown({preview_title = 'Preview'}))<CR>
+nnoremap <leader>ff :Telescope live_grep<CR>
+nnoremap <leader>fr :Telescope lsp_references<CR>
+nnoremap <leader>fb :Telescope buffers<CR>
 
 " copy to system clipboard
 vnoremap  <leader>y "+y
