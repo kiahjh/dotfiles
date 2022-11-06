@@ -15,6 +15,7 @@ lua require("user.autopairs")
 lua require("user.null-ls")
 lua require("user.cmp")
 lua require("user.lsp")
+lua require("user.command-palette")
 
 " todo: switch whole file to lua
 " options should go after plugins, to prevent plugins from setting stuff
@@ -121,8 +122,8 @@ nnoremap <leader>ll :LspRestart<CR>
 nnoremap <leader>33 :silent !xcode-build<CR>
 nnoremap <leader>88 :silent !xcode-stop<CR>
 
-" -- temp
-nnoremap <leader>pp :let @+=expand('%:p')<CR>
+" -- custom homegrown command palette goodness
+nnoremap <leader>cp :CommandPalette<CR>
 
 " -- whitespace highlighting
 let g:better_whitespace_ctermcolor='DarkRed'
