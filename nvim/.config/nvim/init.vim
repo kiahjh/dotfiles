@@ -92,8 +92,8 @@ nnoremap <C-j> :silent !tmux split-window -p 33<CR>
 nnoremap <C-f> :silent !tmux neww tmux-sessionizer.sh<CR>
 
 " vim unimpaired style quickfix navigate
-nnoremap ]q :cnext<CR><CR>
-nnoremap [q :cprev<CR><CR>
+nnoremap ]q :cnext<CR>
+nnoremap [q :cprev<CR>
 " cause enter in quickfix to also close quickfix
 :autocmd FileType qf nnoremap <buffer> <CR> <CR>:cclose<CR>
 
