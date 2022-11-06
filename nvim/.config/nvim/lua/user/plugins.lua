@@ -101,6 +101,8 @@ return packer.startup(function(use)
   use({
     "nvim-tree/nvim-tree.lua",
     requires = { "nvim-tree/nvim-web-devicons" }, -- for file icons
+    -- try updating again later, on nov 6, had trouble with duplicating folders
+    commit = "6ca6f99e7689c68679e8f0a58b421545ff52931f",
   })
 
   -- syntax highlighting for gql fragments in .tsx
