@@ -92,10 +92,13 @@ nnoremap <C-j> :silent !tmux split-window -p 33<CR>
 nnoremap <C-f> :silent !tmux neww tmux-sessionizer.sh<CR>
 
 " vim unimpaired style quickfix navigate
-nnoremap ]q :cnext<CR>
-nnoremap [q :cprev<CR>
+nnoremap ]q :silent! cnext<CR>
+nnoremap [q :silent! cprev<CR>
 " cause enter in quickfix to also close quickfix
 :autocmd FileType qf nnoremap <buffer> <CR> <CR>:cclose<CR>
+
+" alt for save, try to prevent always adding `;w` when i'm typing super fast
+nnoremap <C-s> :w<CR>
 
 " nvim-tree
 nnoremap <C-b> :NvimTreeToggle<CR>
@@ -149,3 +152,9 @@ let @c="f\"s{cx(`f\"s`, className)}"
 let @r="*Nciw"
 " @b add className prop
 let @b="ea className=\"\"i"
+" @i convert to I-mplicit return
+let @i="f(%/{%ddx/returndaw"
+" @e convert to W-xplicit return
+let @e="f(%f(i{return l%lxa};"
+
+
