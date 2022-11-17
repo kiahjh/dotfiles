@@ -24,6 +24,7 @@ path+=/bin
 path+=/sbin
 path+=~/.nvim8/nvim-macos/bin # temp, while testing nvim 0.8.0
 path+=/opt/homebrew/bin
+path+=/opt/homebrew/sbin
 path+=/opt/homebrew/opt/postgresql@12/bin
 path+=~/.npm-global/bin
 path+=/Applications/kitty.app/Contents/MacOS
