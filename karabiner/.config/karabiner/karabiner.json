@@ -585,6 +585,131 @@
                     "manipulate_caps_lock_led": false,
                     "simple_modifications": [],
                     "treat_as_built_in_keyboard": false
+                },
+                {
+                    "disable_built_in_keyboard_if_exists": false,
+                    "fn_function_keys": [],
+                    "identifiers": {
+                        "is_keyboard": true,
+                        "is_pointing_device": false,
+                        "product_id": 24926,
+                        "vendor_id": 7504
+                    },
+                    "ignore": false,
+                    "manipulate_caps_lock_led": true,
+                    "simple_modifications": [
+                        {
+                            "from": {
+                                "key_code": "caps_lock"
+                            },
+                            "to": [
+                                {
+                                    "key_code": "japanese_eisuu"
+                                }
+                            ]
+                        },
+                        {
+                            "from": {
+                                "key_code": "delete_or_backspace"
+                            },
+                            "to": [
+                                {
+                                    "key_code": "escape"
+                                }
+                            ]
+                        },
+                        {
+                            "from": {
+                                "key_code": "down_arrow"
+                            },
+                            "to": [
+                                {
+                                    "key_code": "up_arrow"
+                                }
+                            ]
+                        },
+                        {
+                            "from": {
+                                "key_code": "up_arrow"
+                            },
+                            "to": [
+                                {
+                                    "key_code": "down_arrow"
+                                }
+                            ]
+                        },
+                        {
+                            "from": {
+                                "key_code": "home"
+                            },
+                            "to": [
+                                {
+                                    "key_code": "left_option"
+                                }
+                            ]
+                        },
+                        {
+                            "from": {
+                                "key_code": "left_control"
+                            },
+                            "to": [
+                                {
+                                    "key_code": "left_command"
+                                }
+                            ]
+                        },
+                        {
+                            "from": {
+                                "key_code": "left_option"
+                            },
+                            "to": [
+                                {
+                                    "key_code": "left_control"
+                                }
+                            ]
+                        },
+                        {
+                            "from": {
+                                "key_code": "open_bracket"
+                            },
+                            "to": [
+                                {
+                                    "key_code": "delete_forward"
+                                }
+                            ]
+                        },
+                        {
+                            "from": {
+                                "key_code": "page_down"
+                            },
+                            "to": [
+                                {
+                                    "key_code": "close_bracket"
+                                }
+                            ]
+                        },
+                        {
+                            "from": {
+                                "key_code": "page_up"
+                            },
+                            "to": [
+                                {
+                                    "key_code": "open_bracket"
+                                }
+                            ]
+                        },
+                        {
+                            "from": {
+                                "key_code": "left_command"
+                            },
+                            "to": [
+                                {
+                                    "key_code": "tab"
+                                }
+                            ]
+                        }
+                    ],
+                    "treat_as_built_in_keyboard": false
                 }
             ],
             "fn_function_keys": [
