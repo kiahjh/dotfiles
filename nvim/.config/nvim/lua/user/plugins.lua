@@ -91,6 +91,9 @@ return packer.startup(function(use)
   -- commenting out lines/chunks
   use("tpope/vim-commentary")
 
+  -- jsx commenting
+  use("JoosepAlviste/nvim-ts-context-commentstring")
+
   -- statusline
   use("nvim-lualine/lualine.nvim")
 
