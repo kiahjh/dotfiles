@@ -6,6 +6,7 @@ end
 
 local lsp_formatting = function(bufnr)
   vim.lsp.buf.format({
+    timeout = 3000,
     filter = function(client)
       return client.name == "null-ls"
     end,
@@ -16,7 +17,7 @@ end
 local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
 
 null_ls.setup({
-  debug = true,
+  debug = false,
   sources = {
     null_ls.builtins.formatting.prettier,
     null_ls.builtins.formatting.eslint_d,
@@ -25,9 +26,13 @@ null_ls.setup({
     null_ls.builtins.diagnostics.eslint_d.with({
       extra_args = {
         "--rule",
-        "@typescript-eslint/no-unused-vars: off",
+        "@typescript-eslint/no-unused-vars: warn",
         "--rule",
         "@typescript-eslint/quotes: off",
+        "--rule",
+        "no-only-tests/no-only-tests: off",
+        "--ignore-pattern",
+        "!**/.storybook/*",
         "--cache",
       },
     }),
