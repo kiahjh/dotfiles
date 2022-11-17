@@ -16,7 +16,7 @@ M.setup = function()
     -- virtual_text -- the right floaters...
     virtual_text = {
       -- use :help vim.diagnostic.config for info on configuration
-      severity = { min = vim.diagnostic.severity.WARN },
+      severity = { min = vim.diagnostic.severity.ERROR },
     },
     -- show signs
     signs = {
@@ -51,7 +51,7 @@ local function lsp_highlight_document(client)
         autocmd CursorHold <buffer> silent! lua vim.lsp.buf.document_highlight()
         autocmd CursorMoved <buffer> silent! lua vim.lsp.buf.clear_references()
       augroup END
-    ]] ,
+    ]],
       false
     )
   end
