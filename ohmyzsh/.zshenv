@@ -2,6 +2,9 @@
 BAT_THEME='Visual Studio Dark+'
 COLORTERM="truecolor"
 
+# prevent homebrew from running all updates on every upgrade
+export HOMEBREW_NO_AUTO_UPDATE=1
+
 # keep on latest npm, no matter what node version is used
 export N_PRESERVE_NPM=1
 
