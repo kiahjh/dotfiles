@@ -56,7 +56,8 @@ uuid() {
 alias issue="gh issue create --repo gertrude-app/project"
 alias vim="nvim"
 alias vims="nvim -S Session.vim"
-alias ssh="kitty +kitten ssh"
+alias vi="/usr/bin/vim"
+alias ksh="kitty +kitten ssh"
 alias st='~/jaredh159/Swiftest/.build/debug/Swiftest'
 alias m='make'
 alias lnhelp='cat ~/.lnhelp'
