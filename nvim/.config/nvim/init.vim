@@ -23,6 +23,7 @@ lua require('user.options')
 
 augroup filetype
   au! BufRead,BufNewFile *.swift exec "set filetype=swift shiftwidth=2 tabstop=2"
+  au! BufRead,BufNewFile *.rs exec "set shiftwidth=2 tabstop=2"
 augroup END
 
 " this disables getting newlines starting with comment leader

@@ -12,7 +12,7 @@ export N_PRESERVE_NPM=1
 export PUPPETEER_PRODUCT=firefox
 
 # pnpm
-export PNPM_HOME="/Users/jared/Library/pnpm"
+export PNPM_HOME="$HOME/Library/pnpm"
 
 # clear out the path, start brand new
 PATH=""

@@ -11,6 +11,7 @@ plugins=(git)
 source $HOME/.zshenv
 source $ZSH/oh-my-zsh.sh
 source $ZSH/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+source $HOME/.cargo/env # rust
 
 bindkey -s ^f "tmux-sessionizer.sh\n"
 bindkey -s ^t "git commit -am '"
