@@ -129,6 +129,9 @@ return packer.startup(function(use)
   -- toggleterm
   use("akinsho/toggleterm.nvim")
 
+  -- just
+  use("NoahTheDuke/vim-just")
+
   -- automatically set up configuration after cloning packer.nvim
   if PACKER_BOOTSTRAP then
     require("packer").sync()

@@ -1,5 +1,4 @@
 export ZSH="$HOME/.oh-my-zsh"
-export GIT_EDITOR=nvim
 
 # ZSH_THEME="robbyrussell"
 
@@ -13,8 +12,11 @@ source $ZSH/oh-my-zsh.sh
 source $ZSH/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 source $HOME/.cargo/env # rust
 
+# enable completions for `just`
+eval "$(brew shellenv)"
+fpath=($HOMEBREW_PREFIX/share/zsh/site-functions $fpath)
+
 bindkey -s ^f "tmux-sessionizer.sh\n"
-bindkey -s ^t "git commit -am '"
 
 # fixes kitty + tmux for some reason...
 unset MANPATH
@@ -27,13 +29,9 @@ release() {
   gh release create v$1 --title v$1 --notes ""
 }
 
+
 # when you transfer to headless mini, start with pulling latest cli changes + npm install + run compile, etc...
 alias flpub='fell clone && fell branch && fell status && fell sync && fl publish --slack'
-
-FLROOT="/Users/jared/fl"
-if [ -f ${FLROOT}/bash_aliases.sh ]; then
-  source ${FLROOT}/bash_aliases.sh
-fi
 
 acommit() {
   git commit -am "$1"
@@ -47,20 +45,34 @@ new() {
   tmux new-window -n "$1"
 }
 
+vims() {
+  if [ -f Session.vim ]; then
+    nvim -S Session.vim
+  else
+    nvim .
+  fi
+}
+
 uuid() {
   UUID=$(/usr/local/bin/uuid | perl -pe "s/\s//g");
   printf $UUID | pbcopy;
   printf "\n$UUID (copied to clipboard)\n\n";
 }
 
-# aliases
+# flp aliases
+alias fl="/Users/jared/mfl/node_modules/.bin/ts-node \
+  --project /Users/jared/mfl/apps/cli/tsconfig.json \
+  /Users/jared/mfl/apps/cli/src/app.ts ${@}"
+alias fell="/Users/jared/mfl/node_modules/.bin/ts-node \
+  --project /Users/jared/mfl/apps/fell/tsconfig.json \
+  /Users/jared/mfl/apps/fell/src/app.ts ${@}"
+  #
+# misc aliases
 alias issue="gh issue create --repo gertrude-app/project"
 alias vim="nvim"
-alias vims="nvim -S Session.vim"
 alias vi="/usr/bin/vim"
 alias ksh="kitty +kitten ssh"
 alias st='~/jaredh159/Swiftest/.build/debug/Swiftest'
-alias m='make'
 alias lnhelp='cat ~/.lnhelp'
 alias taghelp='cat ~/.taghelp'
 alias run='npm run "$@"'
@@ -74,4 +86,3 @@ alias cowpath="echo $PATH | perl -pe 's/:/\n/g' | cowsay"
 alias back="cd -"
 alias ndate="node -e \"process.stdout.write(new Date().toISOString())\" | pbcopy"
 alias grep="rg"
-alias review="github . ; make fix && make check"

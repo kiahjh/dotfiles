@@ -7,7 +7,21 @@ local actions = require("telescope.actions")
 telescope.setup({
   require("telescope").setup({
     pickers = {
+      grep_string = {
+        find_command = { "fd", "-t=f", "-a" },
+        path_display = { "absolute" },
+      },
+      find_files = {
+        find_command = { "fd", "-t=f", "-a" },
+        path_display = { "absolute" },
+      },
+      git_files = {
+        find_command = { "fd", "-t=f", "-a" },
+        path_display = { "absolute" },
+      },
       live_grep = {
+        find_command = { "fd", "-t=f", "-a" },
+        path_display = { "absolute" },
         additional_args = function()
           -- https://github.com/BurntSushi/ripgrep/issues/340#issuecomment-280868301
           return {
@@ -16,6 +30,8 @@ telescope.setup({
             "!.git/",
             "-g",
             "!node_modules/",
+            "-g",
+            "!bundled/",
             "-g",
             "!.oh-my-zsh/",
             "-g",
@@ -28,7 +44,7 @@ telescope.setup({
   defaults = {
     selection_caret = " ",
     path_display = { "smart" },
-    file_ignore_patterns = { ".git/", "node_modules", "dist/", ".build/" },
+    file_ignore_patterns = { ".git/", "node_modules", "dist/", ".build/", "bundled/*.js" },
 
     -- https://github.com/nvim-telescope/telescope.nvim/blob/master/lua/telescope/mappings.lua
     mappings = {

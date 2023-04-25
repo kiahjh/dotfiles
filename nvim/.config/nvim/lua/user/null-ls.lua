@@ -17,7 +17,7 @@ end
 local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
 
 null_ls.setup({
-  debug = false,
+  debug = true,
   sources = {
     null_ls.builtins.formatting.prettier,
     null_ls.builtins.formatting.eslint_d,
@@ -33,7 +33,7 @@ null_ls.setup({
         "--rule",
         "no-only-tests/no-only-tests: off",
         "--ignore-pattern",
-        "!**/.storybook/*",
+        "'!**/.storybook/**/*'",
         "--cache",
       },
     }),

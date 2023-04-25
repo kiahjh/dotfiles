@@ -44,6 +44,9 @@ nnoremap : ;
 vnoremap ; :
 vnoremap : ;
 
+" alt for save, try to prevent always adding `;w` when i'm typing super fast
+nnoremap <C-s> :w<CR>
+
 " highlight on yank
 au TextYankPost * silent! lua vim.highlight.on_yank {higroup="IncSearch"}
 
@@ -98,9 +101,6 @@ nnoremap [q :silent! cprev<CR>
 " cause enter in quickfix to also close quickfix
 :autocmd FileType qf nnoremap <buffer> <CR> <CR>:cclose<CR>
 
-" alt for save, try to prevent always adding `;w` when i'm typing super fast
-nnoremap <C-s> :w<CR>
-
 " nvim-tree
 nnoremap <C-b> :NvimTreeToggle<CR>
 nnoremap <leader>sf :NvimTreeFindFile<CR>
@@ -110,6 +110,9 @@ nnoremap <leader>ss :Obsess<CR>
 
 " -- write all writable buffers, ignoring unnamed and non-writable
 nnoremap <silent> <leader>wa :silent! wa!<CR> <bar> :echo "Wrote all writable buffers"<CR>
+
+" -- write all writable buffers, ignoring unnamed and non-writable, then quit
+nnoremap <silent> <leader>xx :silent! wa!<CR> <bar> :echo "Wrote all writable buffers"<CR> <bar> :qa!<CR>
 
 " -- start a local Rename
 nnoremap <silent> <leader>rr @r
@@ -121,6 +124,7 @@ nnoremap <leader>aa :lua vim.lsp.buf.code_action()<CR>
 nnoremap <silent> <leader>cc @b
 
 " -- restart lsp
+" nnoremap <leader>ll :LspStop<CR> <bar> :LspStart<CR>
 nnoremap <leader>ll :LspRestart<CR>
 
 " -- xcode run/stox
@@ -138,13 +142,21 @@ augroup vimrc
   autocmd TermOpen * :DisableWhitespace
 augroup END
 
+" repeat last c* cmd as if done with cgc
+" https://www.reddit.com/r/neovim/comments/sf0hmc/im_really_proud_of_this_mapping_i_came_up_with/
+nnoremap g. /\V\C<C-r>"<CR>cgn<C-a><Esc>
+
+" change word under cursor, and, repeat with .
+" http://www.kevinli.co/posts/2017-01-19-multiple-cursors-in-500-bytes-of-vimscript/
+nnoremap cn *``cgn
+nnoremap cN *``cgN
+
 " folding
 set foldmethod=indent
 set foldlevelstart=99
 set foldnestmax=19
 
 " macros
-" fdo
 " @d - turn backtick prop to <d>ouble quotes
 let @d="f{xr\"f`xr\"j^"
 " @c wrap classnames prop in cx
