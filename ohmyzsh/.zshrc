@@ -1,9 +1,9 @@
 export ZSH="$HOME/.oh-my-zsh"
 
-# ZSH_THEME="robbyrussell"
 
-ZSH_THEME="agnoster"
-DEFAULT_USER="jared"
+# ZSH_THEME="agnoster"
+ZSH_THEME="robbyrussell"
+DEFAULT_USER="miciah"
 
 plugins=(git)
 

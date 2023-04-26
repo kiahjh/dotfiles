@@ -1,6 +1,6 @@
-[user]
-  name = Jared Henderson
-  email = jaredh159@users.noreply.github.com
+; [user]
+;   name = Your name
+;   email = your email
 [mergetool]
   keepBackup = true
   prompt = false
