@@ -143,8 +143,7 @@ augroup vimrc
 augroup END
 
 " repeat last c* cmd as if done with cgc
-" https://www.reddit.com/r/neovim/comments/sf0hmc/im_really_proud_of_this_mapping_i_came_up_with/
-nnoremap g. /\V\C<C-r>"<CR>cgn<C-a><Esc>
+" https://www.reddit.com/r/neovim/comments/sf0hmc/im_really_proud_of_this_mapping_i_came_up_with/ nnoremap g. /\V\C<C-r>"<CR>cgn<C-a><Esc>
 
 " change word under cursor, and, repeat with .
 " http://www.kevinli.co/posts/2017-01-19-multiple-cursors-in-500-bytes-of-vimscript/

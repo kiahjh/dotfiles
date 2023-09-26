@@ -86,3 +86,10 @@ alias cowpath="echo $PATH | perl -pe 's/:/\n/g' | cowsay"
 alias back="cd -"
 alias ndate="node -e \"process.stdout.write(new Date().toISOString())\" | pbcopy"
 alias grep="rg"
+
+# bun completions
+[ -s "/Users/miciah/.bun/_bun" ] && source "/Users/miciah/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"

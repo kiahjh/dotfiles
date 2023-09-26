@@ -1,3 +1,5 @@
+echo "running .zshenv"
+
 # for vim fzf preview highlighting
 BAT_THEME='Visual Studio Dark+'
 COLORTERM="truecolor"
@@ -30,8 +32,10 @@ path+=$PNPM_HOME
 # export PATH="$HOME/.jenv/bin:$PATH"
 
 path+=~/.nvim-0.8.0/nvim-macos/bin
+path+=~/.nvim-0.9.2/nvim-macos/bin
 path+=/opt/homebrew/opt/node@18/bin
 path+=~/.local/scripts
+path+=~/.local/bin
 path+=/usr/local/bin
 path+=/usr/local/sbin
 path+=/usr/bin
@@ -48,3 +52,4 @@ path+=$ANDROID_HOME/platform-tools
 
 export PATH
 
+echo "finished!"
