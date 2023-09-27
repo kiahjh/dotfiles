@@ -1,74 +1,46 @@
--- ignore case in search patterns
-vim.opt.ignorecase = true
--- don't ignore case when search contains capital letters
-vim.opt.smartcase = true
+local options = {
+	backup = false, -- creates a backup file
+	clipboard = "unnamedplus", -- allows neovim to access the system clipboard
+	cmdheight = 1, -- more space in the neovim command line for displaying messages
+	completeopt = { "menuone", "noselect" }, -- mostly just for cmp
+	conceallevel = 0, -- so that `` is visible in markdown files
+	fileencoding = "utf-8", -- the encoding written to a file
+	hlsearch = true, -- highlight all matches on previous search pattern
+	ignorecase = true, -- ignore case in search patterns
+	mouse = "a", -- allow the mouse to be used in neovim
+	pumheight = 10, -- pop up menu height
+	showmode = false, -- we don't need to see things like -- INSERT -- anymore
+	showtabline = 2, -- always show tabs
+	smartcase = true, -- smart case
+	smartindent = true, -- make indenting smarter again
+	splitbelow = true, -- force all horizontal splits to go below current window
+	splitright = true, -- force all vertical splits to go to the right of current window
+	swapfile = false, -- creates a swapfile
+	termguicolors = true, -- set term gui colors (most terminals support this)
+	timeoutlen = 1000, -- time to wait for a mapped sequence to complete (in milliseconds)
+	undofile = true, -- enable persistent undo
+	updatetime = 300, -- faster completion (4000ms default)
+	writebackup = false, -- if a file is being edited by another program (or was written to file while editing with another program), it is not allowed to be edited
+	expandtab = true, -- convert tabs to spaces
+	shiftwidth = 2, -- the number of spaces inserted for each indentation
+	tabstop = 2, -- insert 2 spaces for a tab
+	cursorline = true, -- highlight the current line
+	number = true, -- set numbered lines
+	relativenumber = false, -- set relative numbered lines
+	numberwidth = 4, -- set number column width to 2 {default 4}
+	signcolumn = "yes", -- always show the sign column, otherwise it would shift the text each time
+	wrap = false, -- display lines as one long line
+	scrolloff = 8, -- is one of my fav
+	sidescrolloff = 8,
+	guifont = "monospace:h17", -- the font used in graphical neovim applications
+}
 
--- shortmess allows you to eliminate many messages vim gives
-vim.opt.shortmess = "a"
 vim.opt.shortmess:append("c")
 
-vim.opt.cmdheight = 1
+for k, v in pairs(options) do
+	vim.opt[k] = v
+end
 
-vim.opt.number = true
-vim.opt.relativenumber = true
-vim.opt.numberwidth = 4
-
--- save buffer whenever switching buffers, exiting, etc.
-vim.opt.autowriteall = true
-
--- make room for diagnostics, prevent jump when they appear
-vim.opt.signcolumn = "yes"
-
-vim.opt.scrolloff = 12
-vim.opt.sidescrolloff = 8
-
-vim.opt.tabstop = 2
-vim.opt.shiftwidth = 2
-vim.opt.softtabstop = 2
-vim.opt.expandtab = true
-vim.opt.autoindent = true
-vim.opt.smarttab = true
-vim.opt.termguicolors = true
-vim.opt.swapfile = false
-
--- search/replace `/g` by default
-vim.opt.gdefault = true
-
-vim.opt.fileencoding = "utf-8"
-vim.opt.hlsearch = true
-
--- allow the mouse to be used in neovim
-vim.opt.mouse = "a"
-
--- force all horiz/vert splits to go below/right of current window
-vim.opt.splitbelow = true
-vim.opt.splitright = true
-
-vim.opt.cursorline = true
-
--- faster completion (4000ms default)
-vim.opt.updatetime = 300
-
--- copilot
-vim.g.copilot_no_tab_map = true
-vim.g.copilot_assume_mapped = true
-vim.g.copilot_node_command = "/usr/local/n/versions/node/16.17.1/bin/node"
-vim.g.copilot_filetypes = { ["TelescopePrompt"] = false }
-
--- vim.opt.backup = false                          -- creates a backup file
--- vim.opt.clipboard = "unnamedplus"               -- allows neovim to access the system clipboard
--- vim.opt.completeopt = { "menuone" "noselect" }, -- mostly just for cmp
--- vim.opt.conceallevel = 0                        -- so that `` is visible in markdown files
--- vim.opt.pumheight = 10                          -- pop up menu height
--- vim.opt.showmode = false                        -- we don't need to see things like -- INSERT -- anymore
--- vim.opt.showtabline = 2                         -- always show tabs
---
---
--- vim.opt.timeoutlen = 100                        -- time to wait for a mapped sequence to complete (in milliseconds)
--- vim.opt.undofile = true                         -- enable persistent undo
--- vim.opt.updatetime = 300                        -- faster completion (4000ms default)
--- vim.opt.writebackup = false                     -- if a file is being edited by another program (or was written to file while editing with another program), it is not allowed to be edited
--- vim.opt.wrap = false                            -- display lines as one long line
--- vim.opt.guifont = "monospace:h17"               -- the font used in graphical neovim applications
-
--- vim.cmd "set whichwrap+=<,>,[,],h,l"
+vim.cmd("set whichwrap+=<,>,[,],h,l")
+vim.cmd([[set iskeyword+=-]])
+vim.cmd([[set formatoptions-=cro]]) -- TODO: this doesn't seem to work

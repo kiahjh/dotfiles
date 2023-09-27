@@ -1,63 +1,104 @@
 local status_ok, telescope = pcall(require, "telescope")
 if not status_ok then
-  return
+	return
 end
 
+telescope.load_extension("media_files")
+
 local actions = require("telescope.actions")
+
 telescope.setup({
-  require("telescope").setup({
-    pickers = {
-      grep_string = {
-        find_command = { "fd", "-t=f", "-a" },
-        path_display = { "absolute" },
-      },
-      find_files = {
-        find_command = { "fd", "-t=f", "-a" },
-        path_display = { "absolute" },
-      },
-      git_files = {
-        find_command = { "fd", "-t=f", "-a" },
-        path_display = { "absolute" },
-      },
-      live_grep = {
-        find_command = { "fd", "-t=f", "-a" },
-        path_display = { "absolute" },
-        additional_args = function()
-          -- https://github.com/BurntSushi/ripgrep/issues/340#issuecomment-280868301
-          return {
-            "--hidden",
-            "-g",
-            "!.git/",
-            "-g",
-            "!node_modules/",
-            "-g",
-            "!bundled/",
-            "-g",
-            "!.oh-my-zsh/",
-            "-g",
-            "!automatic_backups/",
-          }
-        end,
-      },
-    },
-  }),
-  defaults = {
-    selection_caret = " ",
-    path_display = { "smart" },
-    file_ignore_patterns = { ".git/", "node_modules", "dist/", ".build/", "bundled/*.js" },
+	defaults = {
 
-    -- https://github.com/nvim-telescope/telescope.nvim/blob/master/lua/telescope/mappings.lua
-    mappings = {
-      -- send FILTERED selections to quickfixlist (select with TAB in normal mode)
-      i = { ["<C-f>"] = actions.send_selected_to_qflist + actions.open_qflist },
-      n = { ["<C-f>"] = actions.send_selected_to_qflist + actions.open_qflist },
-    },
-  },
-  extensions = {
-    ["ui-select"] = {
-      require("telescope.themes").get_dropdown({}),
-    },
-  },
+		prompt_prefix = " ",
+		selection_caret = " ",
+		path_display = { "smart" },
+
+		mappings = {
+			i = {
+				["<C-n>"] = actions.cycle_history_next,
+				["<C-p>"] = actions.cycle_history_prev,
+
+				["<C-j>"] = actions.move_selection_next,
+				["<C-k>"] = actions.move_selection_previous,
+
+				["<C-c>"] = actions.close,
+
+				["<Down>"] = actions.move_selection_next,
+				["<Up>"] = actions.move_selection_previous,
+
+				["<CR>"] = actions.select_default,
+				["<C-x>"] = actions.select_horizontal,
+				["<C-v>"] = actions.select_vertical,
+				["<C-t>"] = actions.select_tab,
+
+				["<C-u>"] = actions.preview_scrolling_up,
+				["<C-d>"] = actions.preview_scrolling_down,
+
+				["<PageUp>"] = actions.results_scrolling_up,
+				["<PageDown>"] = actions.results_scrolling_down,
+
+				["<Tab>"] = actions.toggle_selection + actions.move_selection_worse,
+				["<S-Tab>"] = actions.toggle_selection + actions.move_selection_better,
+				["<C-q>"] = actions.send_to_qflist + actions.open_qflist,
+				["<M-q>"] = actions.send_selected_to_qflist + actions.open_qflist,
+				["<C-l>"] = actions.complete_tag,
+				["<C-_>"] = actions.which_key, -- keys from pressing <C-/>
+			},
+
+			n = {
+				["<esc>"] = actions.close,
+				["<CR>"] = actions.select_default,
+				["<C-x>"] = actions.select_horizontal,
+				["<C-v>"] = actions.select_vertical,
+				["<C-t>"] = actions.select_tab,
+
+				["<Tab>"] = actions.toggle_selection + actions.move_selection_worse,
+				["<S-Tab>"] = actions.toggle_selection + actions.move_selection_better,
+				["<C-q>"] = actions.send_to_qflist + actions.open_qflist,
+				["<M-q>"] = actions.send_selected_to_qflist + actions.open_qflist,
+
+				["j"] = actions.move_selection_next,
+				["k"] = actions.move_selection_previous,
+				["H"] = actions.move_to_top,
+				["M"] = actions.move_to_middle,
+				["L"] = actions.move_to_bottom,
+
+				["<Down>"] = actions.move_selection_next,
+				["<Up>"] = actions.move_selection_previous,
+				["gg"] = actions.move_to_top,
+				["G"] = actions.move_to_bottom,
+
+				["<C-u>"] = actions.preview_scrolling_up,
+				["<C-d>"] = actions.preview_scrolling_down,
+
+				["<PageUp>"] = actions.results_scrolling_up,
+				["<PageDown>"] = actions.results_scrolling_down,
+
+				["?"] = actions.which_key,
+			},
+		},
+	},
+	-- pickers = {
+	-- Default configuration for builtin pickers goes here:
+	-- picker_name = {
+	--   picker_config_key = value,
+	--   ...
+	-- }
+	-- Now the picker_config_key will be applied every time you call this
+	-- builtin picker
+	-- },
+	extensions = {
+		media_files = {
+			-- filetypes whitelist
+			-- defaults to {"png", "jpg", "mp4", "webm", "pdf"}
+			filetypes = { "png", "webp", "jpg", "jpeg" },
+			find_cmd = "rg", -- find command (defaults to `fd`)
+		},
+		-- Your extension configuration goes here:
+		-- extension_name = {
+		--   extension_config_key = value,
+		-- }
+		-- please take a look at the readme of the extension you want to configure
+	},
 })
-
-telescope.load_extension("ui-select")

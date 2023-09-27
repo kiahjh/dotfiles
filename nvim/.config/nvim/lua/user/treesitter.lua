@@ -1,42 +1,17 @@
-local status_ok, treesitter = pcall(require, "nvim-treesitter")
-if not status_ok then
-  return
-end
-
-local status_ok, configs = pcall(require, "nvim-treesitter.configs")
-if not status_ok then
-  return
-end
+local configs = require("nvim-treesitter.configs")
 
 configs.setup({
-  ensure_installed = { -- or "all"
-    "swift",
-    "typescript",
-    "tsx",
-    "javascript",
-    "lua",
-    "make",
-    "markdown",
-    "markdown_inline",
-    "graphql",
-    "bash",
-    "cpp",
-  },
-  ignore_install = {},
-  sync_install = false,
-  highlight = {
-    enable = true,
-    disable = {},
-  },
-  autopairs = {
-    enable = true,
-  },
-  indent = {
-    enable = true,
-    disable = {},
-  },
-  context_commentstring = {
-    enable = true,
-    enable_autocmd = false,
-  },
+	ensure_installed = "all",
+	sync_install = false,
+	ignore_install = { "" }, -- List of parsers to ignore installing
+	highlight = {
+		enable = true, -- false will disable the whole extension
+		disable = { "" }, -- list of language that will be disabled
+		additional_vim_regex_highlighting = true,
+	},
+	indent = { enable = true, disable = { "yaml" } },
+	context_commentstring = {
+		enable = true,
+		enable_autocmd = false,
+	},
 })
