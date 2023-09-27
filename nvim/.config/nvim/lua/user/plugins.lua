@@ -75,4 +75,7 @@ require("lazy").setup({
 
 	-- toggleterm
 	"akinsho/toggleterm.nvim",
+
+	-- copilot
+	"github/copilot.vim",
 })
