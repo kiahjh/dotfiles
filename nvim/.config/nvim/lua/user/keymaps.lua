@@ -92,7 +92,7 @@ keymap("n", "<leader>t", ":tabnew %<cr>", opts)
 keymap("n", "<leader>\\", ":tabclose<cr>", opts)
 
 -- toggleterm
-keymap("n", "<C-j>", ":ToggleTerm<cr>", opts)
+keymap("n", "<leader>j", ":ToggleTerm<cr>", opts)
 
 -- code actions
 keymap("n", "<leader><leader>", ":lua vim.lsp.buf.code_action()<CR>", opts)
