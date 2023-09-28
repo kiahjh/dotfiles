@@ -99,3 +99,6 @@ keymap("n", "<leader><leader>", ":lua vim.lsp.buf.code_action()<CR>", opts)
 
 -- jump to next diagnostic
 keymap("n", "<C-n>", ":lua vim.diagnostic.goto_next()<CR>", opts)
+
+-- open command palette
+keymap("n", "<C-p>", ":CommandPalette<cr>", opts)
