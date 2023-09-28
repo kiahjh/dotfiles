@@ -81,4 +81,7 @@ require("lazy").setup({
 
 	-- lualine
 	"nvim-lualine/lualine.nvim",
+
+	-- multi-cursor
+	"mg979/vim-visual-multi",
 })

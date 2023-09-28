@@ -26,10 +26,10 @@ keymap("n", "<C-l>", "<C-w>l", opts)
 keymap("n", "<leader>e", ":Lex 30<cr>", opts)
 
 -- Resize with arrows
-keymap("n", "<S-Up>", ":resize +2<CR>", opts)
-keymap("n", "<S-Down>", ":resize -2<CR>", opts)
-keymap("n", "<S-Left>", ":vertical resize -2<CR>", opts)
-keymap("n", "<S-Right>", ":vertical resize +2<CR>", opts)
+keymap("n", "+", ":resize +2<CR>", opts)
+keymap("n", "_", ":resize -2<CR>", opts)
+keymap("n", "(", ":vertical resize -2<CR>", opts)
+keymap("n", ")", ":vertical resize +2<CR>", opts)
 
 -- Remap ; to : for entering command mode
 keymap("n", ";", ":", opts)
@@ -69,7 +69,7 @@ keymap(
 	"<cmd>lua require'telescope.builtin'.find_files(require('telescope.themes').get_dropdown({ previewer = false }))<cr>",
 	opts
 )
-keymap("n", "<C-t>", "<cmd>Telescope live_grep<cr>", opts)
+keymap("n", "<C-f>", "<cmd>Telescope live_grep<cr>", opts)
 
 -- Gitsigns shortcuts
 keymap("n", "<leader>d", "<cmd>Gitsigns preview_hunk<cr>", opts)
@@ -92,13 +92,13 @@ keymap("n", "<leader>t", ":tabnew %<cr>", opts)
 keymap("n", "<leader>\\", ":tabclose<cr>", opts)
 
 -- toggleterm
-keymap("n", "<leader>j", ":ToggleTerm<cr>", opts)
+keymap("n", "<C-t>", ":ToggleTerm<cr>", opts)
 
 -- code actions
 keymap("n", "<leader><leader>", ":lua vim.lsp.buf.code_action()<CR>", opts)
 
 -- jump to next diagnostic
-keymap("n", "<C-n>", ":lua vim.diagnostic.goto_next()<CR>", opts)
+keymap("n", "<C-e>", ":lua vim.diagnostic.goto_next()<CR>", opts)
 
 -- open command palette
 keymap("n", "<C-p>", ":CommandPalette<cr>", opts)

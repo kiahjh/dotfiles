@@ -13,12 +13,12 @@ local commands = {
 	{ "close all other buffers                                      <leader><C-x>", ":BufferLineCloseOthers" },
 	{ "vertical split                                                           |", ":vsplit" },
 	{ 'horizontal split                                                         "', ":split" },
-	{ "show terminal                                                        <C-j>", ":ToggleTerm" },
+	{ "show terminal                                                        <C-t>", ":ToggleTerm" },
 	{
-		"jump to next diagnostic                                              <C-n>",
+		"jump to next diagnostic                                              <C-e>",
 		":lua vim.diagnostic.goto_next()",
 	},
-	{ "global search                                                        <C-t>", ":Telescope live_grep" },
+	{ "global search                                                        <C-f>", ":Telescope live_grep" },
 	{
 		"open file                                                        <leader>f",
 		":lua require'telescope.builtin'.find_files(require('telescope.themes').get_dropdown({ previewer = false }))",
