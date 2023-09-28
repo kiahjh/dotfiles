@@ -78,4 +78,7 @@ require("lazy").setup({
 
 	-- copilot
 	"github/copilot.vim",
+
+	-- lualine
+	"nvim-lualine/lualine.nvim",
 })

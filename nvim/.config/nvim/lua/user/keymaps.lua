@@ -75,8 +75,9 @@ keymap("n", "<C-t>", "<cmd>Telescope live_grep<cr>", opts)
 keymap("n", "<leader>d", "<cmd>Gitsigns preview_hunk<cr>", opts)
 keymap("n", "<leader>b", "<cmd>Gitsigns blame_line<cr>", opts)
 
--- Nvimtree toggle
-keymap("n", "<leader>e", ":NvimTreeToggle<cr>", opts)
+-- Nvimtree
+keymap("n", "<leader>e", ":NvimTreeToggle<cr>", opts) -- toggle nvimtree
+keymap("n", "<leader>s", ":NvimTreeFindFile<cr>", opts) -- find file in nvimtree
 
 -- close buffer
 keymap("n", "<C-x>", ":Bdelete<cr>", opts)
@@ -91,3 +92,6 @@ keymap("n", "<leader>\\", ":tabclose<cr>", opts)
 
 -- toggleterm
 keymap("n", "<C-j>", ":ToggleTerm<cr>", opts)
+
+-- code action (lightbulb)
+keymap("n", "<leader><leader>", ":lua vim.lsp.buf.code_action()<CR>", opts)
