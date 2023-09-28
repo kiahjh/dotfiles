@@ -81,6 +81,7 @@ keymap("n", "<leader>s", ":NvimTreeFindFile<cr>", opts) -- find file in nvimtree
 
 -- close buffer
 keymap("n", "<C-x>", ":Bdelete<cr>", opts)
+keymap("n", "<leader><C-x>", ":BufferLineCloseOthers<cr>", opts)
 
 -- split window
 keymap("n", "|", ":vsplit<cr>", opts)
@@ -93,5 +94,8 @@ keymap("n", "<leader>\\", ":tabclose<cr>", opts)
 -- toggleterm
 keymap("n", "<C-j>", ":ToggleTerm<cr>", opts)
 
--- code action (lightbulb)
+-- code actions
 keymap("n", "<leader><leader>", ":lua vim.lsp.buf.code_action()<CR>", opts)
+
+-- jump to next diagnostic
+keymap("n", "<C-n>", ":lua vim.diagnostic.goto_next()<CR>", opts)
