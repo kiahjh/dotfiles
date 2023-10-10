@@ -14,6 +14,7 @@ local commands = {
 	{ "vertical split                                                           |", ":vsplit" },
 	{ 'horizontal split                                                         "', ":split" },
 	{ "show terminal                                                        <C-t>", ":ToggleTerm" },
+	{ "remove highlights                                                       ff", ":noh" },
 	{
 		"jump to next diagnostic                                              <C-e>",
 		":lua vim.diagnostic.goto_next()",

@@ -102,3 +102,6 @@ keymap("n", "<C-e>", ":lua vim.diagnostic.goto_next()<CR>", opts)
 
 -- open command palette
 keymap("n", "<C-p>", ":CommandPalette<cr>", opts)
+
+-- remove highlights
+keymap("n", "ff", ":noh<cr>", opts)
