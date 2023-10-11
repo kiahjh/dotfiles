@@ -13,7 +13,6 @@ require("user.bufferline")
 require("user.toggleterm")
 require("user.lualine")
 require("user.command-palette")
-require("user.colorizer")
 
 -- should go last to prevent plugins from overriding settings
 require("user.options")

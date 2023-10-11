@@ -84,7 +84,4 @@ require("lazy").setup({
 
 	-- multi-cursor
 	"mg979/vim-visual-multi",
-
-	-- color highlighting
-	"norcalli/nvim-colorizer.lua",
 })
