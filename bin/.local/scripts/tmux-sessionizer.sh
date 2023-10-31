@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-SESSION=$(find ~ ~/active-projects -mindepth 1 -maxdepth 1 -type d | fzf);
+SESSION=$(find ~ ~/active-projects ~/inactive-projects ~/learning -mindepth 1 -maxdepth 1 -type d | fzf);
 SESSION_NAME=$(basename "$SESSION" | tr . _);
 
 if ! tmux has-session -t "$SESSION_NAME" 2> /dev/null; then

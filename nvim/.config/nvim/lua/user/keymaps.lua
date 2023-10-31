@@ -105,3 +105,6 @@ keymap("n", "<C-p>", ":CommandPalette<cr>", opts)
 
 -- remove highlights
 keymap("n", "ff", ":noh<cr>", opts)
+
+-- rename variable
+keymap("n", "<leader>r", ":lua vim.lsp.buf.rename()<CR>", opts)
