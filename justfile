@@ -10,3 +10,4 @@ stow:
   @stow stow
   @stow bin
   @stow kitty
+  @stow wezterm
