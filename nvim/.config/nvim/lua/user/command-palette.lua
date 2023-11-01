@@ -24,6 +24,8 @@ local commands = {
 		"open file                                                        <leader>f",
 		":lua require'telescope.builtin'.find_files(require('telescope.themes').get_dropdown({ previewer = false }))",
 	},
+	{ "rename variable                                                  <leader>r", ":lua vim.lsp.buf.rename()" },
+	{ "collapse NvimTree                                                <leader>c", ":NvimTreeCollapse" },
 	{ "copy current file path", ':let @+ = expand("%:p")' },
 }
 

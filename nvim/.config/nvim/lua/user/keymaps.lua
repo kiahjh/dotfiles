@@ -108,3 +108,6 @@ keymap("n", "ff", ":noh<cr>", opts)
 
 -- rename variable
 keymap("n", "<leader>r", ":lua vim.lsp.buf.rename()<CR>", opts)
+
+-- collapse NvimTree
+keymap("n", "<leader>c", ":NvimTreeCollapse<cr>", opts)
