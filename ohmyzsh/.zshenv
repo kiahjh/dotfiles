@@ -49,6 +49,7 @@ path+=~/.npm-global/bin
 path+=/Applications/kitty.app/Contents/MacOS
 path+=$ANDROID_HOME/emulator
 path+=$ANDROID_HOME/platform-tools
+path+=~/.local/kotlinc/bin
 
 export PATH
 

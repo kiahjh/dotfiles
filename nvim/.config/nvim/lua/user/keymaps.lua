@@ -31,6 +31,9 @@ keymap("n", "_", ":resize -2<CR>", opts)
 keymap("n", "(", ":vertical resize -2<CR>", opts)
 keymap("n", ")", ":vertical resize +2<CR>", opts)
 
+-- Open register
+keymap("n", "<leader>g", ":reg<CR>", opts)
+
 -- Remap ; to : for entering command mode
 keymap("n", ";", ":", opts)
 
@@ -84,8 +87,8 @@ keymap("n", "<C-x>", ":Bdelete<cr>", opts)
 keymap("n", "<leader><C-x>", ":BufferLineCloseOthers<cr>", opts)
 
 -- split window
-keymap("n", "|", ":vsplit<cr>", opts)
-keymap("n", '"', ":split<cr>", opts)
+keymap("n", "<leader>|", ":vsplit<cr>", opts)
+keymap("n", '<leader>"', ":split<cr>", opts)
 
 -- create/delete tabs
 keymap("n", "<leader>t", ":tabnew %<cr>", opts)
