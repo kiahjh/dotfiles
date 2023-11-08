@@ -3,6 +3,7 @@ local servers = {
 	"tsserver",
 	"jsonls",
 	"tailwindcss",
+	"kotlin_language_server",
 }
 
 local settings = {

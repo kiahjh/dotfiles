@@ -84,4 +84,7 @@ require("lazy").setup({
 
 	-- multi-cursor
 	"mg979/vim-visual-multi",
+
+	-- kotlin
+	"udalov/kotlin-vim",
 })
