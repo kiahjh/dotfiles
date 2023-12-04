@@ -86,6 +86,7 @@ alias cowpath="echo $PATH | perl -pe 's/:/\n/g' | cowsay"
 alias back="cd -"
 alias ndate="node -e \"process.stdout.write(new Date().toISOString())\" | pbcopy"
 alias grep="rg"
+alias kn="kotlinc-native"
 
 # bun completions
 [ -s "/Users/miciah/.bun/_bun" ] && source "/Users/miciah/.bun/_bun"
