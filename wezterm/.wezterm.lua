@@ -26,43 +26,43 @@ local config = {
 	send_composed_key_when_left_alt_is_pressed = true,
 	send_composed_key_when_right_alt_is_pressed = false,
 	color_scheme = "tokyonight-night",
-	background = {
-		{
-			source = {
-				Gradient = {
-					orientation = { Linear = { angle = -45.0 } },
-					colors = {
-						"#000000",
-						"#000000",
-						"#0d1b46",
-						"#000000",
-						"#0d1b46",
-						"#000000",
-					},
-					interpolation = "Basis",
-					blend = "LinearRgb",
-					noise = 10,
-				},
-			},
-			width = "100%",
-			height = "100%",
-			opacity = 0.95,
-		},
-		{
-			source = {
-				File = { path = assets .. "/blue_blob.gif", speed = 0.3 },
-			},
-			repeat_x = "Mirror",
-			-- width = "100%",
-			height = "100%",
-			opacity = 0.05,
-			hsb = {
-				hue = 0.9,
-				saturation = 0.9,
-				brightness = 0.8,
-			},
-		},
-	},
+	--[[ background = { ]]
+	--[[ 	{ ]]
+	--[[ 		source = { ]]
+	--[[ 			Gradient = { ]]
+	--[[ 				orientation = { Linear = { angle = -45.0 } }, ]]
+	--[[ 				colors = { ]]
+	--[[ 					"#000000", ]]
+	--[[ 					"#000000", ]]
+	--[[ 					"#0d1b46", ]]
+	--[[ 					"#000000", ]]
+	--[[ 					"#0d1b46", ]]
+	--[[ 					"#000000", ]]
+	--[[ 				}, ]]
+	--[[ 				interpolation = "Basis", ]]
+	--[[ 				blend = "LinearRgb", ]]
+	--[[ 				noise = 10, ]]
+	--[[ 			}, ]]
+	--[[ 		}, ]]
+	--[[ 		width = "100%", ]]
+	--[[ 		height = "100%", ]]
+	--[[ 		opacity = 0.95, ]]
+	--[[ 	}, ]]
+	--[[ 	{ ]]
+	--[[ 		source = { ]]
+	--[[ 			File = { path = assets .. "/blue_blob.gif", speed = 0.3 }, ]]
+	--[[ 		}, ]]
+	--[[ 		repeat_x = "Mirror", ]]
+	--[[ 		-- width = "100%", ]]
+	--[[ 		height = "100%", ]]
+	--[[ 		opacity = 0.05, ]]
+	--[[ 		hsb = { ]]
+	--[[ 			hue = 0.9, ]]
+	--[[ 			saturation = 0.9, ]]
+	--[[ 			brightness = 0.8, ]]
+	--[[ 		}, ]]
+	--[[ 	}, ]]
+	--[[ }, ]]
 }
 
 return config
