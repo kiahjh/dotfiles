@@ -8,6 +8,32 @@ telescope.load_extension("media_files")
 local actions = require("telescope.actions")
 
 telescope.setup({
+	pickers = {
+		find_files = {
+			path_display = { "absolute" },
+		},
+		live_grep = {
+			find_command = { "fd", "-t=f", "-a" },
+			path_display = { "absolute" },
+			additional_args = function()
+				-- https://github.com/BurntSushi/ripgrep/issues/340#issuecomment-280868301
+				return {
+					"--hidden",
+					"-g",
+					"!.git/",
+					"-g",
+					"!node_modules/",
+					"-g",
+					"!bundled/",
+					"-g",
+					"!.oh-my-zsh/",
+					"-g",
+					"!automatic_backups/",
+				}
+			end,
+		},
+	},
+
 	defaults = {
 
 		prompt_prefix = " ",
