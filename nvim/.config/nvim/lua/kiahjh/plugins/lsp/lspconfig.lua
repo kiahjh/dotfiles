@@ -14,7 +14,15 @@ return {
 
 		local keymap = vim.keymap -- for conciseness
 
+		local util = require("lspconfig.util")
+
 		local opts = { noremap = true, silent = true }
+
+		local handlers = {
+			["textDocument/hover"] = vim.lsp.with(vim.lsp.handlers.hover, { border = "rounded" }),
+			["textDocument/signatureHelp"] = vim.lsp.with(vim.lsp.handlers.signature_help, { border = "rounded" }),
+		}
+
 		local on_attach = function(client, bufnr)
 			opts.buffer = bufnr
 
@@ -74,24 +82,28 @@ return {
 		lspconfig["html"].setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
+			handlers = handlers,
 		})
 
 		-- configure typescript server with plugin
 		lspconfig["tsserver"].setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
+			handlers = handlers,
 		})
 
 		-- configure css server
 		lspconfig["cssls"].setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
+			handlers = handlers,
 		})
 
 		-- configure tailwindcss server
 		lspconfig["tailwindcss"].setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
+			handlers = handlers,
 		})
 
 		-- configure svelte server
@@ -115,12 +127,14 @@ return {
 		lspconfig["prismals"].setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
+			handlers = handlers,
 		})
 
 		-- configure graphql language server
 		lspconfig["graphql"].setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
+			handlers = handlers,
 			filetypes = { "graphql", "gql", "svelte", "typescriptreact", "javascriptreact" },
 		})
 
@@ -128,6 +142,7 @@ return {
 		lspconfig["emmet_ls"].setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
+			handlers = handlers,
 			filetypes = { "html", "typescriptreact", "javascriptreact", "css", "sass", "scss", "less", "svelte" },
 		})
 
@@ -135,12 +150,14 @@ return {
 		lspconfig["pyright"].setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
+			handlers = handlers,
 		})
 
 		-- configure lua server (with special settings)
 		lspconfig["lua_ls"].setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
+			handlers = handlers,
 			settings = { -- custom settings for lua
 				Lua = {
 					-- make the language server recognize "vim" global
@@ -156,6 +173,22 @@ return {
 					},
 				},
 			},
+		})
+
+		-- configure swift server
+		lspconfig["sourcekit"].setup({
+			capabilities = capabilities,
+			on_attach = on_attach,
+			handlers = handlers,
+			cmd = {
+				"/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/sourcekit-lsp",
+			},
+			root_dir = function(filename, _)
+				return util.root_pattern("buildServer.json")(filename)
+					or util.root_pattern("*.xcodeproj", "*.xcworkspace")(filename)
+					or util.find_git_ancestor(filename)
+					or util.root_pattern("Package.swift")(filename)
+			end,
 		})
 	end,
 }
