@@ -23,7 +23,13 @@ return {
 			["textDocument/signatureHelp"] = vim.lsp.with(vim.lsp.handlers.signature_help, { border = "rounded" }),
 		}
 
-		local on_attach = function(client, bufnr)
+		local on_attach = function(_, bufnr)
+			vim.diagnostic.config({
+				float = {
+					border = "rounded",
+				},
+			})
+
 			opts.buffer = bufnr
 
 			-- set keybinds
