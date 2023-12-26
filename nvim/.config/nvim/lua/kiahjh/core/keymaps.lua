@@ -10,7 +10,7 @@ local keymap = vim.keymap -- for conciseness
 keymap.set("i", "jk", "<ESC>", { desc = "Exit insert mode with jk" })
 
 -- clear search highlights
-keymap.set("n", "<leader>ff", ":nohl<CR>", { desc = "Clear search highlights" })
+keymap.set("n", "ff", ":nohl<CR>", { desc = "Clear search highlights" })
 
 -- delete single character without copying into register
 keymap.set("n", "x", '"_x')
@@ -30,3 +30,9 @@ keymap.set("n", "<leader>bo", "<cmd>BufferLineCloseOthers<CR>", { desc = "Close 
 -- cycle bufferline
 keymap.set("n", "H", ":BufferLineCyclePrev<cr>", { desc = "Go to previous tab" })
 keymap.set("n", "L", ":BufferLineCycleNext<cr>", { desc = "Go to next tab" })
+
+-- resize split
+keymap.set("n", "+", ":resize +2<CR>", { desc = "Increase horizontal split size" })
+keymap.set("n", "_", ":resize -2<CR>", { desc = "Decrease horizontal split size" })
+keymap.set("n", "(", ":vertical resize -2<CR>", { desc = "Decrease vertical split size" })
+keymap.set("n", ")", ":vertical resize +2<CR>", { desc = "Increase vertical split size" })
