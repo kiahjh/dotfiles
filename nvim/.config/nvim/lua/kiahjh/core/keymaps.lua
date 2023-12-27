@@ -25,7 +25,7 @@ keymap.set("n", "<leader>sx", "<cmd>close<CR>", { desc = "Close current split" }
 keymap.set("n", "<leader>bd", ":bd<cr>:BufferLineGoToBuffer 1<cr>", { desc = "Close buffer" })
 
 -- close all other buffers
-keymap.set("n", "<leader>bo", "<cmd>BufferLineCloseOthers<CR>", { desc = "Close all other buffers" })
+keymap.set("n", "<leader>bo", ":BufferLineCloseOthers<CR>", { desc = "Close all other buffers" })
 
 -- cycle bufferline
 keymap.set("n", "H", ":BufferLineCyclePrev<cr>", { desc = "Go to previous tab" })
