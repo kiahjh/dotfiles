@@ -23,7 +23,7 @@ return {
 			["textDocument/signatureHelp"] = vim.lsp.with(vim.lsp.handlers.signature_help, { border = "rounded" }),
 		}
 
-		local on_attach = function(_, bufnr)
+		local on_attach = function(client, bufnr)
 			vim.diagnostic.config({
 				float = {
 					border = "rounded",

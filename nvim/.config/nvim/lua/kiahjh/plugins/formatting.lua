@@ -1,3 +1,5 @@
+-- currently using none-ls (null-ls) instead
+
 local cachedConfig = nil
 local searchedForConfig = false
 
@@ -39,7 +41,7 @@ end
 return {
 	"stevearc/conform.nvim",
 	lazy = true,
-	event = { "BufReadPre", "BufNewFile" }, -- to disable, comment this out
+	-- event = { "BufReadPre", "BufNewFile" }, -- to disable, comment this out
 	config = function()
 		local conform = require("conform")
 
