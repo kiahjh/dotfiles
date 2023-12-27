@@ -37,4 +37,8 @@ keymap.set("n", "_", ":resize -2<CR>", { desc = "Decrease horizontal split size"
 keymap.set("n", "(", ":vertical resize -2<CR>", { desc = "Decrease vertical split size" })
 keymap.set("n", ")", ":vertical resize +2<CR>", { desc = "Increase vertical split size" })
 
+-- minimap
 keymap.set("n", "<leader>m", ":MinimapToggle<CR>", { desc = "Toggle minimap" })
+
+-- noice
+keymap.set("n", "<leader>]", ":NoiceDismiss<CR>", { desc = "Dismiss notifications" })

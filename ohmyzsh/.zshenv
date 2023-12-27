@@ -22,6 +22,9 @@ export PNPM_HOME="$HOME/Library/pnpm"
 # android (react-native)
 export ANDROID_HOME=$HOME/Library/Android/sdk
 
+# openai api key
+export OPENAI_API_KEY="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"
+
 # clear out the path, start brand new
 PATH=""
 
