@@ -36,3 +36,5 @@ keymap.set("n", "+", ":resize +2<CR>", { desc = "Increase horizontal split size"
 keymap.set("n", "_", ":resize -2<CR>", { desc = "Decrease horizontal split size" })
 keymap.set("n", "(", ":vertical resize -2<CR>", { desc = "Decrease vertical split size" })
 keymap.set("n", ")", ":vertical resize +2<CR>", { desc = "Increase vertical split size" })
+
+keymap.set("n", "<leader>m", ":MinimapToggle<CR>", { desc = "Toggle minimap" })
