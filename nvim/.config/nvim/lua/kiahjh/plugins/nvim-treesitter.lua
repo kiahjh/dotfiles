@@ -42,6 +42,7 @@ return {
 					"dockerfile",
 					"gitignore",
 					"query",
+					"swift",
 				},
 				incremental_selection = {
 					enable = true,

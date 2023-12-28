@@ -62,9 +62,14 @@ return {
 						cond = lazy_status.has_updates,
 						color = { fg = "#ff9e64" },
 					},
+					{ "'󰙨 ' .. vim.g.xcodebuild_test_plan" },
+					{
+						"vim.g.xcodebuild_platform == 'macOS' and '  macOS' or ' ' .. vim.g.xcodebuild_device_name",
+					},
+					{ "' ' .. vim.g.xcodebuild_os" },
 					{ "encoding" },
 					{ "fileformat" },
-					{ "filetype" },
+					{ "filetype", icon_only = true },
 				},
 			},
 		})
