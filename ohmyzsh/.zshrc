@@ -72,10 +72,6 @@ alias issue="gh issue create --repo gertrude-app/project"
 alias vim="nvim"
 alias vi="/usr/bin/vim"
 alias ksh="kitty +kitten ssh"
-alias st='~/jaredh159/Swiftest/.build/debug/Swiftest'
-alias lnhelp='cat ~/.lnhelp'
-alias taghelp='cat ~/.taghelp'
-alias run='npm run "$@"'
 alias diffall="git difftool HEAD"
 alias diff="git diff -- . ':(exclude)package-lock.json' ':(exclude)ios/FriendsLibrary.xcodeproj/project.pbxproj'"
 alias giff="git add . ; github ."
@@ -87,6 +83,7 @@ alias back="cd -"
 alias ndate="node -e \"process.stdout.write(new Date().toISOString())\" | pbcopy"
 alias grep="rg"
 alias kn="kotlinc-native"
+alias xbs="xcode-build-server config -scheme ${PWD##*/}"
 
 # bun completions
 [ -s "/Users/miciah/.bun/_bun" ] && source "/Users/miciah/.bun/_bun"

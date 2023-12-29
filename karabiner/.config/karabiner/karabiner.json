@@ -18,128 +18,6 @@
         },
         "rules": [
           {
-            "description": "Change option + h/j/k/l to Arrows",
-            "manipulators": [
-              {
-                "from": {
-                  "key_code": "h",
-                  "modifiers": {
-                    "mandatory": ["option"],
-                    "optional": ["any"]
-                  }
-                },
-                "to": [
-                  {
-                    "key_code": "left_arrow"
-                  }
-                ],
-                "type": "basic"
-              },
-              {
-                "from": {
-                  "key_code": "j",
-                  "modifiers": {
-                    "mandatory": ["option"],
-                    "optional": ["any"]
-                  }
-                },
-                "to": [
-                  {
-                    "key_code": "down_arrow"
-                  }
-                ],
-                "type": "basic"
-              },
-              {
-                "from": {
-                  "key_code": "k",
-                  "modifiers": {
-                    "mandatory": ["option"],
-                    "optional": ["any"]
-                  }
-                },
-                "to": [
-                  {
-                    "key_code": "up_arrow"
-                  }
-                ],
-                "type": "basic"
-              },
-              {
-                "from": {
-                  "key_code": "l",
-                  "modifiers": {
-                    "mandatory": ["option"],
-                    "optional": ["any"]
-                  }
-                },
-                "to": [
-                  {
-                    "key_code": "right_arrow"
-                  }
-                ],
-                "type": "basic"
-              }
-            ]
-          },
-          {
-            "description": "command + enter = tab",
-            "manipulators": [
-              {
-                "from": {
-                  "key_code": "return_or_enter",
-                  "modifiers": {
-                    "mandatory": ["left_command"]
-                  }
-                },
-                "to": [
-                  {
-                    "key_code": "tab"
-                  }
-                ],
-                "type": "basic"
-              }
-            ]
-          },
-          {
-            "description": "alt + single quote = backtick",
-            "manipulators": [
-              {
-                "from": {
-                  "key_code": "quote",
-                  "modifiers": {
-                    "mandatory": ["option"]
-                  }
-                },
-                "to": [
-                  {
-                    "key_code": "grave_accent_and_tilde"
-                  }
-                ],
-                "type": "basic"
-              }
-            ]
-          },
-          {
-            "description": "forward delete without hosing",
-            "manipulators": [
-              {
-                "from": {
-                  "key_code": "delete_forward",
-                  "modifiers": {
-                    "optional": ["any"]
-                  }
-                },
-                "to": [
-                  {
-                    "key_code": "delete_or_backspace"
-                  }
-                ],
-                "type": "basic"
-              }
-            ]
-          },
-          {
             "description": "d + f = backtick",
             "manipulators": [
               {
@@ -166,7 +44,7 @@
             ]
           },
           {
-            "description": "j + k = equals",
+            "description": "hold down w + t = open WezTerm",
             "manipulators": [
               {
                 "from": {
@@ -175,36 +53,10 @@
                   },
                   "simultaneous": [
                     {
-                      "key_code": "j"
+                      "key_code": "t"
                     },
                     {
-                      "key_code": "k"
-                    }
-                  ]
-                },
-                "to": [
-                  {
-                    "key_code": "equal_sign"
-                  }
-                ],
-                "type": "basic"
-              }
-            ]
-          },
-          {
-            "description": "a + f (held down) = open Alfred",
-            "manipulators": [
-              {
-                "from": {
-                  "modifiers": {
-                    "optional": ["any"]
-                  },
-                  "simultaneous": [
-                    {
-                      "key_code": "a"
-                    },
-                    {
-                      "key_code": "f"
+                      "key_code": "w"
                     }
                   ]
                 },
@@ -213,7 +65,7 @@
                 },
                 "to_if_held_down": [
                   {
-                    "shell_command": "open -a 'Alfred 4.app'"
+                    "shell_command": "open -a WezTerm.app"
                   }
                 ],
                 "type": "basic"
@@ -279,7 +131,7 @@
             ]
           },
           {
-            "description": "e + r (held down) = open Brave",
+            "description": "a + r (held down) = open Arc",
             "manipulators": [
               {
                 "from": {
@@ -289,7 +141,7 @@
                   },
                   "simultaneous": [
                     {
-                      "key_code": "e"
+                      "key_code": "a"
                     },
                     {
                       "key_code": "r"
@@ -301,7 +153,7 @@
                 },
                 "to_if_held_down": [
                   {
-                    "shell_command": "open -a 'Brave Browser.app'"
+                    "shell_command": "open -a 'Arc.app'"
                   }
                 ],
                 "type": "basic"
