@@ -41,4 +41,13 @@ keymap.set("n", ")", ":vertical resize +2<CR>", { desc = "Increase vertical spli
 keymap.set("n", "<leader>m", ":MinimapToggle<CR>", { desc = "Toggle minimap" })
 
 -- noice
-keymap.set("n", "<leader>]", ":NoiceDismiss<CR>", { desc = "Dismiss notifications" })
+keymap.set("n", "<leader>]", ":Noice dismiss<CR>", { desc = "Dismiss messages" })
+
+-- gitsigns
+keymap.set("n", "<leader>gb", ":Gitsigns blame_line<CR>", { desc = "Blame line" })
+keymap.set("n", "<leader>gD", ":Gitsigns diffthis<CR>", { desc = "Diff this" })
+keymap.set("n", "<leader>gR", ":Gitsigns reset_hunk<CR>", { desc = "Reset hunk" })
+keymap.set("n", "<leader>gp", ":Gitsigns preview_hunk_inline<CR>", { desc = "Preview hunk inline" })
+keymap.set("n", "<leader>gP", ":Gitsigns preview_hunk<CR>", { desc = "Preview hunk" })
+keymap.set("n", "<leader>gn", ":Gitsigns next_hunk<CR>", { desc = "Next hunk" })
+keymap.set("n", "<leader>gN", ":Gitsigns prev_hunk<CR>", { desc = "Previous hunk" })

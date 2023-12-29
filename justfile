@@ -11,3 +11,5 @@ stow:
   @stow bin
   @stow kitty
   @stow wezterm
+  @stow yabai
+  @stow skhd
