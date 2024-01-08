@@ -14,8 +14,6 @@ return {
 
 		local keymap = vim.keymap -- for conciseness
 
-		local util = require("lspconfig.util")
-
 		local opts = { noremap = true, silent = true }
 
 		local handlers = {
@@ -23,7 +21,7 @@ return {
 			["textDocument/signatureHelp"] = vim.lsp.with(vim.lsp.handlers.signature_help, { border = "rounded" }),
 		}
 
-		local on_attach = function(client, bufnr)
+		local on_attach = function(_, bufnr)
 			vim.diagnostic.config({
 				float = {
 					border = "rounded",
@@ -144,13 +142,13 @@ return {
 			filetypes = { "graphql", "gql", "svelte", "typescriptreact", "javascriptreact" },
 		})
 
-		-- configure emmet language server
-		lspconfig["emmet_ls"].setup({
-			capabilities = capabilities,
-			on_attach = on_attach,
-			handlers = handlers,
-			filetypes = { "html", "typescriptreact", "javascriptreact", "css", "sass", "scss", "less", "svelte" },
-		})
+		-- -- configure emmet language server
+		-- lspconfig["emmet_ls"].setup({
+		-- 	capabilities = capabilities,
+		-- 	on_attach = on_attach,
+		-- 	handlers = handlers,
+		-- 	filetypes = { "html", "typescriptreact", "javascriptreact", "css", "sass", "scss", "less", "svelte" },
+		-- })
 
 		-- configure python server
 		lspconfig["pyright"].setup({

@@ -1,5 +1,3 @@
-echo "running .zshenv"
-
 # for vim fzf preview highlighting
 BAT_THEME='Visual Studio Dark+'
 COLORTERM="truecolor"
@@ -53,5 +51,3 @@ path+=~/.local/kotlinc/bin
 path+=~/.local/kotlin-native-macos-aarch64-1.9.20/bin
 
 export PATH
-
-echo "finished!"
