@@ -15,6 +15,13 @@ require("lazy").setup({ { import = "kiahjh.plugins" }, { import = "kiahjh.plugin
 	install = {
 		colorscheme = { "nightfly" },
 	},
+	ui = {
+		border = "double",
+		size = {
+			width = 0.8,
+			height = 0.8,
+		},
+	},
 	checker = {
 		enabled = true,
 		notify = false,
