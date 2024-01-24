@@ -9,9 +9,6 @@ local keymap = vim.keymap -- for conciseness
 -- clear search highlights
 keymap.set("n", "ff", ":nohl<CR>", { desc = "Clear search highlights" })
 
--- delete single character without copying into register
-keymap.set("n", "x", '"_x')
-
 keymap.set("n", "<leader>;", ":", { desc = "Command mode" })
 
 -- window management
