@@ -47,3 +47,8 @@ keymap.set("n", "<leader>gp", ":Gitsigns preview_hunk_inline<CR>", { desc = "Pre
 keymap.set("n", "<leader>gP", ":Gitsigns preview_hunk<CR>", { desc = "Preview hunk" })
 keymap.set("n", "<leader>gn", ":Gitsigns next_hunk<CR>", { desc = "Next hunk" })
 keymap.set("n", "<leader>gN", ":Gitsigns prev_hunk<CR>", { desc = "Previous hunk" })
+
+-- <div>foo</bar>
+
+-- utilities/snippets
+keymap.set("n", "<leader>ac", '?><CR>:nohl<CR>i className=""<ESC>i', { desc = "Add className attribute to element" })
