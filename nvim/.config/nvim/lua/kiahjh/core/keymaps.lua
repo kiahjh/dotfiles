@@ -52,3 +52,9 @@ keymap.set("n", "<leader>gN", ":Gitsigns prev_hunk<CR>", { desc = "Previous hunk
 
 -- utilities/snippets
 keymap.set("n", "<leader>ac", '?><CR>:nohl<CR>i className=""<ESC>i', { desc = "Add className attribute to element" })
+keymap.set(
+	"n",
+	"<leader>ax",
+	'?><CR>:nohl<CR>i className={cx("")}<ESC>hhi',
+	{ desc = "Add className attribute with cx() to element" }
+)

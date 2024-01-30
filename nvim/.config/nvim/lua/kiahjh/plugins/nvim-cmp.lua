@@ -56,6 +56,9 @@ return {
 				completion = cmp.config.window.bordered({
 					border = "rounded",
 				}),
+				signature = cmp.config.window.bordered({
+					border = "rounded",
+				}),
 			},
 		})
 	end,
