@@ -21,17 +21,17 @@ return {
 				no_bold = false, -- Force no bold
 				no_underline = false, -- Force no underline
 				styles = { -- Handles the styles of general hi groups (see `:h highlight-args`):
-					comments = { "italic" }, -- Change the style of comments
+					comments = { "italic" },
 					conditionals = {},
 					loops = {},
 					functions = {},
 					keywords = { "italic" },
-					strings = { "italic" },
+					strings = {},
 					variables = { "bold" },
 					numbers = {},
 					booleans = {},
 					properties = {},
-					types = { "italic" },
+					types = {},
 					operators = {},
 				},
 				color_overrides = {},
@@ -42,6 +42,7 @@ return {
 					nvimtree = true,
 					treesitter = true,
 					notify = true,
+					noice = true,
 					alpha = true,
 					harpoon = true,
 					mini = {
