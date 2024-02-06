@@ -42,11 +42,8 @@ return {
 				null_ls.builtins.formatting.prettier,
 				null_ls.builtins.formatting.eslint_d,
 				null_ls.builtins.formatting.stylua,
-				null_ls.builtins.formatting.swiftformat.with({
-					extra_args = { "--indent", "2" },
-				}),
-				null_ls.builtins.formatting.swiftlint,
-				null_ls.builtins.diagnostics.swiftlint,
+				null_ls.builtins.formatting.swiftformat,
+				null_ls.builtins.formatting.rustfmt,
 				null_ls.builtins.diagnostics.eslint_d.with({
 					extra_args = {
 						"--rule",

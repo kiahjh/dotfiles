@@ -71,6 +71,7 @@ alias fell="/Users/jared/mfl/node_modules/.bin/ts-node \
 alias issue="gh issue create --repo gertrude-app/project"
 alias vim="nvim"
 alias vi="/usr/bin/vim"
+alias n="nvim"
 alias ksh="kitty +kitten ssh"
 alias diffall="git difftool HEAD"
 alias diff="git diff -- . ':(exclude)package-lock.json' ':(exclude)ios/FriendsLibrary.xcodeproj/project.pbxproj'"
@@ -84,6 +85,7 @@ alias ndate="node -e \"process.stdout.write(new Date().toISOString())\" | pbcopy
 alias grep="rg"
 alias kn="kotlinc-native"
 alias xbs="xcode-build-server config -scheme ${PWD##*/}"
+alias run="npm run"
 
 # bun completions
 [ -s "/Users/miciah/.bun/_bun" ] && source "/Users/miciah/.bun/_bun"
