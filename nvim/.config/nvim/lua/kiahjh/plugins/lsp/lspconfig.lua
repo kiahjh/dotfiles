@@ -188,5 +188,12 @@ return {
 				"sourcekit-lsp",
 			},
 		})
+
+		-- configure rust server
+		lspconfig["rust_analyzer"].setup({
+			capabilities = capabilities,
+			on_attach = on_attach,
+			handlers = handlers,
+		})
 	end,
 }
