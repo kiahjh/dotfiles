@@ -48,9 +48,10 @@ keymap.set("n", "<leader>gP", ":Gitsigns preview_hunk<CR>", { desc = "Preview hu
 keymap.set("n", "<leader>gn", ":Gitsigns next_hunk<CR>", { desc = "Next hunk" })
 keymap.set("n", "<leader>gN", ":Gitsigns prev_hunk<CR>", { desc = "Previous hunk" })
 
--- quickfix
-keymap.set("n", "<leader>qo", ":copen<CR>", { desc = "Open quickfix" })
-keymap.set("n", "<leader>qc", ":cclose<CR>", { desc = "Close quickfix" })
+-- Quickfix
+keymap.set("n", "<leader>co", ":copen<CR>", { desc = "Open quickfix" })
+keymap.set("n", "<leader>cc", ":cclose<CR>", { desc = "Close quickfix" })
+keymap.set("n", "<leader>cn", ":cnext<CR>", { desc = "Next quickfix" })
 
 -- utilities/snippets
 keymap.set("n", "<leader>ac", '?><CR>:nohl<CR>i className=""<ESC>i', { desc = "Add className attribute to element" })
