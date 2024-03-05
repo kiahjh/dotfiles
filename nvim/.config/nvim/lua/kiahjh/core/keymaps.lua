@@ -34,7 +34,7 @@ keymap.set("n", "(", ":vertical resize -2<CR>", { desc = "Decrease vertical spli
 keymap.set("n", ")", ":vertical resize +2<CR>", { desc = "Increase vertical split size" })
 
 -- minimap
-keymap.set("n", "<leader>m", ":MinimapToggle<CR>", { desc = "Toggle minimap" })
+keymap.set("n", "<leader>mm", ":MinimapToggle<CR>", { desc = "Toggle minimap" })
 
 -- noice
 keymap.set("n", "<leader>'", ":Noice dismiss<CR>", { desc = "Dismiss messages" })
@@ -61,3 +61,6 @@ keymap.set(
 	'?><CR>:nohl<CR>i className={cx("")}<ESC>hhi',
 	{ desc = "Add className attribute with cx() to element" }
 )
+
+-- cellular-automaton
+keymap.set("n", "<leader>mr", ':CellularAutomaton make_it_rain<CR>', { desc = "Make it rain" })
