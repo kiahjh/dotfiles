@@ -110,48 +110,8 @@ return {
 			handlers = handlers,
 		})
 
-		-- configure svelte server
-		lspconfig["svelte"].setup({
-			capabilities = capabilities,
-			on_attach = function(client, bufnr)
-				on_attach(client, bufnr)
-
-				vim.api.nvim_create_autocmd("BufWritePost", {
-					pattern = { "*.js", "*.ts" },
-					callback = function(ctx)
-						if client.name == "svelte" then
-							client.notify("$/onDidChangeTsOrJsFile", { uri = ctx.file })
-						end
-					end,
-				})
-			end,
-		})
-
 		-- configure prisma orm server
 		lspconfig["prismals"].setup({
-			capabilities = capabilities,
-			on_attach = on_attach,
-			handlers = handlers,
-		})
-
-		-- configure graphql language server
-		lspconfig["graphql"].setup({
-			capabilities = capabilities,
-			on_attach = on_attach,
-			handlers = handlers,
-			filetypes = { "graphql", "gql", "svelte", "typescriptreact", "javascriptreact" },
-		})
-
-		-- -- configure emmet language server
-		-- lspconfig["emmet_ls"].setup({
-		-- 	capabilities = capabilities,
-		-- 	on_attach = on_attach,
-		-- 	handlers = handlers,
-		-- 	filetypes = { "html", "typescriptreact", "javascriptreact", "css", "sass", "scss", "less", "svelte" },
-		-- })
-
-		-- configure python server
-		lspconfig["pyright"].setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
 			handlers = handlers,
