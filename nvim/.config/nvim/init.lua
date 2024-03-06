@@ -1,2 +1,2 @@
-require("kiahjh.core")
 require("kiahjh.lazy")
+require("kiahjh.core")
