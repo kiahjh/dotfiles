@@ -37,42 +37,42 @@ return {
 		end
 
 		-- configure html server
-		lspconfig["html"].setup({
+		lspconfig.html.setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
 			handlers = handlers,
 		})
 
 		-- configure typescript server with plugin
-		lspconfig["tsserver"].setup({
+		lspconfig.tsserver.setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
 			handlers = handlers,
 		})
 
 		-- configure css server
-		lspconfig["cssls"].setup({
+		lspconfig.cssls.setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
 			handlers = handlers,
 		})
 
 		-- configure tailwindcss server
-		lspconfig["tailwindcss"].setup({
+		lspconfig.tailwindcss.setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
 			handlers = handlers,
 		})
 
 		-- configure prisma orm server
-		lspconfig["prismals"].setup({
+		lspconfig.prismals.setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
 			handlers = handlers,
 		})
 
 		-- configure lua server (with special settings)
-		lspconfig["lua_ls"].setup({
+		lspconfig.lua_ls.setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
 			handlers = handlers,
@@ -94,17 +94,18 @@ return {
 		})
 
 		-- configure swift server
-		lspconfig["sourcekit"].setup({
+		lspconfig.sourcekit.setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
 			handlers = handlers,
 			cmd = {
-				"sourcekit-lsp",
+				"/usr/bin/sourcekit-lsp",
 			},
+			root_dir = lspconfig.util.root_pattern("Package.swift"),
 		})
 
 		-- configure rust server
-		lspconfig["rust_analyzer"].setup({
+		lspconfig.rust_analyzer.setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
 			handlers = handlers,

@@ -8,6 +8,9 @@ export EDITOR=nvim
 # prevent homebrew from running all updates on every upgrade
 export HOMEBREW_NO_AUTO_UPDATE=1
 
+# supress warnings about errors in swift 6 (probably want to remove this when swift 6 is out)
+export SWIFT_STRICT_CONCURRENCY=minimal
+
 # keep on latest npm, no matter what node version is used
 export N_PRESERVE_NPM=1
 
