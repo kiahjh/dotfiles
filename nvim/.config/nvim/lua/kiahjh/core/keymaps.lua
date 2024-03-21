@@ -127,6 +127,7 @@ wk.register({
 		t = { ":Telescope quickfix<CR>", "Show quickfix in telescope" },
 		h = { ":Telescope quickfixhistory<CR>", "Show quickfix history in telescope" },
 		n = { ":cnext<CR>", "Next quickfix" },
+		p = { ":cprevious<CR>", "Previous quickfix" },
 	},
 }, { prefix = "<leader>" })
 
