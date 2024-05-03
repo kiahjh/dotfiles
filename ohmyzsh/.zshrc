@@ -87,6 +87,7 @@ alias kn="kotlinc-native"
 alias xbs="xcode-build-server config -scheme ${PWD##*/}"
 alias run="npm run"
 alias zlj="zellij"
+alias zj="zellij -l welcome"
 
 # bun completions
 [ -s "/Users/miciah/.bun/_bun" ] && source "/Users/miciah/.bun/_bun"
