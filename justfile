@@ -11,7 +11,4 @@ stow:
   @stow bin
   @stow kitty
   @stow wezterm
-  @stow sketchybar
-  @stow yabai
-  @stow skhd
   @stow zellij

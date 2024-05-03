@@ -10,12 +10,12 @@ return {
 		lualine.setup({
 			options = {
 				theme = "catppuccin",
-				component_separators = "|", -- actually a straight pipe, but italic so it looks slanted
-				section_separators = { left = "", right = "" },
+				section_separators = { left = "", right = "" },
+				component_separators = { left = "", right = "" },
 			},
 			sections = {
 				lualine_a = {
-					{ "mode", separator = { left = "" }, padding = { left = 1, right = 2 } },
+					{ "mode", separator = { left = "" }, padding = { left = 1, right = 1 } },
 				},
 				lualine_b = { "branch", "diff", "diagnostics" },
 				lualine_c = { "filename" },
@@ -34,7 +34,7 @@ return {
 				},
 				lualine_y = { "progress" },
 				lualine_z = {
-					{ "location", separator = { right = "" } },
+					{ "location", separator = { right = "" }, padding = { left = 1, right = 1 } },
 				},
 			},
 		})
