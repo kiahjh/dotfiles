@@ -14,3 +14,4 @@ stow:
   @stow sketchybar
   @stow yabai
   @stow skhd
+  @stow zellij

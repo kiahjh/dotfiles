@@ -24,9 +24,7 @@ local config = {
 		bottom = 0,
 	},
 	send_composed_key_when_left_alt_is_pressed = true,
-	send_composed_key_when_right_alt_is_pressed = false,
-	color_scheme = "tokyonight-night",
-	-- window_background_opacity = 0.70,
+	send_composed_key_when_right_alt_is_pressed = true,
 }
 
 return config

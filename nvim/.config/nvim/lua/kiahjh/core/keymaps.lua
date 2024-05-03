@@ -173,3 +173,11 @@ wk.register({
 		s = { "<cmd>SessionSave<CR>", "Save session for auto session root dir" },
 	},
 }, { prefix = "<leader>" })
+
+wk.register({
+	o = {
+		name = "Copilot",
+		e = { "<cmd>Copilot enable<CR>", "Enable Copilot" },
+		d = { "<cmd>Copilot disable<CR>", "Disable Copilot" },
+	},
+}, { prefix = "<leader>" })

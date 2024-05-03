@@ -16,7 +16,7 @@ source $HOME/.cargo/env # rust
 eval "$(brew shellenv)"
 fpath=($HOMEBREW_PREFIX/share/zsh/site-functions $fpath)
 
-bindkey -s ^f "tmux-sessionizer.sh\n"
+bindkey -s ^f "zellij-sessionizer.sh\n"
 
 # fixes kitty + tmux for some reason...
 unset MANPATH
@@ -86,6 +86,7 @@ alias grep="rg"
 alias kn="kotlinc-native"
 alias xbs="xcode-build-server config -scheme ${PWD##*/}"
 alias run="npm run"
+alias zlj="zellij"
 
 # bun completions
 [ -s "/Users/miciah/.bun/_bun" ] && source "/Users/miciah/.bun/_bun"
