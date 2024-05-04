@@ -6,7 +6,8 @@ return {
 	},
 	dependencies = {
 		"MunifTanjim/nui.nvim",
-		"rcarriga/nvim-notify",
+		-- too much... would be nicer if I could figure out how to filter the notifications
+		-- "rcarriga/nvim-notify",
 	},
 	config = function()
 		require("noice").setup({
