@@ -2,6 +2,17 @@ return {
 	"nvim-tree/nvim-tree.lua",
 	dependencies = { "nvim-tree/nvim-web-devicons" },
 	config = function()
+		require("nvim-web-devicons").setup({
+			strict = true,
+			override_by_extension = {
+				astro = {
+					icon = "",
+					color = "#EF8547",
+					name = "astro",
+				},
+			},
+		})
+
 		local nvimtree = require("nvim-tree")
 
 		-- recommended settings from nvim-tree documentation

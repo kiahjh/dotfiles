@@ -110,5 +110,12 @@ return {
 			on_attach = on_attach,
 			handlers = handlers,
 		})
+
+		-- configure astro server
+		lspconfig.astro.setup({
+			capabilities = capabilities,
+			on_attach = on_attach,
+			handlers = handlers,
+		})
 	end,
 }
