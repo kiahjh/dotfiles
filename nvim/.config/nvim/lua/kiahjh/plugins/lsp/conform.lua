@@ -10,6 +10,7 @@ return {
 				typescriptreact = { "prettier", "eslint_d" },
 				html = { "prettier" },
 				css = { "prettier" },
+				astro = { "prettier", "eslint_d" },
 				rust = { "rustfmt" },
 				swift = { "swiftformat" },
 			},
