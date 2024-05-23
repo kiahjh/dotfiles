@@ -89,6 +89,7 @@ alias run="npm run"
 alias zlj="zellij"
 alias zj="zellij -l welcome"
 alias tlox="~/learning/lox/typescript/tlox"
+alias src="source ~/.zshrc && source ~/.zshenv && echo 'sourced .zshrc and .zshenv'"
 
 # bun completions
 [ -s "/Users/miciah/.bun/_bun" ] && source "/Users/miciah/.bun/_bun"

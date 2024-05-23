@@ -181,3 +181,10 @@ wk.register({
 		d = { "<cmd>Copilot disable<CR>", "Disable Copilot" },
 	},
 }, { prefix = "<leader>" })
+
+wk.register({
+	i = {
+		name = "Inlay Hints",
+		i = { "<cmd>lua vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())<CR>", "Toggle inlay hints" },
+	},
+}, { prefix = "<leader>" })

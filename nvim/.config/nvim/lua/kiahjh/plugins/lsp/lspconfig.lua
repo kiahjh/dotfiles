@@ -48,6 +48,32 @@ return {
 			capabilities = capabilities,
 			on_attach = on_attach,
 			handlers = handlers,
+			settings = {
+				typescript = {
+					inlayHints = {
+						includeInlayParameterNameHints = "all", -- 'none' | 'literals' | 'all'
+						includeInlayParameterNameHintsWhenArgumentMatchesName = true,
+						includeInlayVariableTypeHints = true,
+						includeInlayFunctionParameterTypeHints = true,
+						includeInlayVariableTypeHintsWhenTypeMatchesName = true,
+						includeInlayPropertyDeclarationTypeHints = true,
+						includeInlayFunctionLikeReturnTypeHints = true,
+						includeInlayEnumMemberValueHints = true,
+					},
+				},
+				javascript = {
+					inlayHints = {
+						includeInlayParameterNameHints = "all", -- 'none' | 'literals' | 'all'
+						includeInlayParameterNameHintsWhenArgumentMatchesName = true,
+						includeInlayVariableTypeHints = true,
+						includeInlayFunctionParameterTypeHints = true,
+						includeInlayVariableTypeHintsWhenTypeMatchesName = true,
+						includeInlayPropertyDeclarationTypeHints = true,
+						includeInlayFunctionLikeReturnTypeHints = true,
+						includeInlayEnumMemberValueHints = true,
+					},
+				},
+			},
 		})
 
 		-- configure css server
@@ -109,6 +135,11 @@ return {
 			capabilities = capabilities,
 			on_attach = on_attach,
 			handlers = handlers,
+			settings = {
+				["rust-analyzer"] = {
+					hint = { enable = true },
+				},
+			},
 		})
 
 		-- configure astro server
