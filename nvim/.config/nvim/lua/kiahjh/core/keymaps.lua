@@ -62,8 +62,8 @@ wk.register({
 wk.register({
 	w = {
 		name = "Window",
-		v = { "<C-w>v", "Split window vertically" },
-		h = { "<C-w>s", "Split window horizontally" },
+		r = { "<C-w>v", "Split window right" },
+		d = { "<C-w>s", "Split window down" },
 		e = { "<C-w>=", "Make splits equal size" },
 		x = { "<cmd>close<CR>", "Close current split" },
 	},
