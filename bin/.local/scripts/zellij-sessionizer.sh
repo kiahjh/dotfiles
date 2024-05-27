@@ -6,5 +6,5 @@ SESSION_NAME=$(basename "$SESSION" | tr . _);
 if zellij list-sessions | grep -q "$SESSION_NAME"; then
   zellij attach "$SESSION_NAME";
 else
-  cd "$SESSION" && zellij -s "$SESSION_NAME";
+  cd "$SESSION" && zellij -l compact -s "$SESSION_NAME";
 fi  
