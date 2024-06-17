@@ -147,6 +147,11 @@ return {
 			capabilities = capabilities,
 			on_attach = on_attach,
 			handlers = handlers,
+			init_options = {
+				typescript = {
+					tsdk = vim.fs.normalize("~/Library/pnpm/global/5/node_modules/typescript/lib"),
+				},
+			},
 		})
 	end,
 }
