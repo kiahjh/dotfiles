@@ -43,6 +43,7 @@ return {
 					"gitignore",
 					"query",
 					"swift",
+					"rust",
 				},
 				incremental_selection = {
 					enable = true,
