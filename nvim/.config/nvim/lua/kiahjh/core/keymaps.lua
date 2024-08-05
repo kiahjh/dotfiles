@@ -41,150 +41,113 @@ map("n", "gt", "<cmd>Telescope lsp_type_definitions<CR>", { desc = "Show type de
 --   v
 --
 
-wk.register({
-	l = {
-		name = "LSP",
-		R = { "<cmd>Telescope lsp_references<CR>", "Show references" },
-		r = { vim.lsp.buf.rename, "Smart rename" },
-		D = { vim.lsp.buf.declaration, "Go to declaration" },
-		a = { vim.lsp.buf.code_action, "See available code actions" },
-		x = { ":LspRestart<CR>", "Restart LSP" },
-		d = {
-			name = "Diagnostics",
-			n = { vim.diagnostic.goto_next, "Go to next diagnostic" },
-			p = { vim.diagnostic.goto_prev, "Go to previous diagnostic" },
-			l = { vim.diagnostic.open_float, "Show line diagnostics" },
-			a = { "<cmd>Telescope diagnostics bufnr=0<CR>", "Show all buffer diagnostics" },
-		},
-	},
-}, { prefix = "<leader>" })
+wk.add({
+	{ "<leader>l", group = "LSP" },
+	{ "<leader>lR", "<cmd>Telescope lsp_references<CR>", desc = "Show references" },
+	{ "<leader>lr", vim.lsp.buf.rename, desc = "Smart rename" },
+	{ "<leader>lD", vim.lsp.buf.declaration, desc = "Go to declaration" },
+	{ "<leader>la", vim.lsp.buf.code_action, desc = "See available code actions" },
+	{ "<leader>lx", ":LspRestart<CR>", desc = "Restart LSP" },
+	{ "<leader>ld", group = "Diagnostics" },
+	{ "<leader>ldn", vim.diagnostic.goto_next, desc = "Go to next diagnostic" },
+	{ "<leader>ldp", vim.diagnostic.goto_prev, desc = "Go to previous diagnostic" },
+	{ "<leader>ldl", vim.diagnostic.open_float, desc = "Show line diagnostics" },
+	{ "<leader>lda", "<cmd>Telescope diagnostics bufnr=0<CR>", desc = "Show all buffer diagnostics" },
+})
 
-wk.register({
-	w = {
-		name = "Window",
-		r = { "<C-w>v", "Split window right" },
-		d = { "<C-w>s", "Split window down" },
-		e = { "<C-w>=", "Make splits equal size" },
-		x = { "<cmd>close<CR>", "Close current split" },
-	},
-}, { prefix = "<leader>" })
+wk.add({
+	{ "<leader>w", group = "Window" },
+	{ "<leader>wr", "<C-w>v", desc = "Split window right" },
+	{ "<leader>wd", "<C-w>s", desc = "Split window down" },
+	{ "<leader>we", "<C-w>=", desc = "Make splits equal size" },
+	{ "<leader>wx", "<cmd>close<CR>", desc = "Close current split" },
+})
 
-wk.register({
-	b = {
-		name = "Buffer",
-		d = { ":bd<CR>:BufferLineGoToBuffer 1<CR>", "Close buffer" },
-		o = { ":BufferLineCloseOthers<CR>", "Close all other buffers" },
-		f = { "<cmd>Telescope buffers<CR>", "Find buffer" },
-	},
-}, { prefix = "<leader>" })
+wk.add({
+	{ "<leader>b", group = "Buffer" },
+	{ "<leader>bd", ":bd<CR>:BufferLineGoToBuffer 1<CR>", desc = "Close buffer" },
+	{ "<leader>bo", ":BufferLineCloseOthers<CR>", desc = "Close all other buffers" },
+	{ "<leader>bf", "<cmd>Telescope buffers<CR>", desc = "Find buffer" },
+})
 
-wk.register({
-	m = {
-		name = "MiniMap",
-		m = { "<cmd>MinimapToggle<CR>", "Toggle minimap" },
-	},
-}, { prefix = "<leader>" })
+wk.add({
+	{ "<leader>m", group = "MiniMap" },
+	{ "<leader>mm", "<cmd>MinimapToggle<CR>", desc = "Toggle minimap" },
+})
 
-wk.register({
-	e = {
-		name = "Explorer",
-		e = { "<cmd>NvimTreeToggle<CR>", "Toggle file explorer" },
-		f = { "<cmd>NvimTreeFindFile<CR>", "Show current file in explorer" },
-		c = { "<cmd>NvimTreeCollapse<CR>", "Collapse file explorer" },
-		r = { "<cmd>NvimTreeRefresh<CR>", "Refresh file explorer" },
-	},
-}, { prefix = "<leader>" })
+wk.add({
+	{ "<leader>e", group = "Explorer" },
+	{ "<leader>ee", "<cmd>NvimTreeToggle<CR>", desc = "Toggle file explorer" },
+	{ "<leader>ef", "<cmd>NvimTreeFindFile<CR>", desc = "Show current file in explorer" },
+	{ "<leader>ec", "<cmd>NvimTreeCollapse<CR>", desc = "Collapse file explorer" },
+	{ "<leader>er", "<cmd>NvimTreeRefresh<CR>", desc = "Refresh file explorer" },
+})
 
-wk.register({
-	f = {
-		name = "File",
-		f = { "<cmd>Telescope find_files<CR>", "Find file" },
-		r = { "<cmd>Telescope oldfiles<CR>", "Recent files" },
-		s = { "<cmd>Telescope live_grep<CR>", "Search" },
-	},
-}, { prefix = "<leader>" })
+wk.add({
+	{ "<leader>f", group = "File" },
+	{ "<leader>ff", "<cmd>Telescope find_files<CR>", desc = "Find file" },
+	{ "<leader>fr", "<cmd>Telescope oldfiles<CR>", desc = "Recent files" },
+	{ "<leader>fs", "<cmd>Telescope live_grep<CR>", desc = "Search" },
+})
 
-wk.register({
-	g = {
-		name = "Git",
-		B = { ":Gitsigns blame_line<CR>", "Blame line" },
-		D = { ":Gitsigns diffthis<CR>", "Diff this" },
-		R = { ":Gitsigns reset_hunk<CR>", "Reset hunk" },
-		p = { ":Gitsigns preview_hunk_inline<CR>", "Preview hunk inline" },
-		P = { ":Gitsigns preview_hunk<CR>", "Preview hunk" },
-		n = { ":Gitsigns next_hunk<CR>", "Next hunk" },
-		N = { ":Gitsigns prev_hunk<CR>", "Previous hunk" },
-		b = { "<cmd>Telescope git_branches<CR>", "Checkout branch" },
-		c = { "<cmd>Telescope git_commits<CR>", "Checkout commit" },
-	},
-}, { prefix = "<leader>" })
+wk.add({
+	{ "<leader>g", group = "Git" },
+	{ "<leader>gB", ":Gitsigns blame_line<CR>", desc = "Blame line" },
+	{ "<leader>gD", ":Gitsigns diffthis<CR>", desc = "Diff this" },
+	{ "<leader>gR", ":Gitsigns reset_hunk<CR>", desc = "Reset hunk" },
+	{ "<leader>gp", ":Gitsigns preview_hunk_inline<CR>", desc = "Preview hunk inline" },
+	{ "<leader>gP", ":Gitsigns preview_hunk<CR>", desc = "Preview hunk" },
+	{ "<leader>gn", ":Gitsigns next_hunk<CR>", desc = "Next hunk" },
+	{ "<leader>gN", ":Gitsigns prev_hunk<CR>", desc = "Previous hunk" },
+	{ "<leader>gb", "<cmd>Telescope git_branches<CR>", desc = "Checkout branch" },
+	{ "<leader>gc", "<cmd>Telescope git_commits<CR>", desc = "Checkout commit" },
+})
 
-wk.register({
-	c = {
-		name = "Quickfix",
-		o = { ":copen<CR>", "Open quickfix" },
-		c = { ":cclose<CR>", "Close quickfix" },
-		t = { ":Telescope quickfix<CR>", "Show quickfix in telescope" },
-		h = { ":Telescope quickfixhistory<CR>", "Show quickfix history in telescope" },
-		n = { ":cnext<CR>", "Next quickfix" },
-		p = { ":cprevious<CR>", "Previous quickfix" },
-	},
-}, { prefix = "<leader>" })
+wk.add({
+	{ "<leader>c", group = "Quickfix" },
+	{ "<leader>co", ":copen<CR>", desc = "Open quickfix" },
+	{ "<leader>cc", ":cclose<CR>", desc = "Close quickfix" },
+	{ "<leader>ct", ":Telescope quickfix<CR>", desc = "Show quickfix in telescope" },
+	{ "<leader>ch", ":Telescope quickfixhistory<CR>", desc = "Show quickfix history in telescope" },
+	{ "<leader>cn", ":cnext<CR>", desc = "Next quickfix" },
+	{ "<leader>cp", ":cprevious<CR>", desc = "Previous quickfix" },
+})
 
-wk.register({
-	s = {
-		name = "Snippets",
-		c = { '?><CR>:nohl<CR>i className=""<ESC>i', "Add className attribute to element" },
-		x = { '?><CR>:nohl<CR>i className={cx("")}<ESC>hhi', "Add className attribute with cx() to element" },
+wk.add({
+	{ "<leader>s", group = "Snippets" },
+	{ "<leader>sc", '?><CR>:nohl<CR>i className=""<ESC>i', desc = "Add className attribute to element" },
+	{
+		"<leader>sx",
+		'?><CR>:nohl<CR>i className={cx("")}<ESC>hhi',
+		desc = "Add className attribute with cx() to element",
 	},
-}, { prefix = "<leader>" })
+})
 
-wk.register({
-	h = {
-		name = "Harpoon",
-		m = { "<cmd>lua require('harpoon.mark').add_file()<CR>", "Mark file with harpoon" },
-		n = { "<cmd>lua require('harpoon.ui').nav_next()<CR>", "Go to next harpoon mark" },
-		p = { "<cmd>lua require('harpoon.ui').nav_prev()<CR>", "Go to previous harpoon mark" },
-		h = { "<cmd>lua require('harpoon.ui').toggle_quick_menu()<CR>", "Show harpoon marks" },
-	},
-}, { prefix = "<leader>" })
+wk.add({
+	{ "<leader>h", group = "Harpoon" },
+	{ "<leader>hm", "<cmd>lua require('harpoon.mark').add_file()<CR>", desc = "Mark file with harpoon" },
+	{ "<leader>hn", "<cmd>lua require('harpoon.ui').nav_next()<CR>", desc = "Go to next harpoon mark" },
+	{ "<leader>hp", "<cmd>lua require('harpoon.ui').nav_prev()<CR>", desc = "Go to previous harpoon mark" },
+	{ "<leader>hh", "<cmd>lua require('harpoon.ui').toggle_quick_menu()<CR>", desc = "Show harpoon marks" },
+})
 
-wk.register({
-	x = {
-		name = "XCodeBuild",
-		l = { "<cmd>XcodebuildToggleLogs<CR>", "Toggle Xcodebuild Logs" },
-		b = { "<cmd>XcodebuildBuild<CR>", "Build Project" },
-		x = { "<cmd>XcodebuildBuildRun<CR>", "Build & Run Project" },
-		r = { "<cmd>XcodebuildBuildRun<CR>", "Build & Run Project" },
-		t = { "<cmd>XcodebuildTest<CR>", "Run Tests" },
-		T = { "<cmd>XcodebuildTestClass<CR>", "Run This Test Class" },
-		X = { "<cmd>XcodebuildPicker<CR>", "Show All Xcodebuild Actions" },
-		d = { "<cmd>XcodebuildSelectDevice<CR>", "Select Device" },
-		p = { "<cmd>XcodebuildSelectTestPlan<CR>", "Select Test Plan" },
-		c = { "<cmd>XcodebuildToggleCodeCoverage<CR>", "Toggle Code Coverage" },
-		C = { "<cmd>XcodebuildShowCodeCoverageReport<CR>", "Show Code Coverage Report" },
-	},
-}, { prefix = "<leader>" })
+wk.add({
+	{ "<leader>a", group = "Session" },
+	{ "<leader>ar", "<cmd>SessionRestore<CR>", desc = "Restore session for cwd" },
+	{ "<leader>as", "<cmd>SessionSave<CR>", desc = "Save session for auto session root dir" },
+})
 
-wk.register({
-	a = {
-		name = "Session",
-		r = { "<cmd>SessionRestore<CR>", "Restore session for cwd" },
-		s = { "<cmd>SessionSave<CR>", "Save session for auto session root dir" },
-	},
-}, { prefix = "<leader>" })
+wk.add({
+	{ "<leader>o", group = "Copilot" },
+	{ "<leader>oe", "<cmd>Copilot enable<CR>", desc = "Enable Copilot" },
+	{ "<leader>od", "<cmd>Copilot disable<CR>", desc = "Disable Copilot" },
+})
 
-wk.register({
-	o = {
-		name = "Copilot",
-		e = { "<cmd>Copilot enable<CR>", "Enable Copilot" },
-		d = { "<cmd>Copilot disable<CR>", "Disable Copilot" },
+wk.add({
+	{ "<leader>i", group = "Inlay Hints" },
+	{
+		"<leader>ii",
+		"<cmd>lua vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())<CR>",
+		desc = "Toggle inlay hints",
 	},
-}, { prefix = "<leader>" })
-
-wk.register({
-	i = {
-		name = "Inlay Hints",
-		i = { "<cmd>lua vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())<CR>", "Toggle inlay hints" },
-	},
-}, { prefix = "<leader>" })
+})
