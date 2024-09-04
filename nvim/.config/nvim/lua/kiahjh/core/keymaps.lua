@@ -151,3 +151,17 @@ wk.add({
 		desc = "Toggle inlay hints",
 	},
 })
+
+wk.add({
+	{ "<leader>x", group = "XcodeBuild" },
+	{ "<leader>xl", "<cmd>XcodebuildToggleLogs<cr>", desc = "Toggle Xcodebuild Logs" },
+	{ "<leader>xb", "<cmd>XcodebuildBuild<cr>", desc = "Build Project" },
+	{ "<leader>xr", "<cmd>XcodebuildBuildRun<cr>", desc = "Build & Run Project" },
+	{ "<leader>xt", "<cmd>XcodebuildTest<cr>", desc = "Run Tests" },
+	{ "<leader>xT", "<cmd>XcodebuildTestClass<cr>", desc = "Run This Test Class" },
+	{ "<leader>xx", "<cmd>XcodebuildPicker<cr>", desc = "Show All Xcodebuild Actions" },
+	{ "<leader>xd", "<cmd>XcodebuildSelectDevice<cr>", desc = "Select Device" },
+	{ "<leader>xp", "<cmd>XcodebuildSelectTestPlan<cr>", desc = "Select Test Plan" },
+	{ "<leader>xc", "<cmd>XcodebuildToggleCodeCoverage<cr>", desc = "Toggle Code Coverage" },
+	{ "<leader>xC", "<cmd>XcodebuildShowCodeCoverageReport<cr>", desc = "Show Code Coverage Report" },
+})

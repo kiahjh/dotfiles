@@ -127,7 +127,15 @@ return {
 			cmd = {
 				"/usr/bin/sourcekit-lsp",
 			},
-			root_dir = lspconfig.util.root_pattern("Package.swift"),
+			single_file_support = false, -- don't want this, because it falls back to the cwd if it can't find an xcode proj or spm package
+
+			-- if it's an spm package (meaining it has a Package.swift), then root_dir should be the root of the package; if it's an xcode project, then root_dir should be wherever buildServer.json is:
+			root_dir = function(fname)
+				return lspconfig.util.root_pattern("Package.swift", "buildServer.json")(fname)
+					-- some reasonable falbacks:
+					or lspconfig.util.find_git_ancestor(fname)
+					or vim.fn.getcwd()
+			end,
 		})
 
 		-- configure rust server
