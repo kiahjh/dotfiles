@@ -36,6 +36,9 @@ map("n", "gd", "<cmd>Telescope lsp_definitions<CR>", { desc = "Show definitions"
 map("n", "gi", "<cmd>Telescope lsp_implementations<CR>", { desc = "Show implementations" })
 map("n", "gt", "<cmd>Telescope lsp_type_definitions<CR>", { desc = "Show type definitions" })
 
+-- lazy
+map("n", "<leader>L", ":Lazy<CR>", { desc = "Lazy" })
+
 --
 -- MODULAR --
 --   v
@@ -48,6 +51,7 @@ wk.add({
 	{ "<leader>lD", vim.lsp.buf.declaration, desc = "Go to declaration" },
 	{ "<leader>la", vim.lsp.buf.code_action, desc = "See available code actions" },
 	{ "<leader>lx", ":LspRestart<CR>", desc = "Restart LSP" },
+	{ "<leader>li", ":LspInfo<CR>", desc = "LSP info" },
 	{ "<leader>ld", group = "Diagnostics" },
 	{ "<leader>ldn", vim.diagnostic.goto_next, desc = "Go to next diagnostic" },
 	{ "<leader>ldp", vim.diagnostic.goto_prev, desc = "Go to previous diagnostic" },

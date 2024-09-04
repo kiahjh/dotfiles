@@ -36,6 +36,8 @@ return {
 			vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = "" })
 		end
 
+		require("lspconfig.ui.windows").default_options.border = "rounded"
+
 		-- configure html server
 		lspconfig.html.setup({
 			capabilities = capabilities,
