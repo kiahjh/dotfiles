@@ -46,7 +46,7 @@ return {
 		})
 
 		-- configure typescript server with plugin
-		lspconfig.tsserver.setup({
+		lspconfig.ts_ls.setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
 			handlers = handlers,
@@ -131,7 +131,7 @@ return {
 			},
 			single_file_support = false, -- don't want this, because it falls back to the cwd if it can't find an xcode proj or spm package
 
-			-- if it's an spm package (meaining it has a Package.swift), then root_dir should be the root of the package; if it's an xcode project, then root_dir should be wherever buildServer.json is:
+			-- if it's an spm package (it has a Package.swift), then root_dir should be the root of the package; if it's an xcode project, then root_dir should be wherever buildServer.json is:
 			root_dir = function(fname)
 				return lspconfig.util.root_pattern("Package.swift", "buildServer.json")(fname)
 					-- some reasonable falbacks:
