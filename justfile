@@ -12,5 +12,4 @@ stow:
   @stow kitty
   @stow wezterm
   @stow zellij
-  @stow yabai
-  @stow sketchybar
+  @stow aerospace
