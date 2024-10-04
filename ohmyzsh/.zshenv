@@ -32,7 +32,7 @@ path+=$PNPM_HOME
 # path+=~/.rbenv/shims # ruby version manager, for react native
 # export PATH="$HOME/.jenv/bin:$PATH"
 
-path+=~/.nvim-0.10.0/bin
+path+=~/.nvim-0.10.2/bin
 path+=/opt/homebrew/opt/node@18/bin
 path+=~/.local/scripts
 path+=~/.local/bin

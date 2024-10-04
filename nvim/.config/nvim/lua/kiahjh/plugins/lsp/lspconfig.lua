@@ -78,6 +78,14 @@ return {
 			},
 		})
 
+		-- configure mdx server
+		lspconfig.mdx_analyzer.setup({
+			capabilities = capabilities,
+			on_attach = on_attach,
+			handlers = handlers,
+			filetypes = { "mdx" },
+		})
+
 		-- configure css server
 		lspconfig.cssls.setup({
 			capabilities = capabilities,

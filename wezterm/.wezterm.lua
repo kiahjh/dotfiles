@@ -2,7 +2,7 @@ local wezterm = require("wezterm")
 
 local config = {
 	colors = {
-		background = "#10101A",
+		background = "#11101a",
 	},
 	enable_tab_bar = false,
 	window_decorations = "RESIZE",
