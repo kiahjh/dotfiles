@@ -13,6 +13,7 @@ return {
 				astro = { "prettier", "eslint_d" },
 				rust = { "rustfmt" },
 				swift = { "swiftformat" },
+				ocaml = { "ocamlformat" },
 			},
 		})
 

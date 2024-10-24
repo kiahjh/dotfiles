@@ -52,6 +52,8 @@ path+=$ANDROID_HOME/platform-tools
 path+=~/.local/kotlinc/bin
 path+=~/.local/kotlin-native-macos-aarch64-1.9.20/bin
 path+=~/.deno/bin
+path+=~/.opam/latest/bin
+
 
 export PATH
 . "$HOME/.cargo/env"

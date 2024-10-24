@@ -36,8 +36,6 @@ return {
 			vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = "" })
 		end
 
-		require("lspconfig.ui.windows").default_options.border = "rounded"
-
 		-- configure html server
 		lspconfig.html.setup({
 			capabilities = capabilities,
@@ -76,14 +74,6 @@ return {
 					},
 				},
 			},
-		})
-
-		-- configure mdx server
-		lspconfig.mdx_analyzer.setup({
-			capabilities = capabilities,
-			on_attach = on_attach,
-			handlers = handlers,
-			filetypes = { "mdx" },
 		})
 
 		-- configure css server
@@ -156,8 +146,17 @@ return {
 			settings = {
 				["rust-analyzer"] = {
 					hint = { enable = true },
+					checkOnSave = {
+						command = "clippy",
+					},
 				},
 			},
+		})
+
+		lspconfig.ocamllsp.setup({
+			capabilities = capabilities,
+			on_attach = on_attach,
+			handlers = handlers,
 		})
 
 		-- configure astro server

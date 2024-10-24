@@ -108,3 +108,13 @@ esac
 
 # Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
 export PATH="$PATH:$HOME/.rvm/bin"
+. "/Users/miciah/.deno/env"
+
+
+# BEGIN opam configuration
+# This is useful if you're using opam as it adds:
+#   - the correct directories to the PATH
+#   - auto-completion for the opam binary
+# This section can be safely removed at any time if needed.
+[[ ! -r '/Users/miciah/.opam/opam-init/init.zsh' ]] || source '/Users/miciah/.opam/opam-init/init.zsh' > /dev/null 2> /dev/null
+# END opam configuration
