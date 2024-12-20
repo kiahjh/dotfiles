@@ -1,0 +1,4 @@
+theme: galaxy
+keymap:
+  jump: ctrl+j
+  send-request: ctrl+enter

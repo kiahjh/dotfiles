@@ -27,8 +27,8 @@ map("n", "<leader>q", ":wqa<CR>", { desc = "Quit" })
 map("n", "<leader>'", ":Noice dismiss<CR>", { desc = "Dismiss notifications" })
 
 -- switch buffer
-map("n", "L", ":bnext<CR>", { desc = "Next buffer" })
-map("n", "H", ":bprevious<CR>", { desc = "Previous buffer" })
+map("n", "L", ":BufferNext<CR>", { desc = "Next buffer" })
+map("n", "H", ":BufferPrevious<CR>", { desc = "Previous buffer" })
 
 -- core lsp things
 map("n", "K", "<cmd>lua vim.lsp.buf.hover()<CR>", { desc = "Show documentation for what is under cursor" })
@@ -69,9 +69,11 @@ wk.add({
 
 wk.add({
 	{ "<leader>b", group = "Buffer" },
-	{ "<leader>bd", ":bd<CR>:BufferLineGoToBuffer 1<CR>", desc = "Close buffer" },
-	{ "<leader>bo", ":BufferLineCloseOthers<CR>", desc = "Close all other buffers" },
-	{ "<leader>bf", "<cmd>Telescope buffers<CR>", desc = "Find buffer" },
+	{ "<leader>bd", ":BufferClose<CR>", desc = "Close buffer" },
+	{ "<leader>bo", ":BufferCloseAllButCurrent<CR>", desc = "Close all other buffers" },
+	{ "<leader>bf", ":Telescope buffers<CR>", desc = "Find buffer" },
+	{ "<leader>bh", ":BufferMovePrevious<CR>", desc = "Move buffer left" },
+	{ "<leader>bl", ":BufferMoveNext<CR>", desc = "Move buffer right" },
 })
 
 wk.add({

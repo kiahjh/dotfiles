@@ -13,3 +13,4 @@ stow:
   @stow wezterm
   @stow zellij
   @stow aerospace
+  @stow posting
