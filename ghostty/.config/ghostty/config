@@ -6,9 +6,12 @@ font-family-bold-italic = "MonaspiceKr Nerd Font"
 adjust-cursor-thickness = 3
 
 theme = rose-pine
+background = 12111b
 
 mouse-hide-while-typing = true
 
 title = "Ghostty"
 
 macos-titlebar-style = "hidden"
+
+mouse-scroll-multiplier = 0.5
