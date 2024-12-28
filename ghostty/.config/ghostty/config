@@ -1,0 +1,14 @@
+font-family = "MonaspiceAr Nerd Font"
+font-family-italic = "MonaspiceRn Nerd Font"
+font-family-bold = "MonaspiceKr Nerd Font"
+font-family-bold-italic = "MonaspiceKr Nerd Font"
+
+adjust-cursor-thickness = 3
+
+theme = rose-pine
+
+mouse-hide-while-typing = true
+
+title = "Ghostty"
+
+macos-titlebar-style = "hidden"

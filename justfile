@@ -14,3 +14,4 @@ stow:
   @stow zellij
   @stow aerospace
   @stow posting
+  @stow ghostty
