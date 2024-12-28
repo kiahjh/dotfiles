@@ -12,11 +12,6 @@ return {
 		-- import cmp-nvim-lsp plugin
 		local cmp_nvim_lsp = require("cmp_nvim_lsp")
 
-		local handlers = {
-			["textDocument/hover"] = vim.lsp.with(vim.lsp.handlers.hover, { border = "rounded" }),
-			["textDocument/signatureHelp"] = vim.lsp.with(vim.lsp.handlers.signature_help, { border = "rounded" }),
-		}
-
 		local on_attach = function()
 			vim.diagnostic.config({
 				float = {
@@ -40,14 +35,12 @@ return {
 		lspconfig.html.setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
-			handlers = handlers,
 		})
 
 		-- configure typescript server with plugin
 		lspconfig.ts_ls.setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
-			handlers = handlers,
 			settings = {
 				typescript = {
 					inlayHints = {
@@ -80,28 +73,24 @@ return {
 		lspconfig.cssls.setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
-			handlers = handlers,
 		})
 
 		-- configure tailwindcss server
 		lspconfig.tailwindcss.setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
-			handlers = handlers,
 		})
 
 		-- configure prisma orm server
 		lspconfig.prismals.setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
-			handlers = handlers,
 		})
 
 		-- configure lua server (with special settings)
 		lspconfig.lua_ls.setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
-			handlers = handlers,
 			settings = { -- custom settings for lua
 				Lua = {
 					-- make the language server recognize "vim" global
@@ -123,7 +112,6 @@ return {
 		lspconfig.sourcekit.setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
-			handlers = handlers,
 			cmd = {
 				"/usr/bin/sourcekit-lsp",
 			},
@@ -142,7 +130,6 @@ return {
 		lspconfig.rust_analyzer.setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
-			handlers = handlers,
 			settings = {
 				["rust-analyzer"] = {
 					hint = { enable = true },
@@ -156,14 +143,12 @@ return {
 		lspconfig.ocamllsp.setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
-			handlers = handlers,
 		})
 
 		-- configure astro server
 		lspconfig.astro.setup({
 			capabilities = capabilities,
 			on_attach = on_attach,
-			handlers = handlers,
 			init_options = {
 				typescript = {
 					tsdk = vim.fs.normalize("~/Library/pnpm/global/5/node_modules/typescript/lib"),
