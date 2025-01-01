@@ -31,6 +31,21 @@ return {
 			vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = "" })
 		end
 
+		-- fen language server
+		local configs = require("lspconfig.configs")
+		configs.fen = {
+			default_config = {
+				cmd = { "fenlsp" },
+				filetypes = { "fen" },
+				root_dir = lspconfig.util.root_pattern("config.toml"),
+				settings = {},
+			},
+		}
+		lspconfig.fen.setup({
+			capabilities = capabilities,
+			on_attach = on_attach,
+		})
+
 		-- configure html server
 		lspconfig.html.setup({
 			capabilities = capabilities,
