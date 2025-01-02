@@ -20,9 +20,10 @@ background = 12111b
 
 mouse-hide-while-typing = true
 
-title = "Ghostty"
+title = " "
 
-macos-titlebar-style = "hidden"
+macos-titlebar-style = "transparent"
+macos-titlebar-proxy-icon = "hidden"
 
 mouse-scroll-multiplier = 0.5
 
