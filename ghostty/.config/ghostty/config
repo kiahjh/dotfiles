@@ -14,6 +14,7 @@ font-feature = ss09
 font-feature = liga
 
 adjust-cursor-thickness = 3
+cursor-color = ffffff
 
 theme = rose-pine
 background = 12111b
