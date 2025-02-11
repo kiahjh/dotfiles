@@ -37,6 +37,7 @@ path+=/opt/homebrew/opt/node@18/bin
 path+=~/.local/scripts
 path+=~/.local/bin
 path+=/usr/local/bin
+path+=/usr/local/bin/zig
 path+=/usr/local/sbin
 path+=/usr/bin
 path+=/usr/sbin

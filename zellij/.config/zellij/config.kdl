@@ -295,12 +295,26 @@ themes {
 		black "#393552"
 		white "#e0def4"
 	}
+
+    custom-vague {
+		bg "#100F10"
+		fg "#CDCDCD"
+		red "#C48282"
+		green "#9BB4BC"
+		blue "#6E94B1"
+		yellow "#E8B589"
+		magenta "#AEAED1"
+		orange "#F8A075"
+		cyan "#B4D4CF"
+		black "#100F10"
+		white "#CDCDCD"
+    }
 }
 
 // Choose the theme that is specified in the themes section.
 // Default: default
 
-theme "rose-pine"
+theme "custom-vague"
 
 // The name of the default layout to load on startup
 // Default: "default"

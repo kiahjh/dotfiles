@@ -14,6 +14,7 @@ return {
 				rust = { "rustfmt" },
 				swift = { "swiftformat" },
 				ocaml = { "ocamlformat" },
+				zig = { "zigfmt" },
 			},
 		})
 

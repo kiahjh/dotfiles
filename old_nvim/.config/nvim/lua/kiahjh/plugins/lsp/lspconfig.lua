@@ -160,6 +160,11 @@ return {
 			on_attach = on_attach,
 		})
 
+		lspconfig.zls.setup({
+			capabilities = capabilities,
+			on_attach = on_attach,
+		})
+
 		-- configure astro server
 		lspconfig.astro.setup({
 			capabilities = capabilities,
