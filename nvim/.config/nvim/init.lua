@@ -92,7 +92,8 @@ require("lazy").setup({
 	"github/copilot.vim",
 	"lewis6991/gitsigns.nvim",
 
-	require("plugins.cmp"),
+	require("plugins.autopairs"),
+	require("plugins.blink"),
 	require("plugins.conform"),
 	require("plugins.highlight-colors"),
 	require("plugins.lazydev"),

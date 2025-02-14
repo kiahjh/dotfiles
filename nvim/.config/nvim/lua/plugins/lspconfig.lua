@@ -2,12 +2,10 @@ return {
 	"neovim/nvim-lspconfig",
 	dependencies = {
 	  { 'j-hui/fidget.nvim', opts = {} },
-	  'hrsh7th/cmp-nvim-lsp',
 	},
 	config = function()
 		vim.diagnostic.config({
-			float = {
-				border = "rounded",
+			float = { border = "rounded",
 			}
 		})
 
@@ -69,12 +67,16 @@ return {
 		-- [[ Server Configurations ]]
 
 		local lspconfig = require 'lspconfig'
+		local capabilities = require("blink.cmp").get_lsp_capabilities()
 
 		-- Lua
-		lspconfig['lua_ls'].setup {}
+		lspconfig['lua_ls'].setup {
+		  capabilities = capabilities,
+		}
 
 		-- Rust
 		lspconfig["rust_analyzer"].setup {
+		  capabilities = capabilities,
 		  settings = {
 			["rust-analyzer"] = {
 			  checkOnSave = {
@@ -85,34 +87,45 @@ return {
 		}
 
 		-- Zig
-		lspconfig["zls"].setup {}
+		lspconfig["zls"].setup {
+		  capabilities = capabilities,
+		}
 
 		-- OCaml
-		lspconfig["ocamllsp"].setup {}
+		lspconfig["ocamllsp"].setup {
+		  capabilities = capabilities,
+		}
 
 		-- TypeScript
-		lspconfig["ts_ls"].setup {}
+		lspconfig["ts_ls"].setup {
+		  capabilities = capabilities,
+		}
 
 		-- CSS
-		lspconfig["tailwindcss"].setup {}
+		lspconfig["tailwindcss"].setup {
+		  capabilities = capabilities,
+		}
 
 		-- TailwindCSS
-		lspconfig["cssls"].setup {}
+		lspconfig["cssls"].setup {
+		  capabilities = capabilities,
+		}
 
 		-- Swift
 		lspconfig.sourcekit.setup({
-			cmd = {
-				"/usr/bin/sourcekit-lsp",
-			},
-			single_file_support = false, -- don't want this, because it falls back to the cwd if it can't find an xcode proj or spm package
+		  capabilities = capabilities,
+		  cmd = {
+		  	"/usr/bin/sourcekit-lsp",
+		  },
+		  single_file_support = false, -- don't want this, because it falls back to the cwd if it can't find an xcode proj or spm package
 
-			-- if it's an spm package (it has a Package.swift), then root_dir should be the root of the package; if it's an xcode project, then root_dir should be wherever buildServer.json is:
-			root_dir = function(fname)
-				return lspconfig.util.root_pattern("Package.swift", "buildServer.json")(fname)
-					-- some reasonable falbacks:
-					or vim.fs.dirname(vim.fs.find('.git', { path = fname, upward = true })[1])
-					or vim.fn.getcwd()
-			end,
+		  -- if it's an spm package (it has a Package.swift), then root_dir should be the root of the package; if it's an xcode project, then root_dir should be wherever buildServer.json is:
+		  root_dir = function(fname)
+		  	return lspconfig.util.root_pattern("Package.swift", "buildServer.json")(fname)
+		  		-- some reasonable falbacks:
+		  		or vim.fs.dirname(vim.fs.find('.git', { path = fname, upward = true })[1])
+		  		or vim.fn.getcwd()
+		  end,
 		})
 	end,
 }
