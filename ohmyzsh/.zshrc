@@ -118,3 +118,7 @@ export PATH="$PATH:$HOME/.rvm/bin"
 # This section can be safely removed at any time if needed.
 [[ ! -r '/Users/miciah/.opam/opam-init/init.zsh' ]] || source '/Users/miciah/.opam/opam-init/init.zsh' > /dev/null 2> /dev/null
 # END opam configuration
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion

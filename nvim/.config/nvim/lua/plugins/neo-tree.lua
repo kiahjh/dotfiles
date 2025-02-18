@@ -18,7 +18,7 @@ return {
 
     require("neo-tree").setup({
       window = {
-        position = "right",
+        -- position = "right",
         mappings = {
           ['<leader>e'] = 'close_window',
         },
