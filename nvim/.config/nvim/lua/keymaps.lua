@@ -24,7 +24,6 @@ map("n", "<leader>:", Snacks.picker.command_history, { desc = "Command history" 
 map("n", "<leader>h", Snacks.picker.notifications, { desc = "Notification history" }) map("n", "<leader>,", Snacks.picker.buffers, { desc = "Buffers" })
 map("n", "<leader>.", function() Snacks.scratch() end, { desc = "Open Scratch Buffer" })
 map("n", "<leader>S", function() Snacks.scratch.select() end, { desc = "Select Scratch Buffer" })
-map("n", "<leader>bd", function() Snacks.bufdelete() end, { desc = "Delete Buffer" })
 map("n", "<leader>R", function() Snacks.rename.rename_file() end, { desc = "Rename File" })
 map("n", "<leader>un", function() Snacks.notifier.hide() end, { desc = "Dismiss All Notifications" })
 map("n", "]]", function() Snacks.words.jump(vim.v.count1) end, { desc = "Next Reference" })
@@ -36,6 +35,10 @@ map("n", "gD", Snacks.picker.lsp_declarations, { desc = "Goto Declaration" })
 map("n", "gr", Snacks.picker.lsp_references, { desc = "References" })
 map("n", "gI", Snacks.picker.lsp_implementations, { desc = "Goto Implementation" })
 map("n", "gy", Snacks.picker.lsp_type_definitions, { desc = "Goto Type Definitions" })
+
+-- switch buffers
+map("n", "H", "<cmd>BufferPrevious<CR>", { desc = "Previous Buffer" })
+map("n", "L", "<cmd>BufferNext<CR>", { desc = "Next Buffer" })
 
 -- multicursor
 
@@ -106,6 +109,12 @@ map("v", "M", mc.matchCursors, { desc = "Create cursors on regex" })
 -- Rotate visual selection contents.
 map("v", "<leader>t", function() mc.transposeCursors(1) end, { desc = "Rotate selection content" })
 map("v", "<leader>T", function() mc.transposeCursors(-1) end, { desc = "Rotate selection content backwards" })
+
+wk.add({
+  { "<leader>b", group = "Buffers" },
+  { "<leader>bd", ":BufferDelete<CR>", { desc = "Delete Buffer" }},
+  { "<leader>bo", ":BufferCloseAllButCurrent<CR>", { desc = "Close all other buffers" }}
+})
 
 wk.add({
   { "<leader>t", group = "Toggle" },

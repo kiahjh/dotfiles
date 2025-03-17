@@ -93,6 +93,7 @@ require("lazy").setup({
 	"lewis6991/gitsigns.nvim",
 
 	require("plugins.autopairs"),
+	require("plugins.barbar"),
 	require("plugins.blink"),
 	require("plugins.conform"),
 	require("plugins.highlight-colors"),
@@ -105,7 +106,7 @@ require("lazy").setup({
 	require("plugins.snacks"),
 	require("plugins.todo-comments"),
 	require("plugins.treesitter"),
-	require("plugins.vague"),
+	require("plugins.catppuccin"),
 	require("plugins.which-key"),
 	require("plugins.xcodebuild"),
 })
