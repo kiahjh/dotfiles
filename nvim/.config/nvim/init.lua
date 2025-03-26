@@ -91,6 +91,7 @@ require("lazy").setup({
 	"tpope/vim-sleuth", -- Detect tabstop and shiftwidth automatically
 	"github/copilot.vim",
 	"lewis6991/gitsigns.nvim",
+	"rktjmp/lush.nvim",
 
 	require("plugins.autopairs"),
 	require("plugins.barbar"),
@@ -106,10 +107,29 @@ require("lazy").setup({
 	require("plugins.snacks"),
 	require("plugins.todo-comments"),
 	require("plugins.treesitter"),
-	require("plugins.catppuccin"),
+	require("plugins.everforest"),
 	require("plugins.which-key"),
 	require("plugins.xcodebuild"),
 })
+
+-- [[ Set up stuff for Fen ]]
+
+vim.filetype.add({
+	extension = {
+		fen = "fen"
+	}
+})
+
+vim.treesitter.language.register("fen", "fen")
+
+local parser_config = require "nvim-treesitter.parsers".get_parser_configs()
+parser_config.fen = {
+	install_info = {
+		url = "~/active-projects/tree-sitter-fen",
+		files = {"src/parser.c"},
+	},
+	filetype = "fen"
+}
 
 require("keymaps")
 require("gitsigns").setup()

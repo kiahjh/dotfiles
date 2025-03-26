@@ -96,6 +96,11 @@ return {
 		  capabilities = capabilities,
 		}
 
+		-- -- Assembly
+		-- lspconfig["asm_lsp"].setup {
+		--   capabilities = capabilities,
+		-- }
+
 		-- TypeScript
 		lspconfig["ts_ls"].setup {
 		  capabilities = capabilities,

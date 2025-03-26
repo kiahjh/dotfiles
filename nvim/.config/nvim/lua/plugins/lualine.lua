@@ -9,7 +9,7 @@ return {
 		-- configure lualine with modified theme
 		lualine.setup({
 			options = {
-				theme = "vague",
+				theme = "everforest",
 				section_separators = { left = "", right = "" },
 				-- section_separators = { left = "", right = "" },
 				component_separators = { left = "", right = "" },
