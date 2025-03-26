@@ -106,7 +106,7 @@ require("lazy").setup({
 	require("plugins.snacks"),
 	require("plugins.todo-comments"),
 	require("plugins.treesitter"),
-	require("plugins.catppuccin"),
+	require("plugins.everforest"),
 	require("plugins.which-key"),
 	require("plugins.xcodebuild"),
 })

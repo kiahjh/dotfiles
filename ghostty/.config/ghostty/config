@@ -16,8 +16,7 @@ font-feature = liga
 adjust-cursor-thickness = 3
 cursor-color = ffffff
 
-theme = catppuccin-mocha
-background = 151522
+theme = Everforest Dark - Hard
 
 mouse-hide-while-typing = true
 
