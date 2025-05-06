@@ -32,7 +32,7 @@ path+=$PNPM_HOME
 # path+=~/.rbenv/shims # ruby version manager, for react native
 # export PATH="$HOME/.jenv/bin:$PATH"
 
-path+=~/.nvim-0.11.0/bin
+path+=~/.nvim-0.11.1/bin
 path+=/opt/homebrew/opt/node@18/bin
 path+=~/.local/scripts
 path+=~/.local/bin
@@ -55,6 +55,7 @@ path+=~/.local/kotlin-native-macos-aarch64-1.9.20/bin
 path+=~/.deno/bin
 path+=~/.opam/latest/bin
 path+=~/.spicetify
+path+=~/.swiftly/bin
 
 
 export PATH

@@ -27,6 +27,7 @@ return {
       typescriptreact = { 'prettierd' },
       javascriptreact = { 'prettierd' },
       ocaml = { 'ocamlformat' },
+      c = { 'clang-format' },
     },
   }
 }

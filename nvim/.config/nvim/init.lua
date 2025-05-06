@@ -112,24 +112,27 @@ require("lazy").setup({
 	require("plugins.xcodebuild"),
 })
 
--- [[ Set up stuff for Fen ]]
+-- [[ Set up stuff for Lovely ]]
 
 vim.filetype.add({
 	extension = {
-		fen = "fen"
+		lv = "lovely"
 	}
 })
 
-vim.treesitter.language.register("fen", "fen")
+local parser_config = require("nvim-treesitter.parsers").get_parser_configs()
 
-local parser_config = require "nvim-treesitter.parsers".get_parser_configs()
-parser_config.fen = {
+parser_config.lovely = {
 	install_info = {
-		url = "~/active-projects/tree-sitter-fen",
-		files = {"src/parser.c"},
+		url = "https://github.com/kiahjh/tree-sitter-lovely",
+		files = { "src/parser.c" },
+		requires_generate_from_grammar = false,
+		-- revision = "3b933c7d500bffcbf1a39d815d790b9fd0741ca7",
 	},
-	filetype = "fen"
+	filetype = "lovely",
 }
+
+vim.treesitter.language.register("lovely", "lovely")
 
 require("keymaps")
 require("gitsigns").setup()

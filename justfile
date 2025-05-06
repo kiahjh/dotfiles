@@ -11,5 +11,4 @@ stow:
   @stow posting
   @stow ghostty
   @stow nvim
-  @stow sketchybar
 

@@ -116,6 +116,7 @@ return {
 		  capabilities = capabilities,
 		}
 
+		-- Astro
 		lspconfig.astro.setup {
 		  capabilities = capabilities,
 		  init_options = {
@@ -125,11 +126,19 @@ return {
 		  },
 		}
 
+		-- C
+		lspconfig.clangd.setup {
+			capabilities = capabilities
+		}
+
 		-- Swift
 		lspconfig.sourcekit.setup({
 		  capabilities = capabilities,
 		  cmd = {
 		  	"/usr/bin/sourcekit-lsp",
+		  },
+		  filetypes = {
+			"swift", "objc", "objcpp"
 		  },
 		  single_file_support = false, -- don't want this, because it falls back to the cwd if it can't find an xcode proj or spm package
 
