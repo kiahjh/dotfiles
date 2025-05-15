@@ -56,6 +56,7 @@ path+=~/.deno/bin
 path+=~/.opam/latest/bin
 path+=~/.spicetify
 path+=~/.swiftly/bin
+path+=~/.nvm/versions/node/v20.19.0/bin
 
 
 export PATH

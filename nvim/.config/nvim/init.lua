@@ -105,6 +105,7 @@ require("lazy").setup({
 	require("plugins.neo-tree"),
 	require("plugins.noice"),
 	require("plugins.snacks"),
+	require("plugins.tiny-inline-diagnostic"),
 	require("plugins.todo-comments"),
 	require("plugins.treesitter"),
 	require("plugins.everforest"),
