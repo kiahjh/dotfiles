@@ -89,7 +89,7 @@ vim.opt.rtp:prepend(lazypath)
 require("lazy").setup({
 	-- one-liners
 	"tpope/vim-sleuth", -- Detect tabstop and shiftwidth automatically
-	"github/copilot.vim",
+	-- "github/copilot.vim",
 	"lewis6991/gitsigns.nvim",
 	"rktjmp/lush.nvim",
 
@@ -108,7 +108,7 @@ require("lazy").setup({
 	require("plugins.tiny-inline-diagnostic"),
 	require("plugins.todo-comments"),
 	require("plugins.treesitter"),
-	require("plugins.everforest"),
+	require("plugins.rose-pine"),
 	require("plugins.which-key"),
 	require("plugins.xcodebuild"),
 })

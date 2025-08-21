@@ -3,10 +3,12 @@ font-family-italic = "Maple Mono NF CN"
 font-family-bold = "Maple Mono NF CN"
 font-family-bold-italic = "Maple Mono NF CN"
 
+font-size = 20
+
 adjust-cursor-thickness = 3
 cursor-color = ffffff
 
-theme = Everforest Dark - Hard
+theme = rose-pine
 
 mouse-hide-while-typing = true
 

@@ -90,6 +90,7 @@ alias zlj="zellij"
 alias zj="zellij -l welcome"
 alias tlox="~/learning/lox/typescript/tlox"
 alias src="source ~/.zshrc && source ~/.zshenv && echo 'sourced .zshrc and .zshenv'"
+alias oc="opencode"
 
 # bun completions
 [ -s "/Users/miciah/.bun/_bun" ] && source "/Users/miciah/.bun/_bun"
@@ -124,3 +125,18 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 export PATH=$PATH:/Users/miciah/.spicetify
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+# opencode
+export PATH=/Users/miciah/.opencode/bin:$PATH
