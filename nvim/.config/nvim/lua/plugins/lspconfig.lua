@@ -130,6 +130,14 @@ return {
 			capabilities = capabilities
 		}
 
+		lspconfig["roc_ls"].setup {
+		  capabilities = capabilities,
+		}
+
+		lspconfig["gopls"].setup {
+		  capabilities = capabilities,
+		}
+
 		-- Swift
 		lspconfig.sourcekit.setup({
 		  capabilities = capabilities,
