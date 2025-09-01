@@ -59,6 +59,7 @@ path+=~/.swiftly/bin
 path+=~/.nvm/versions/node/v20.19.0/bin
 path+=/usr/local/go/bin
 path+=~/go/bin
+path+=~/.bun/bin
 
 
 export PATH
