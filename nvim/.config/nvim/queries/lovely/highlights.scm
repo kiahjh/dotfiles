@@ -1,33 +1,32 @@
-; literals
 (int_literal) @number
+(comment) @comment
+(variable_ident) @variable
+(type) @type
+; (path_separator) @punctuation
 
-; keywords
-"fun" @keyword
-(unit) @keyword
-
-; punctuation
-";" @punctuation
 ":" @punctuation
+"=" @punctuation
+"~" @punctuation
+; "#" @punctuation
+"/" @punctuation ; TODO
+"," @punctuation.delimiter
 "{" @punctuation.bracket
 "}" @punctuation.bracket
 "(" @punctuation.bracket
 ")" @punctuation.bracket
-"," @punctuation.delimiter
 
-; operators
+"^" @operator
+"*" @operator
+; "/" @operator
 "+" @operator
 "-" @operator
-"*" @operator
-"/" @operator
-"^" @operator
-">" @operator
 "<" @operator
+">" @operator
+"<=" @operator
+">=" @operator
 "==" @operator
 "!=" @operator
-">=" @operator
-"<=" @operator
+"!" @operator
 
-; misc.
-(comment) @comment
-(type) @type
-(variable_ident) @variable
+; "use" @keyword
+"fun" @keyword
