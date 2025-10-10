@@ -70,35 +70,35 @@ keybinds clear-defaults=true {
         bind "9" { GoToTab 9; SwitchToMode "Normal"; }
         bind "Tab" { ToggleTab; }
     }
-    scroll {
-        bind "Ctrl s" { SwitchToMode "Normal"; }
-        bind "e" { EditScrollback; SwitchToMode "Normal"; }
-        bind "s" { SwitchToMode "EnterSearch"; SearchInput 0; }
-        bind "Ctrl c" { ScrollToBottom; SwitchToMode "Normal"; }
-        bind "j" "Down" { ScrollDown; }
-        bind "k" "Up" { ScrollUp; }
-        bind "Ctrl f" "PageDown" "Right" "l" { PageScrollDown; }
-        bind "Ctrl b" "PageUp" "Left" "h" { PageScrollUp; }
-        bind "d" { HalfPageScrollDown; }
-        bind "u" { HalfPageScrollUp; }
-        // uncomment this and adjust key if using copy_on_select=false
-        // bind "Alt c" { Copy; }
-    }
-    search {
-        bind "Ctrl s" { SwitchToMode "Normal"; }
-        bind "Ctrl c" { ScrollToBottom; SwitchToMode "Normal"; }
-        bind "j" "Down" { ScrollDown; }
-        bind "k" "Up" { ScrollUp; }
-        bind "Ctrl f" "PageDown" "Right" "l" { PageScrollDown; }
-        bind "Ctrl b" "PageUp" "Left" "h" { PageScrollUp; }
-        bind "d" { HalfPageScrollDown; }
-        bind "u" { HalfPageScrollUp; }
-        bind "n" { Search "down"; }
-        bind "p" { Search "up"; }
-        bind "c" { SearchToggleOption "CaseSensitivity"; }
-        bind "w" { SearchToggleOption "Wrap"; }
-        bind "o" { SearchToggleOption "WholeWord"; }
-    }
+    // scroll {
+    //     bind "Ctrl s" { SwitchToMode "Normal"; }
+    //     bind "e" { EditScrollback; SwitchToMode "Normal"; }
+    //     bind "s" { SwitchToMode "EnterSearch"; SearchInput 0; }
+    //     bind "Ctrl c" { ScrollToBottom; SwitchToMode "Normal"; }
+    //     bind "j" "Down" { ScrollDown; }
+    //     bind "k" "Up" { ScrollUp; }
+    //     bind "Ctrl f" "PageDown" "Right" "l" { PageScrollDown; }
+    //     bind "Ctrl b" "PageUp" "Left" "h" { PageScrollUp; }
+    //     bind "d" { HalfPageScrollDown; }
+    //     bind "u" { HalfPageScrollUp; }
+    //     // uncomment this and adjust key if using copy_on_select=false
+    //     // bind "Alt c" { Copy; }
+    // }
+    // search {
+    //     bind "Ctrl s" { SwitchToMode "Normal"; }
+    //     bind "Ctrl c" { ScrollToBottom; SwitchToMode "Normal"; }
+    //     bind "j" "Down" { ScrollDown; }
+    //     bind "k" "Up" { ScrollUp; }
+    //     bind "Ctrl f" "PageDown" "Right" "l" { PageScrollDown; }
+    //     bind "Ctrl b" "PageUp" "Left" "h" { PageScrollUp; }
+    //     bind "d" { HalfPageScrollDown; }
+    //     bind "u" { HalfPageScrollUp; }
+    //     bind "n" { Search "down"; }
+    //     bind "p" { Search "up"; }
+    //     bind "c" { SearchToggleOption "CaseSensitivity"; }
+    //     bind "w" { SearchToggleOption "Wrap"; }
+    //     bind "o" { SearchToggleOption "WholeWord"; }
+    // }
     entersearch {
         bind "Ctrl c" "Esc" { SwitchToMode "Scroll"; }
         bind "Enter" { SwitchToMode "Search"; }
@@ -112,8 +112,7 @@ keybinds clear-defaults=true {
         bind "Esc" { UndoRenamePane; SwitchToMode "Pane"; }
     }
     session {
-        bind "Ctrl o" { SwitchToMode "Normal"; }
-        bind "Ctrl s" { SwitchToMode "Scroll"; }
+        bind "Ctrl s" { SwitchToMode "Normal"; }
         bind "d" { Detach; }
         bind "w" {
             LaunchOrFocusPlugin "session-manager" {
@@ -201,11 +200,8 @@ keybinds clear-defaults=true {
     shared_except "resize" "locked" {
         bind "Ctrl n" { SwitchToMode "Resize"; }
     }
-    shared_except "scroll" "locked" {
-        bind "Ctrl s" { SwitchToMode "Scroll"; }
-    }
-    shared_except "session" "locked" {
-        bind "Ctrl o" { SwitchToMode "Session"; }
+    shared_except "session" {
+        bind "Ctrl s" { SwitchToMode "Session"; }
     }
     shared_except "tab" "locked" {
         bind "Ctrl t" { SwitchToMode "Tab"; }
