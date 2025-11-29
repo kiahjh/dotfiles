@@ -6,9 +6,8 @@ stow:
   @stow ohmyzsh
   @stow stow
   @stow bin
-  @stow kitty
   @stow zellij
-  @stow posting
   @stow ghostty
   @stow nvim
+  @stow opencode
 
