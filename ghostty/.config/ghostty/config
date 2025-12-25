@@ -19,3 +19,4 @@ macos-titlebar-proxy-icon = "hidden"
 
 mouse-scroll-multiplier = 0.5
 
+confirm-close-surface = false
