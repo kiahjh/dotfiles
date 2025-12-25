@@ -107,7 +107,7 @@ require("lazy").setup({
 	require("plugins.snacks"),
 	require("plugins.tiny-inline-diagnostic"),
 	require("plugins.treesitter"),
-	require("plugins.rose-pine"),
+	require("plugins.theme"),
 	require("plugins.which-key"),
 	require("plugins.xcodebuild"),
 })

@@ -430,6 +430,19 @@ themes {
       player_10 0 0 0
     }
   }
+  kanagawa-dragon {
+    bg "#282626"
+    fg "#7C929D"
+    white "#DCD6BA"
+    black "#0F0C0C"
+    red "#a80404"
+    green "#88ab4c"
+    yellow "#e6c384"
+    blue "#7fb4ca"
+    magenta "#938aa9"
+    cyan "#7aa89f"
+    orange "#FFA066"
+  }
 }
 
 // Choose the theme that is specified in the themes section.

@@ -65,16 +65,16 @@ return {
 
 		-- [[ Server Configurations ]]
 
-		local lspconfig = require 'lspconfig'
 		local capabilities = require("blink.cmp").get_lsp_capabilities()
 
 		-- Lua
-		lspconfig['lua_ls'].setup {
+		vim.lsp.config['lua_ls'] = {
 		  capabilities = capabilities,
 		}
+		vim.lsp.enable('lua_ls')
 
 		-- Rust
-		lspconfig["rust_analyzer"].setup {
+		vim.lsp.config["rust_analyzer"] = {
 		  capabilities = capabilities,
 		  settings = {
 			["rust-analyzer"] = {
@@ -84,39 +84,46 @@ return {
 			},
 		  }
 		}
+		vim.lsp.enable('rust_analyzer')
 
 		-- Zig
-		lspconfig["zls"].setup {
+		vim.lsp.config["zls"] = {
 		  capabilities = capabilities,
 		}
+		vim.lsp.enable('zls')
 
 		-- OCaml
-		lspconfig["ocamllsp"].setup {
+		vim.lsp.config["ocamllsp"] = {
 		  capabilities = capabilities,
 		}
+		vim.lsp.enable('ocamllsp')
 
 		-- Assembly
-		-- lspconfig["asm_lsp"].setup {
+		-- vim.lsp.config["asm_lsp"] = {
 		--   capabilities = capabilities,
 		-- }
+		-- vim.lsp.enable('asm_lsp')
 
 		-- TypeScript
-		lspconfig["ts_ls"].setup {
+		vim.lsp.config["ts_ls"] = {
 		  capabilities = capabilities,
 		}
+		vim.lsp.enable('ts_ls')
 
 		-- CSS
-		lspconfig["tailwindcss"].setup {
+		vim.lsp.config["tailwindcss"] = {
 		  capabilities = capabilities,
 		}
+		vim.lsp.enable('tailwindcss')
 
 		-- TailwindCSS
-		lspconfig["cssls"].setup {
+		vim.lsp.config["cssls"] = {
 		  capabilities = capabilities,
 		}
+		vim.lsp.enable('cssls')
 
 		-- Astro
-		lspconfig.astro.setup {
+		vim.lsp.config["astro"] = {
 		  capabilities = capabilities,
 		  init_options = {
 			typescript = {
@@ -124,22 +131,26 @@ return {
 			}
 		  },
 		}
+		vim.lsp.enable('astro')
 
 		-- C
-		lspconfig.clangd.setup {
+		vim.lsp.config["clangd"] = {
 			capabilities = capabilities
 		}
+		vim.lsp.enable('clangd')
 
-		lspconfig["roc_ls"].setup {
+		vim.lsp.config["roc_ls"] = {
 		  capabilities = capabilities,
 		}
+		vim.lsp.enable('roc_ls')
 
-		lspconfig["gopls"].setup {
+		vim.lsp.config["gopls"] = {
 		  capabilities = capabilities,
 		}
+		vim.lsp.enable('gopls')
 
 		-- Swift
-		lspconfig.sourcekit.setup({
+		vim.lsp.config["sourcekit"] = {
 		  capabilities = capabilities,
 		  cmd = {
 		  	"/usr/bin/sourcekit-lsp",
@@ -151,11 +162,12 @@ return {
 
 		  -- if it's an spm package (it has a Package.swift), then root_dir should be the root of the package; if it's an xcode project, then root_dir should be wherever buildServer.json is:
 		  root_dir = function(fname)
-		  	return lspconfig.util.root_pattern("Package.swift", "buildServer.json")(fname)
+		  	return vim.lsp.util.root_pattern("Package.swift", "buildServer.json")(fname)
 		  		-- some reasonable falbacks:
 		  		or vim.fs.dirname(vim.fs.find('.git', { path = fname, upward = true })[1])
 		  		or vim.fn.getcwd()
 		  end,
-		})
+		}
+		vim.lsp.enable('sourcekit')
 	end,
 }
