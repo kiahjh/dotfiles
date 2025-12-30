@@ -161,11 +161,13 @@ return {
 		  single_file_support = false, -- don't want this, because it falls back to the cwd if it can't find an xcode proj or spm package
 
 		  -- if it's an spm package (it has a Package.swift), then root_dir should be the root of the package; if it's an xcode project, then root_dir should be wherever buildServer.json is:
-		  root_dir = function(fname)
-		  	return vim.lsp.util.root_pattern("Package.swift", "buildServer.json")(fname)
-		  		-- some reasonable falbacks:
+		  root_dir = function(bufnr, on_dir)
+		  	local fname = vim.api.nvim_buf_get_name(bufnr)
+		  	local root = vim.fs.root(bufnr, { "Package.swift", "buildServer.json" })
+		  		-- some reasonable fallbacks:
 		  		or vim.fs.dirname(vim.fs.find('.git', { path = fname, upward = true })[1])
 		  		or vim.fn.getcwd()
+		  	on_dir(root)
 		  end,
 		}
 		vim.lsp.enable('sourcekit')
