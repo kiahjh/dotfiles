@@ -186,7 +186,16 @@ wk.add({
   { "<leader>lr", vim.lsp.buf.rename, desc = "Smart rename" },
   { "<leader>lD", vim.lsp.buf.declaration, desc = "Go to declaration" },
   { "<leader>la", vim.lsp.buf.code_action, desc = "See available code actions" },
-  { "<leader>lx", ":LspRestart<CR>", desc = "Restart LSP" },
+  { "<leader>lx", function()
+    local bufnr = vim.api.nvim_get_current_buf()
+    local clients = vim.lsp.get_clients({ bufnr = bufnr })
+    for _, client in ipairs(clients) do
+      vim.lsp.stop_client(client.id, true)
+    end
+    vim.defer_fn(function()
+      vim.cmd("edit!")
+    end, 200)
+  end, desc = "Restart LSP" },
   { "<leader>li", ":LspInfo<CR>", desc = "LSP info" },
   { "<leader>ld", group = "Diagnostics" },
   { "<leader>ldn", function() vim.diagnostic.jump { count = 1, float = true } end, desc = "Go to next diagnostic" },
