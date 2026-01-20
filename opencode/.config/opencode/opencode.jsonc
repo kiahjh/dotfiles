@@ -2,7 +2,8 @@
   "$schema": "https://opencode.ai/config.json",
   "theme": "rosepine",
   "keybinds": {
-    "command_list": "ctrl+l"
+    "command_list": "ctrl+l",
+    "variant_cycle": "ctrl+v"
   },
   "lsp": {
     "rust_analyzer": {

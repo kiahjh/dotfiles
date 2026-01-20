@@ -1,5 +1,8 @@
 -- kiahjh's nvim config :)
 
+-- [[ Performance ]]
+vim.loader.enable() -- Neovim 0.9+ byte-compilation cache
+
 -- [[ Basic Options ]]
 --
 -- set leader to <space>
@@ -9,6 +12,7 @@ vim.g.maplocalleader = " "
 
 -- add line numbers
 vim.opt.number = true
+vim.opt.relativenumber = true -- easier to jump with relative numbers
 
 -- enable mouse mode, nice for resizing splits sometimes
 vim.opt.mouse = "a"
@@ -61,6 +65,22 @@ vim.opt.termguicolors = true
 
 vim.opt.tabstop = 4
 
+-- nicer window separators
+vim.opt.fillchars = {
+	horiz = "━",
+	horizup = "┻",
+	horizdown = "┳",
+	vert = "┃",
+	vertleft = "┫",
+	vertright = "┣",
+	verthoriz = "╋",
+	eob = " ", -- hide ~ at end of buffer
+}
+
+-- smoother experience
+vim.opt.lazyredraw = false
+vim.opt.synmaxcol = 240 -- limit syntax highlighting for performance
+
 -- [[ Basic Autocommands ]]
 --
 -- highlight when yanking
@@ -96,6 +116,7 @@ require("lazy").setup({
 	require("plugins.barbar"),
 	require("plugins.blink"),
 	require("plugins.conform"),
+	require("plugins.dropbar"),
 	require("plugins.supermaven"),
 	require("plugins.highlight-colors"),
 	require("plugins.lazydev"),
@@ -104,6 +125,7 @@ require("lazy").setup({
 	require("plugins.multicursor"),
 	require("plugins.neo-tree"),
 	require("plugins.noice"),
+	require("plugins.smear-cursor"),
 	require("plugins.snacks"),
 	require("plugins.tiny-inline-diagnostic"),
 	require("plugins.treesitter"),
@@ -112,27 +134,8 @@ require("lazy").setup({
 	require("plugins.xcodebuild"),
 })
 
--- [[ Set up stuff for Lovely ]]
-
-vim.filetype.add({
-	extension = {
-		lv = "lovely"
-	}
-})
-
-local parser_config = require("nvim-treesitter.parsers").get_parser_configs()
-
-parser_config.lovely = {
-	install_info = {
-		url = "https://github.com/kiahjh/tree-sitter-lovely",
-		files = { "src/parser.c" },
-		requires_generate_from_grammar = false,
-		-- revision = "3b933c7d500bffcbf1a39d815d790b9fd0741ca7",
-	},
-	filetype = "lovely",
-}
-
-vim.treesitter.language.register("lovely", "lovely")
-
 require("keymaps")
 require("gitsigns").setup()
+
+-- Force visual selection to be purple accent
+vim.api.nvim_set_hl(0, "Visual", { bg = "#3e3859" })
