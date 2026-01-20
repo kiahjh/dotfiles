@@ -12,7 +12,7 @@ vim.g.maplocalleader = " "
 
 -- add line numbers
 vim.opt.number = true
-vim.opt.relativenumber = true -- easier to jump with relative numbers
+vim.opt.relativenumber = false -- easier to jump with relative numbers
 
 -- enable mouse mode, nice for resizing splits sometimes
 vim.opt.mouse = "a"
