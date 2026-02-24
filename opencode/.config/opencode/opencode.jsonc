@@ -19,6 +19,16 @@
         "CONTEXT7_API_KEY": "{file:~/.secrets/context7-key}"
       },
       "enabled": true
+    },
+    "supabase": {
+      "type": "remote",
+      "url": "https://mcp.supabase.com/mcp",
+      "enabled": true
+    },
+    "xcode": {
+      "type": "local",
+      "command": ["xcrun", "mcpbridge"],
+      "enabled": true
     }
   }
 }
