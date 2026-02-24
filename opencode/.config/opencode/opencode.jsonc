@@ -3,7 +3,7 @@
   "theme": "rosepine",
   "keybinds": {
     "command_list": "ctrl+l",
-    "variant_cycle": "ctrl+v"
+    "variant_cycle": "ctrl+o"
   },
   "lsp": {
     "rust_analyzer": {
@@ -28,6 +28,11 @@
     "xcode": {
       "type": "local",
       "command": ["xcrun", "mcpbridge"],
+      "enabled": true
+    },
+    "paper": {
+      "type": "remote",
+      "url": "http://127.0.0.1:29979/mcp",
       "enabled": true
     }
   }
