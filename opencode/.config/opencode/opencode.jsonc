@@ -37,6 +37,15 @@
         "GOOGLE_OAUTH_CREDENTIALS": "/Users/miciah/.secrets/gcp-oauth.keys.json"
       },
       "enabled": true
+    },
+    "shadcn": {
+      "type": "local",
+      "command": [
+        "npx",
+        "shadcn@latest",
+        "mcp"
+      ],
+      "enabled": true
     }
   }
 }
