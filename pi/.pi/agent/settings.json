@@ -1,0 +1,11 @@
+{
+  "defaultProvider": "anthropic",
+  "defaultModel": "claude-opus-4-6",
+  "defaultThinkingLevel": "medium",
+  "editorPaddingX": 1,
+  "theme": "dark",
+  "packages": [
+    "https://github.com/nicobailon/pi-mcp-adapter"
+  ],
+  "lastChangelogVersion": "0.62.0"
+}

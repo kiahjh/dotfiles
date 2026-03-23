@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "url": "https://mcp.supabase.com/mcp",
+      "auth": "oauth"
+    },
+    "xcode": {
+      "command": "xcrun",
+      "args": ["mcpbridge"]
+    }
+  }
+}

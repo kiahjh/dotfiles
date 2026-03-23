@@ -10,4 +10,5 @@ stow:
   @stow ghostty
   @stow nvim
   @stow opencode
+  @stow pi
 
