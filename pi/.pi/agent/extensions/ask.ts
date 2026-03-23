@@ -9,6 +9,25 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Editor, type EditorTheme, Key, matchesKey, Text, truncateToWidth } from "@mariozechner/pi-tui";
 import { Type } from "@sinclair/typebox";
 
+// Word-wrap a string to fit within a given width, preserving a prefix (e.g. " ") on each line
+function wordWrap(text: string, width: number, prefix: string = " "): string[] {
+	const maxLen = width - prefix.length;
+	if (maxLen <= 0) return [text];
+	const words = text.split(/\s+/);
+	const result: string[] = [];
+	let line = "";
+	for (const word of words) {
+		if (line && line.length + 1 + word.length > maxLen) {
+			result.push(prefix + line);
+			line = word;
+		} else {
+			line = line ? line + " " + word : word;
+		}
+	}
+	if (line) result.push(prefix + line);
+	return result;
+}
+
 // Types
 interface QuestionOption {
 	value: string;
@@ -313,7 +332,7 @@ export default function ask(pi: ExtensionAPI) {
 
 					// Content
 					if (inputMode && q) {
-						add(theme.fg("text", ` ${q.prompt}`));
+						for (const wl of wordWrap(q.prompt, width)) lines.push(theme.fg("text", wl));
 						lines.push("");
 						// Show options for reference
 						renderOptions();
@@ -345,7 +364,7 @@ export default function ask(pi: ExtensionAPI) {
 							add(theme.fg("warning", ` Unanswered: ${missing}`));
 						}
 					} else if (q) {
-						add(theme.fg("text", ` ${q.prompt}`));
+						for (const wl of wordWrap(q.prompt, width)) lines.push(theme.fg("text", wl));
 						lines.push("");
 						renderOptions();
 					}
