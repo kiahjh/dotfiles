@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pi Config Audit</title>
+  <style>
+    :root {
+      --bg: #f5f1e8;
+      --panel: #fbf8f2;
+      --panel-2: #efe7d8;
+      --ink: #1c1a17;
+      --muted: #6e6658;
+      --line: rgba(28, 26, 23, 0.12);
+      --accent: #9c4f2f;
+      --accent-2: #30544d;
+      --good: #315b3d;
+      --warn: #a16a1d;
+      --bad: #8a2d2b;
+      --shadow: 0 18px 50px rgba(74, 55, 27, 0.12);
+      --radius: 28px;
+      --sidebar-w: 290px;
+      --slide-gap: clamp(1.2rem, 2vw, 2rem);
+      --slide-pad: clamp(1.4rem, 2vw, 2.2rem);
+      --mono: "SFMono-Regular", "SF Mono", ui-monospace, Consolas, monospace;
+      --sans: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+      --ui: "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(156,79,47,0.08), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(48,84,77,0.08), transparent 32%),
+        linear-gradient(180deg, #f7f3ea 0%, #f2ecdf 100%);
+      color: var(--ink);
+      font-family: var(--ui);
+      overflow: hidden;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      height: 100vh;
+    }
+
+    .rail {
+      background: rgba(251, 248, 242, 0.82);
+      border-right: 1px solid var(--line);
+      backdrop-filter: blur(16px);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+    }
+
+    .rail .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .rail h1 {
+      margin: 0;
+      font-family: var(--sans);
+      font-size: 2rem;
+      line-height: 0.95;
+      font-weight: 700;
+    }
+
+    .rail p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.95rem;
+    }
+
+    .toc {
+      display: grid;
+      gap: 0.45rem;
+      overflow: auto;
+      padding-right: 0.25rem;
+    }
+
+    .toc a {
+      text-decoration: none;
+      color: inherit;
+      padding: 0.8rem 0.9rem;
+      border-radius: 16px;
+      border: 1px solid transparent;
+      background: rgba(255,255,255,0.4);
+      transition: 160ms ease;
+      display: block;
+    }
+
+    .toc a:hover,
+    .toc a.active {
+      border-color: rgba(156,79,47,0.22);
+      background: rgba(156,79,47,0.08);
+      transform: translateX(2px);
+    }
+
+    .toc .n {
+      display: block;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 0.2rem;
+    }
+
+    .toc .t {
+      font-size: 0.98rem;
+      font-weight: 700;
+      line-height: 1.15;
+    }
+
+    .rail-footer {
+      margin-top: auto;
+      border-top: 1px solid var(--line);
+      padding-top: 0.9rem;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.45;
+    }
+
+    main {
+      position: relative;
+      overflow: hidden;
+      padding: clamp(1rem, 1.8vw, 1.6rem);
+    }
+
+    .deck {
+      height: 100%;
+      display: grid;
+    }
+
+    .slide {
+      display: none;
+      background: linear-gradient(180deg, rgba(251,248,242,0.96), rgba(245,239,229,0.96));
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      border-radius: calc(var(--radius) + 6px);
+      height: 100%;
+      overflow: auto;
+      padding: var(--slide-pad);
+      position: relative;
+    }
+
+    .slide.active { display: block; }
+
+    .slide::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+      background:
+        linear-gradient(135deg, rgba(156,79,47,0.08), transparent 22%),
+        linear-gradient(315deg, rgba(48,84,77,0.06), transparent 20%);
+    }
+
+    .slide-inner {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: var(--slide-gap);
+    }
+
+    .kicker {
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 0.74rem;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    h2, h3 {
+      margin: 0;
+      font-family: var(--sans);
+      font-weight: 700;
+      line-height: 0.98;
+    }
+
+    h2 { font-size: clamp(2.4rem, 5vw, 4.8rem); max-width: 10ch; }
+    h3 { font-size: clamp(1.4rem, 2vw, 2rem); }
+
+    .lede {
+      max-width: 74ch;
+      font-size: clamp(1.03rem, 1.5vw, 1.2rem);
+      line-height: 1.65;
+      color: #2d2923;
+    }
+
+    .grid, .tri, .quad {
+      display: grid;
+      gap: 1rem;
+    }
+    .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tri { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .quad { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .card {
+      background: rgba(255,255,255,0.62);
+      border: 1px solid rgba(28,26,23,0.09);
+      border-radius: 22px;
+      padding: 1rem 1.05rem;
+      min-width: 0;
+    }
+
+    .card h4 {
+      margin: 0 0 0.45rem;
+      font-size: 1rem;
+      line-height: 1.2;
+    }
+
+    .card p, .card li {
+      margin: 0;
+      color: #403930;
+      line-height: 1.55;
+      font-size: 0.97rem;
+    }
+
+    .list {
+      display: grid;
+      gap: 0.8rem;
+    }
+
+    .list-item {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.8rem;
+      align-items: start;
+      background: rgba(255,255,255,0.46);
+      border: 1px solid rgba(28,26,23,0.08);
+      border-radius: 18px;
+      padding: 0.85rem 0.95rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      border-radius: 999px;
+      padding: 0.34rem 0.7rem;
+      font-size: 0.76rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      width: fit-content;
+      background: rgba(28,26,23,0.07);
+    }
+
+    .good { color: var(--good); background: rgba(49,91,61,0.12); }
+    .warn { color: var(--warn); background: rgba(161,106,29,0.14); }
+    .bad { color: var(--bad); background: rgba(138,45,43,0.12); }
+    .accent { color: var(--accent); background: rgba(156,79,47,0.12); }
+    .teal { color: var(--accent-2); background: rgba(48,84,77,0.12); }
+
+    .score {
+      display: flex;
+      align-items: baseline;
+      gap: 0.45rem;
+      margin-bottom: 0.45rem;
+    }
+
+    .score strong {
+      font-size: clamp(2rem, 3vw, 3rem);
+      font-family: var(--sans);
+      line-height: 1;
+    }
+
+    .muted { color: var(--muted); }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font: 0.9rem/1.55 var(--mono);
+      background: #f0eadf;
+      border: 1px solid rgba(28,26,23,0.09);
+      border-radius: 18px;
+      padding: 1rem;
+      color: #251f19;
+    }
+
+    code { font-family: var(--mono); }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+    }
+
+    .meta span {
+      font: 0.78rem/1.2 var(--mono);
+      color: var(--muted);
+      background: rgba(28,26,23,0.05);
+      border: 1px solid rgba(28,26,23,0.08);
+      border-radius: 999px;
+      padding: 0.38rem 0.65rem;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.3fr 0.9fr;
+      gap: 1rem;
+      align-items: end;
+      min-height: 100%;
+    }
+
+    .verdict {
+      display: grid;
+      gap: 0.9rem;
+      align-content: start;
+    }
+
+    .stack {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .quote {
+      border-left: 3px solid rgba(156,79,47,0.35);
+      padding-left: 1rem;
+      color: #3c332a;
+      font-size: 1.03rem;
+      line-height: 1.65;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 1rem;
+    }
+
+    .footer-nav {
+      position: absolute;
+      right: 1.2rem;
+      bottom: 1.2rem;
+      display: flex;
+      gap: 0.55rem;
+      z-index: 3;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid rgba(28,26,23,0.1);
+      background: rgba(255,255,255,0.82);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 0.7rem 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 160ms ease;
+    }
+
+    button:hover { transform: translateY(-1px); background: white; }
+
+    .tiny {
+      font-size: 0.8rem;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .two-col-list {
+      columns: 2;
+      column-gap: 1.4rem;
+    }
+
+    .two-col-list li { margin-bottom: 0.45rem; }
+
+    @media (max-width: 1120px) {
+      .app { grid-template-columns: 1fr; }
+      .rail {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+        max-height: 36vh;
+      }
+      body { overflow: auto; }
+      main { min-height: 64vh; }
+    }
+
+    @media (max-width: 860px) {
+      .hero, .split, .grid, .tri, .quad { grid-template-columns: 1fr; }
+      .two-col-list { columns: 1; }
+      .rail { max-height: none; }
+      .slide { padding-bottom: 5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="rail">
+      <div>
+        <div class="eyebrow">Evaluation package</div>
+        <h1>Pi config audit</h1>
+      </div>
+      <p>Review of your dotfiles-backed Pi setup, custom extensions, MCP configuration, and highest-value simplifications / upgrades.</p>
+      <nav class="toc" id="toc">
+        <a href="#slide-1"><span class="n">01</span><span class="t">Verdict</span></a>
+        <a href="#slide-2"><span class="n">02</span><span class="t">What you have now</span></a>
+        <a href="#slide-3"><span class="n">03</span><span class="t">What is already good</span></a>
+        <a href="#slide-4"><span class="n">04</span><span class="t">Highest-value changes</span></a>
+        <a href="#slide-5"><span class="n">05</span><span class="t">MCP tuning</span></a>
+        <a href="#slide-6"><span class="n">06</span><span class="t">Settings tuning</span></a>
+        <a href="#slide-7"><span class="n">07</span><span class="t">Evidence</span></a>
+        <a href="#slide-8"><span class="n">08</span><span class="t">Recommended snippets</span></a>
+      </nav>
+      <div class="rail-footer">
+        Keyboard: <strong>←</strong> / <strong>→</strong> to move between slides.<br />
+        Audit date: 2026-04-15<br />
+        Assets: none
+      </div>
+    </aside>
+
+    <main>
+      <div class="deck">
+        <section class="slide active" id="slide-1">
+          <div class="slide-inner hero">
+            <div class="verdict">
+              <div class="kicker">Executive summary</div>
+              <h2>Lean, sensible, and already better than most.</h2>
+              <p class="lede">Your Pi setup is intentionally small and that is a strength. You are using Pi's auto-discovery layout correctly, you only added two genuinely useful custom tools, and your MCP setup stays minimal instead of turning the prompt into a junk drawer. I did <strong>not</strong> find anything obviously broken or bloated.</p>
+              <div class="meta">
+                <span>settings.json: 8 keys</span>
+                <span>custom extensions: ask, webfetch</span>
+                <span>MCP servers: supabase, xcode</span>
+                <span>installed package: pi-mcp-adapter</span>
+              </div>
+            </div>
+            <div class="stack">
+              <div class="card">
+                <div class="badge good">Keep</div>
+                <h3>Architecture</h3>
+                <p>Standard directory placement means Pi discovers your extensions and prompts without extra config. That's the clean path.</p>
+              </div>
+              <div class="card">
+                <div class="badge warn">Do next</div>
+                <h3>Best win</h3>
+                <p>Pin <code>pi-mcp-adapter</code> to a version or git ref. Right now your dotfiles are less reproducible than they need to be.</p>
+              </div>
+              <div class="card">
+                <div class="badge accent">Optional</div>
+                <h3>Ergonomics</h3>
+                <p>Add MCP <code>autoAuth</code> and selectively expose a few direct tools for Supabase / Xcode if you use them constantly.</p>
+              </div>
+              <div class="card">
+                <div class="badge teal">Taste call</div>
+                <h3>Cost / latency</h3>
+                <p><code>defaultThinkingLevel: "high"</code> is fine if intentional, but it is the only setting that looks potentially heavier than necessary.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" id="slide-2">
+          <div class="slide-inner">
+            <div>
+              <div class="kicker">Current setup</div>
+              <h3>What I reviewed</h3>
+            </div>
+            <div class="grid">
+              <div class="card">
+                <h4>Global settings</h4>
+                <pre>{
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.4",
+  "defaultThinkingLevel": "high",
+  "editorPaddingX": 1,
+  "theme": "dark",
+  "packages": [
+    "https://github.com/nicobailon/pi-mcp-adapter"
+  ],
+  "lastChangelogVersion": "0.67.1",
+  "hideThinkingBlock": true
+}</pre>
+              </div>
+              <div class="card">
+                <h4>MCP config</h4>
+                <pre>{
+  "mcpServers": {
+    "supabase": {
+      "url": "https://mcp.supabase.com/mcp",
+      "auth": "oauth"
+    },
+    "xcode": {
+      "command": "xcrun",
+      "args": ["mcpbridge"]
+    }
+  }
+}</pre>
+              </div>
+            </div>
+            <div class="grid">
+              <div class="card">
+                <h4>Local Pi resources</h4>
+                <ul>
+                  <li><code>pi/.pi/agent/extensions/ask.ts</code></li>
+                  <li><code>pi/.pi/agent/extensions/webfetch.ts</code></li>
+                  <li><code>pi/.pi/agent/prompts/evaluation-package.md</code></li>
+                  <li><code>pi/.pi/agent/mcp.json</code></li>
+                </ul>
+              </div>
+              <div class="card">
+                <h4>Observed package state</h4>
+                <ul>
+                  <li>Pi version: <code>0.67.1</code></li>
+                  <li><code>pi list</code> shows one user package</li>
+                  <li>MCP metadata cache present</li>
+                  <li>Cached tools: Supabase 29, Xcode 20</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" id="slide-3">
+          <div class="slide-inner">
+            <div>
+              <div class="kicker">Strengths</div>
+              <h3>What is already working well</h3>
+            </div>
+            <div class="list">
+              <div class="list-item">
+                <div class="badge good">1</div>
+                <div>
+                  <strong>You are using Pi's native layout instead of fighting it.</strong>
+                  <div class="tiny">Extensions live in <code>~/.pi/agent/extensions/</code>, prompts in <code>~/.pi/agent/prompts/</code>, MCP config in <code>~/.pi/agent/mcp.json</code>. That keeps <code>settings.json</code> small and means reload / discovery work the way Pi expects.</div>
+                </div>
+              </div>
+              <div class="list-item">
+                <div class="badge good">2</div>
+                <div>
+                  <strong>Your custom tools solve real gaps.</strong>
+                  <div class="tiny"><code>ask.ts</code> adds a polished multi-question UI, and <code>webfetch.ts</code> gives Pi a proper fetch primitive with text / html / raw modes. These are pragmatic additions, not novelty baggage.</div>
+                </div>
+              </div>
+              <div class="list-item">
+                <div class="badge good">3</div>
+                <div>
+                  <strong>Your MCP setup is restrained.</strong>
+                  <div class="tiny">Only two servers, no giant direct-tool explosion, and no redundant server zoo. That matches the adapter's main benefit: small context footprint, lazy discovery, and less startup clutter.</div>
+                </div>
+              </div>
+              <div class="list-item">
+                <div class="badge good">4</div>
+                <div>
+                  <strong>The evaluation-package prompt wrapper is a nice quality-of-life touch.</strong>
+                  <div class="tiny">It turns a skill you use often into a lightweight reusable prompt entrypoint without duplicating the actual skill instructions.</div>
+                </div>
+              </div>
+            </div>
+            <div class="quote">Bottom line: I would preserve the overall shape. This is already a <em>minimal-but-capable</em> config, not a cleanup disaster.</div>
+          </div>
+        </section>
+
+        <section class="slide" id="slide-4">
+          <div class="slide-inner">
+            <div>
+              <div class="kicker">Recommendations</div>
+              <h3>Highest-value changes, ranked</h3>
+            </div>
+            <div class="tri">
+              <div class="card">
+                <div class="badge warn">High value</div>
+                <h4>Pin the MCP adapter</h4>
+                <p>Your package source is an unpinned GitHub URL. Pi docs explicitly note that versioned npm specs and git refs are pinned and skipped by <code>pi update</code>. For dotfiles, reproducibility matters.</p>
+              </div>
+              <div class="card">
+                <div class="badge warn">High value</div>
+                <h4>Turn on MCP autoAuth</h4>
+                <p>Your Supabase server uses OAuth. The adapter can automatically launch auth on connect / tool call and retry once. That is a clean friction-reducer with very little downside.</p>
+              </div>
+              <div class="card">
+                <div class="badge accent">Medium value</div>
+                <h4>Promote a few direct tools</h4>
+                <p>Because you already have cached metadata for both servers, you can expose only the MCP tools you reach for constantly and keep the rest behind the proxy.</p>
+              </div>
+            </div>
+            <div class="grid">
+              <div class="card">
+                <div class="badge teal">Medium / optional</div>
+                <h4>Revisit global <code>high</code> thinking</h4>
+                <p>If you intentionally want maximum effort by default, keep it. If not, this is the likeliest source of unnecessary latency / cost. A global default of <code>medium</code> plus manual bumps is usually a saner default.</p>
+              </div>
+              <div class="card">
+                <div class="badge bad">Hygiene</div>
+                <h4>Stop treating <code>lastChangelogVersion</code> as config</h4>
+                <p>That looks like app-managed state, not a preference. It will create dotfile churn whenever Pi updates. I would not consider it part of the canonical config you care about reviewing.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" id="slide-5">
+          <div class="slide-inner">
+            <div>
+              <div class="kicker">MCP tuning</div>
+              <h3>Keep the proxy model, but expose the tools you actually use</h3>
+            </div>
+            <div class="split">
+              <div class="card">
+                <h4>Why this is worth doing</h4>
+                <p class="muted">The adapter README says each direct tool costs roughly 150-300 tokens in the system prompt, so this should be selective, not global.</p>
+                <ul>
+                  <li>Supabase cache already knows about <strong>29 tools</strong></li>
+                  <li>Xcode cache already knows about <strong>20 tools</strong></li>
+                  <li>You can keep the single proxy tool for breadth</li>
+                  <li>And only elevate the tiny handful you use constantly</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h4>Reasonable first candidates</h4>
+                <div class="badge teal">Supabase</div>
+                <ul>
+                  <li><code>execute_sql</code></li>
+                  <li><code>apply_migration</code></li>
+                  <li><code>generate_typescript_types</code></li>
+                  <li><code>get_logs</code></li>
+                </ul>
+                <div class="badge accent">Xcode</div>
+                <ul>
+                  <li><code>BuildProject</code></li>
+                  <li><code>GetBuildLog</code></li>
+                  <li><code>XcodeRead</code></li>
+                  <li><code>XcodeWrite</code></li>
+                  <li><code>XcodeGrep</code></li>
+                </ul>
+              </div>
+            </div>
+            <div class="quote">I would <strong>not</strong> remove <code>pi-mcp-adapter</code>. Pi's own README still says there is no built-in MCP and recommends either CLI tools or an extension. In your setup, the adapter is doing real work.</div>
+          </div>
+        </section>
+
+        <section class="slide" id="slide-6">
+          <div class="slide-inner">
+            <div>
+              <div class="kicker">Settings tuning</div>
+              <h3>Two real tweaks, one taste call, one low-stakes convenience feature</h3>
+            </div>
+            <div class="quad">
+              <div class="card">
+                <div class="score"><strong>01</strong><span class="muted">Reproducibility</span></div>
+                <p>Pin the adapter version. This is the clearest hard recommendation.</p>
+              </div>
+              <div class="card">
+                <div class="score"><strong>02</strong><span class="muted">Friction</span></div>
+                <p>Add <code>autoAuth</code> for Supabase. Tiny config, noticeable convenience.</p>
+              </div>
+              <div class="card">
+                <div class="score"><strong>03</strong><span class="muted">Cost / speed</span></div>
+                <p>Consider <code>defaultThinkingLevel: "medium"</code> if <code>high</code> is more habit than intent.</p>
+              </div>
+              <div class="card">
+                <div class="score"><strong>04</strong><span class="muted">Workflow</span></div>
+                <p>Add <code>enabledModels</code> if you frequently switch between a fast model and a deep-reasoning model.</p>
+              </div>
+            </div>
+            <div class="grid">
+              <div class="card">
+                <h4>Settings I would leave alone</h4>
+                <ul>
+                  <li><code>editorPaddingX: 1</code> — harmless and tidy</li>
+                  <li><code>theme: "dark"</code> — default, fine</li>
+                  <li><code>hideThinkingBlock: true</code> — coherent if you dislike transcript noise</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h4>Feature you may want later</h4>
+                <p>If you wind up maintaining more local Pi resources, packaging your own dotfiles Pi resources as a local package could be nice. Right now it would be overkill. Your current structure is simpler.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" id="slide-7">
+          <div class="slide-inner">
+            <div>
+              <div class="kicker">Evidence</div>
+              <h3>Commands, files, and docs used in this review</h3>
+            </div>
+            <div class="grid">
+              <div class="card">
+                <h4>Files read</h4>
+                <ul class="two-col-list">
+                  <li><code>pi/.pi/agent/settings.json</code></li>
+                  <li><code>pi/.pi/agent/mcp.json</code></li>
+                  <li><code>pi/.pi/agent/extensions/ask.ts</code></li>
+                  <li><code>pi/.pi/agent/extensions/webfetch.ts</code></li>
+                  <li><code>pi/.pi/agent/prompts/evaluation-package.md</code></li>
+                  <li><code>docs/settings.md</code></li>
+                  <li><code>docs/packages.md</code></li>
+                  <li><code>docs/skills.md</code></li>
+                  <li><code>docs/themes.md</code></li>
+                  <li><code>pi-mcp-adapter/README.md</code></li>
+                </ul>
+              </div>
+              <div class="card">
+                <h4>Verification output</h4>
+                <pre>$ pi --version
+0.67.1
+
+$ pi list
+User packages:
+  https://github.com/nicobailon/pi-mcp-adapter
+    /Users/miciah/.pi/agent/git/github.com/nicobailon/pi-mcp-adapter
+
+$ jq '.servers.supabase.tools | length' ~/.pi/agent/mcp-cache.json
+29
+
+$ jq '.servers.xcode.tools | length' ~/.pi/agent/mcp-cache.json
+20</pre>
+              </div>
+            </div>
+            <div class="grid">
+              <div class="card">
+                <h4>Doc-backed conclusions</h4>
+                <ul>
+                  <li><strong>Package pinning:</strong> <code>packages.md</code> says versioned npm specs and git refs are pinned and skipped by <code>pi update</code>.</li>
+                  <li><strong>Auto-discovery:</strong> <code>settings.md</code>, <code>extensions.md</code>, and <code>skills.md</code> confirm your directory structure is already the canonical one.</li>
+                  <li><strong>MCP autoAuth / directTools:</strong> adapter README documents both features directly.</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h4>Confidence</h4>
+                <p><strong>High</strong> on the structural recommendations (pin package, enable autoAuth, keep adapter, keep native layout).</p>
+                <p><strong>Medium</strong> on the workflow recommendations (direct tools, lower default thinking, add enabledModels), because those depend more on how you actually use Pi day to day.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" id="slide-8">
+          <div class="slide-inner">
+            <div>
+              <div class="kicker">Suggested config</div>
+              <h3>The cleanest next-step snippets</h3>
+            </div>
+            <div class="grid">
+              <div class="card">
+                <h4>settings.json</h4>
+                <pre>{
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.4",
+  "defaultThinkingLevel": "high",
+  "editorPaddingX": 1,
+  "theme": "dark",
+  "hideThinkingBlock": true,
+  "packages": [
+    "git:github.com/nicobailon/pi-mcp-adapter@v2.4.0"
+  ]
+}</pre>
+                <p class="tiny">If you want the cost / latency tweak too, change <code>high</code> to <code>medium</code> and optionally add <code>enabledModels</code>.</p>
+              </div>
+              <div class="card">
+                <h4>mcp.json</h4>
+                <pre>{
+  "settings": {
+    "autoAuth": true
+  },
+  "mcpServers": {
+    "supabase": {
+      "url": "https://mcp.supabase.com/mcp",
+      "auth": "oauth",
+      "directTools": [
+        "execute_sql",
+        "apply_migration",
+        "generate_typescript_types",
+        "get_logs"
+      ]
+    },
+    "xcode": {
+      "command": "xcrun",
+      "args": ["mcpbridge"],
+      "directTools": [
+        "BuildProject",
+        "GetBuildLog",
+        "XcodeRead",
+        "XcodeWrite",
+        "XcodeGrep"
+      ]
+    }
+  }
+}</pre>
+              </div>
+            </div>
+            <div class="card">
+              <div class="badge good">Final recommendation</div>
+              <p>Keep the overall structure. Make <strong>one hard change</strong> (pin the MCP adapter), consider <strong>one easy ergonomics change</strong> (enable <code>autoAuth</code>), and treat everything else as optional tuning based on how often Pi feels slow or how often you repeat the same MCP actions.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="footer-nav">
+        <button id="prev">← Prev</button>
+        <button id="next">Next →</button>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const slides = [...document.querySelectorAll('.slide')];
+    const tocLinks = [...document.querySelectorAll('.toc a')];
+    let index = 0;
+
+    function activate(nextIndex, push = true) {
+      index = (nextIndex + slides.length) % slides.length;
+      slides.forEach((slide, i) => slide.classList.toggle('active', i === index));
+      tocLinks.forEach((link, i) => link.classList.toggle('active', i === index));
+      if (push) history.replaceState(null, '', '#' + slides[index].id);
+    }
+
+    function fromHash() {
+      const i = slides.findIndex(slide => '#' + slide.id === location.hash);
+      if (i >= 0) activate(i, false);
+    }
+
+    tocLinks.forEach((link, i) => link.addEventListener('click', (e) => {
+      e.preventDefault();
+      activate(i);
+    }));
+
+    document.getElementById('prev').addEventListener('click', () => activate(index - 1));
+    document.getElementById('next').addEventListener('click', () => activate(index + 1));
+
+    window.addEventListener('keydown', (e) => {
+      if (['ArrowRight', 'PageDown', ' '].includes(e.key)) {
+        if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+        e.preventDefault();
+        activate(index + 1);
+      }
+      if (['ArrowLeft', 'PageUp'].includes(e.key)) {
+        e.preventDefault();
+        activate(index - 1);
+      }
+    });
+
+    window.addEventListener('hashchange', fromHash);
+    fromHash();
+    activate(index, false);
+  </script>
+</body>
+</html>

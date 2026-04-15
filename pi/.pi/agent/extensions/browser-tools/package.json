@@ -1,0 +1,13 @@
+{
+  "name": "browser-tools-extension",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "playwright": "^1.53.0"
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-ai": "*",
+    "@sinclair/typebox": "*"
+  }
+}

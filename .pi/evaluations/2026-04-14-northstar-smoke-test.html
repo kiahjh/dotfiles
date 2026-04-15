@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Evaluation Package — Northstar smoke test</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: oklch(96% 0.008 70);
+      --paper: oklch(98.5% 0.006 80 / 0.92);
+      --panel: oklch(100% 0 0 / 0.74);
+      --panel-strong: oklch(100% 0 0 / 0.86);
+      --text: oklch(24% 0.02 255);
+      --muted: oklch(50% 0.024 250);
+      --line: oklch(84% 0.018 250);
+      --accent: oklch(61% 0.15 245);
+      --accent-soft: oklch(93% 0.03 245);
+      --success: oklch(65% 0.14 155);
+      --warning: oklch(72% 0.14 84);
+      --shadow: 0 28px 90px oklch(39% 0.06 255 / 0.12);
+      --radius-xl: 32px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --space-1: 0.25rem;
+      --space-2: 0.5rem;
+      --space-3: 0.75rem;
+      --space-4: 1rem;
+      --space-5: 1.5rem;
+      --space-6: 2rem;
+      --space-7: 3rem;
+      --space-8: 4rem;
+      --max: 1280px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Instrument Sans", sans-serif;
+      color: var(--text);
+      line-height: 1.65;
+      background:
+        radial-gradient(circle at top left, oklch(94% 0.045 245 / 0.8), transparent 30%),
+        radial-gradient(circle at 85% 10%, oklch(93% 0.05 85 / 0.75), transparent 22%),
+        linear-gradient(180deg, oklch(95% 0.01 80), oklch(92% 0.01 80));
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(to right, oklch(30% 0.02 250 / 0.035) 1px, transparent 1px),
+        linear-gradient(to bottom, oklch(30% 0.02 250 / 0.035) 1px, transparent 1px);
+      background-size: 40px 40px;
+      mask-image: radial-gradient(circle at center, black 42%, transparent 88%);
+    }
+
+    a { color: inherit; }
+
+    .shell {
+      width: min(calc(100% - 2rem), var(--max));
+      margin: 0 auto;
+      padding: 1rem 0 4rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.4rem 0 1rem;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.55rem 0.85rem;
+      border-radius: 999px;
+      background: var(--panel);
+      border: 1px solid oklch(100% 0 0 / 0.6);
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+      color: var(--muted);
+      font-size: 0.9rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 0.65rem;
+      aspect-ratio: 1;
+      border-radius: 999px;
+      background: linear-gradient(180deg, var(--accent), oklch(86% 0.08 245));
+    }
+
+    .top-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+    }
+
+    .top-links a {
+      padding: 0.65rem 0.95rem;
+      border-radius: 999px;
+      background: oklch(100% 0 0 / 0.6);
+      border: 1px solid oklch(100% 0 0 / 0.68);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 1.4rem;
+      align-items: stretch;
+    }
+
+    .hero-card,
+    .sidebar-card,
+    .section,
+    .gallery-item,
+    .artifact-table,
+    .score-card {
+      background: var(--paper);
+      border: 1px solid oklch(100% 0 0 / 0.75);
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-card {
+      border-radius: 40px;
+      padding: clamp(1.4rem, 2vw, 2rem);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -15% -15% auto;
+      width: 20rem;
+      height: 20rem;
+      border-radius: 50%;
+      background: radial-gradient(circle, oklch(90% 0.05 245 / 0.55), transparent 65%);
+      filter: blur(24px);
+      pointer-events: none;
+    }
+
+    .hero-card h1,
+    h2,
+    h3 {
+      font-family: "Fraunces", serif;
+      line-height: 0.96;
+      letter-spacing: -0.04em;
+      margin: 0;
+    }
+
+    .hero-card h1 {
+      font-size: clamp(2.9rem, 6vw, 5.5rem);
+      max-width: 10ch;
+      margin-top: 1rem;
+      text-wrap: balance;
+    }
+
+    .lede {
+      max-width: 54ch;
+      margin: 1.25rem 0 0;
+      font-size: 1.08rem;
+      color: var(--muted);
+    }
+
+    .status-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.9rem;
+      margin-top: 1.6rem;
+    }
+
+    .score-card {
+      border-radius: 22px;
+      padding: 1rem;
+    }
+
+    .score-card .label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 0.55rem;
+    }
+
+    .score-card strong {
+      display: block;
+      font-size: 1.5rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .score-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .score-card.success strong { color: var(--success); }
+    .score-card.accent strong { color: var(--accent); }
+    .score-card.warning strong { color: var(--warning); }
+
+    .sidebar {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .sidebar-card {
+      border-radius: 28px;
+      padding: 1.15rem;
+    }
+
+    .sidebar-card h2 {
+      font-size: 1.85rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .sidebar-card ul {
+      margin: 0;
+      padding-left: 1.1rem;
+      color: var(--muted);
+    }
+
+    .sidebar-card li + li { margin-top: 0.55rem; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 1.2rem;
+      margin-top: 1.25rem;
+      align-items: start;
+    }
+
+    .toc {
+      position: sticky;
+      top: 1rem;
+      border-radius: 28px;
+      padding: 1rem;
+      background: var(--panel-strong);
+      border: 1px solid oklch(100% 0 0 / 0.7);
+      box-shadow: var(--shadow);
+    }
+
+    .toc h3 {
+      font-size: 1.45rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .toc a {
+      display: block;
+      padding: 0.7rem 0.85rem;
+      border-radius: 14px;
+      text-decoration: none;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .toc a:hover,
+    .toc a:focus-visible {
+      background: var(--accent-soft);
+      color: var(--text);
+      outline: none;
+    }
+
+    .content {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .section {
+      border-radius: 30px;
+      padding: clamp(1.2rem, 1.5vw, 1.8rem);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .section-tag {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.13em;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .section h2 {
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      max-width: 11ch;
+    }
+
+    .two-col,
+    .gallery,
+    .notes-grid,
+    .risk-grid,
+    .next-grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .two-col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+    .notes-grid,
+    .risk-grid,
+    .next-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+    .callout,
+    .mini-card {
+      padding: 1rem;
+      border-radius: 22px;
+      background: oklch(100% 0 0 / 0.55);
+      border: 1px solid var(--line);
+    }
+
+    .callout strong,
+    .mini-card strong {
+      display: block;
+      margin-bottom: 0.4rem;
+      font-size: 1rem;
+    }
+
+    .gallery-item {
+      border-radius: 24px;
+      overflow: hidden;
+    }
+
+    .gallery-item img {
+      width: 100%;
+      display: block;
+      background: oklch(97% 0.004 80);
+    }
+
+    .gallery-item figcaption {
+      padding: 0.85rem 1rem 1rem;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    pre {
+      margin: 0;
+      padding: 1rem;
+      overflow: auto;
+      border-radius: 22px;
+      background: oklch(18% 0.02 250);
+      color: oklch(95% 0.015 86);
+      font-size: 0.92rem;
+      line-height: 1.55;
+    }
+
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    .artifact-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 24px;
+    }
+
+    .artifact-table th,
+    .artifact-table td {
+      text-align: left;
+      padding: 0.95rem 1rem;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    .artifact-table th {
+      color: var(--muted);
+      font-size: 0.84rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .artifact-table tr:last-child td { border-bottom: none; }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.5rem 0.7rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--text);
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .footer-note {
+      margin-top: 1.2rem;
+      color: var(--muted);
+      font-size: 0.92rem;
+      text-align: center;
+    }
+
+    @media (max-width: 1080px) {
+      .hero,
+      .layout,
+      .two-col,
+      .gallery,
+      .notes-grid,
+      .risk-grid,
+      .next-grid,
+      .status-row { grid-template-columns: 1fr; }
+      .toc { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="eyebrow">Evaluation package / smoke test</div>
+      <nav class="top-links">
+        <a href="file:///tmp/eval-smoke.html">Open deliverable</a>
+        <a href="2026-04-14-northstar-smoke-test.assets/full-page.png">Open full-page screenshot</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <article class="hero-card">
+        <div class="section-tag">Northstar landing page</div>
+        <h1>Easy-to-review proof that the smoke test worked.</h1>
+        <p class="lede">
+          I created a polished standalone HTML landing page at <code>/tmp/eval-smoke.html</code>, verified its key sections in a browser,
+          and packaged the result with visual evidence so you can evaluate quality without reading a long transcript.
+        </p>
+        <div class="status-row">
+          <div class="score-card success">
+            <span class="label">Quick verdict</span>
+            <strong>Successful</strong>
+            <p>Strong visual quality for a smoke test, complete page structure, and clear proof artifacts.</p>
+          </div>
+          <div class="score-card accent">
+            <span class="label">What was produced</span>
+            <strong>1 standalone page</strong>
+            <p>Hero, proof section, feature list, testimonial, and CTA in a single HTML file.</p>
+          </div>
+          <div class="score-card warning">
+            <span class="label">Main caveat</span>
+            <strong>Prototype-level</strong>
+            <p>Static artifact only; no deep accessibility audit, no production data, and external font loading.</p>
+          </div>
+        </div>
+      </article>
+
+      <aside class="sidebar">
+        <section class="sidebar-card">
+          <h2>What to know</h2>
+          <ul>
+            <li>The page has a distinct visual point of view rather than a generic starter-template look.</li>
+            <li>Evidence is strongest on visual execution and structural completeness.</li>
+            <li>Screenshots are likely enough here; a recording was not necessary because the artifact is static.</li>
+          </ul>
+        </section>
+        <section class="sidebar-card">
+          <h2>Package contents</h2>
+          <div class="chip-row">
+            <span class="chip">HTML deliverable</span>
+            <span class="chip">Hero screenshot</span>
+            <span class="chip">CTA screenshot</span>
+            <span class="chip">Full-page screenshot</span>
+            <span class="chip">Verification notes</span>
+          </div>
+        </section>
+      </aside>
+    </section>
+
+    <div class="layout">
+      <nav class="toc">
+        <h3>On this page</h3>
+        <a href="#context">Task context</a>
+        <a href="#changes">What changed</a>
+        <a href="#evidence">Evidence</a>
+        <a href="#implementation">Implementation notes</a>
+        <a href="#verification">Verification</a>
+        <a href="#risks">Risks & caveats</a>
+        <a href="#next">Recommended next actions</a>
+        <a href="#artifacts">Artifact manifest</a>
+      </nav>
+
+      <main class="content">
+        <section class="section" id="context">
+          <div class="section-header">
+            <div>
+              <div class="section-tag">1 / Task context</div>
+              <h2>What was requested</h2>
+            </div>
+          </div>
+          <div class="two-col">
+            <div class="callout">
+              <strong>User prompt</strong>
+              Create a polished standalone HTML landing page at <code>/tmp/eval-smoke.html</code> for a fictional app called
+              <strong>Northstar</strong>, including a hero, features, and CTA, then generate an evaluation package.
+            </div>
+            <div class="callout">
+              <strong>Evaluation goal</strong>
+              Make it easy to judge the work quickly: is the page complete, visually compelling, and worth approving as a smoke-test artifact?
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="changes">
+          <div class="section-header">
+            <div>
+              <div class="section-tag">2 / What changed</div>
+              <h2>Deliverables produced</h2>
+            </div>
+          </div>
+          <div class="notes-grid">
+            <div class="mini-card">
+              <strong>Standalone page</strong>
+              <code>/tmp/eval-smoke.html</code><br>
+              20,902 bytes, single-file HTML/CSS artifact.
+            </div>
+            <div class="mini-card">
+              <strong>Evaluation package</strong>
+              <code>.pi/evaluations/2026-04-14-northstar-smoke-test.html</code><br>
+              This report and its linked review assets.
+            </div>
+            <div class="mini-card">
+              <strong>Visual assets</strong>
+              <code>.pi/evaluations/2026-04-14-northstar-smoke-test.assets/</code><br>
+              Full-page, hero, and CTA screenshots for proof.
+            </div>
+          </div>
+          <div class="callout" style="margin-top:1rem">
+            <strong>Design direction used</strong>
+            Editorial dark-mode product launch page with celestial / mission-control motifs: tinted neutrals, high-contrast serif display type,
+            orbital diagram art direction, and asymmetrical section rhythm.
+          </div>
+        </section>
+
+        <section class="section" id="evidence">
+          <div class="section-header">
+            <div>
+              <div class="section-tag">3 / Evidence</div>
+              <h2>Visual proof</h2>
+            </div>
+          </div>
+          <div class="gallery">
+            <figure class="gallery-item">
+              <img src="2026-04-14-northstar-smoke-test.assets/hero.png" alt="Northstar hero screenshot">
+              <figcaption><strong>Hero section</strong> — clear headline hierarchy, distinctive orbit illustration, and visible CTA pair.</figcaption>
+            </figure>
+            <figure class="gallery-item">
+              <img src="2026-04-14-northstar-smoke-test.assets/cta.png" alt="Northstar CTA screenshot">
+              <figcaption><strong>CTA section</strong> — strong bottom-of-page conversion band with a clear pilot-booking action.</figcaption>
+            </figure>
+            <figure class="gallery-item" style="grid-column:1 / -1">
+              <img src="2026-04-14-northstar-smoke-test.assets/full-page.png" alt="Northstar full-page screenshot">
+              <figcaption><strong>Full page capture</strong> — shows complete information architecture from navigation through testimonial to final CTA.</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section class="section" id="implementation">
+          <div class="section-header">
+            <div>
+              <div class="section-tag">4 / Implementation notes</div>
+              <h2>How the page was built</h2>
+            </div>
+          </div>
+          <div class="two-col">
+            <div class="callout">
+              <strong>High-signal implementation choices</strong>
+              <ul>
+                <li>Used <code>OKLCH</code> colors with tinted neutrals for a more intentional palette.</li>
+                <li>Paired <code>Fraunces</code> for display with <code>Instrument Sans</code> for body copy.</li>
+                <li>Kept the whole landing page as a single portable HTML file with inline CSS.</li>
+                <li>Structured the page into hero → proof → features → testimonial → CTA for easy evaluation.</li>
+              </ul>
+            </div>
+            <pre><code>:root {
+  --bg: oklch(13% 0.03 250);
+  --text: oklch(95% 0.015 88);
+  --accent: oklch(81% 0.17 94);
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 2rem;
+}
+
+h1 {
+  font-family: "Fraunces", serif;
+  font-size: clamp(3.4rem, 8vw, 7rem);
+}
+</code></pre>
+          </div>
+          <div class="callout" style="margin-top:1rem">
+            <strong>Why this is good enough for a smoke test</strong>
+            The page demonstrates that the evaluation-package workflow can present both the artifact and the evidence around it. The deliverable is visually rich enough to make screenshots meaningful, but still constrained enough to review quickly.
+          </div>
+        </section>
+
+        <section class="section" id="verification">
+          <div class="section-header">
+            <div>
+              <div class="section-tag">5 / Verification performed</div>
+              <h2>Checks completed</h2>
+            </div>
+          </div>
+          <div class="notes-grid">
+            <div class="mini-card">
+              <strong>Browser render</strong>
+              Opened the local file in Chromium at <code>1440 × 1400</code> and waited for the page to settle.
+            </div>
+            <div class="mini-card">
+              <strong>Selector checks</strong>
+              Confirmed visibility of <code>#hero</code>, <code>#features</code>, and <code>#cta</code>.
+            </div>
+            <div class="mini-card">
+              <strong>Evidence capture</strong>
+              Saved hero, CTA, and full-page screenshots from the rendered browser session.
+            </div>
+          </div>
+          <table class="artifact-table" style="margin-top:1rem">
+            <thead>
+              <tr>
+                <th>Check</th>
+                <th>Result</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>File creation</td>
+                <td>Pass</td>
+                <td><code>/tmp/eval-smoke.html</code> written successfully.</td>
+              </tr>
+              <tr>
+                <td>Hash / size snapshot</td>
+                <td>Pass</td>
+                <td><code>SHA1 bccb24d745a6da2800195a0d552f938db18e48d2</code>, 20,902 bytes.</td>
+              </tr>
+              <tr>
+                <td>Visual completeness</td>
+                <td>Pass</td>
+                <td>Navigation, hero, proof section, testimonial, and CTA all visible in the full-page screenshot.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="section" id="risks">
+          <div class="section-header">
+            <div>
+              <div class="section-tag">6 / Risks & caveats</div>
+              <h2>What this does not prove</h2>
+            </div>
+          </div>
+          <div class="risk-grid">
+            <div class="mini-card">
+              <strong>Not production-wired</strong>
+              No real app behavior, data loading, analytics, or backend integration. This is a visual front-end artifact only.
+            </div>
+            <div class="mini-card">
+              <strong>External dependency</strong>
+              Fonts are loaded from Google Fonts, so a fully offline render could differ without bundling font files.
+            </div>
+            <div class="mini-card">
+              <strong>Limited QA scope</strong>
+              I verified structure and screenshots, but did not run a dedicated accessibility pass, cross-browser comparison, or performance audit.
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="next">
+          <div class="section-header">
+            <div>
+              <div class="section-tag">7 / Recommended next actions</div>
+              <h2>If you wanted to keep going</h2>
+            </div>
+          </div>
+          <div class="next-grid">
+            <div class="mini-card">
+              <strong>Turn it into a real preview</strong>
+              Move the page into the repo, split structure/styles cleanly, and serve it locally for iterative review.
+            </div>
+            <div class="mini-card">
+              <strong>Add a11y verification</strong>
+              Check focus states, color contrast, semantic landmarks, and keyboard navigation explicitly.
+            </div>
+            <div class="mini-card">
+              <strong>Stress-test the package flow</strong>
+              Try the same evaluation-package workflow on a bug fix or audit task to confirm the report shape adapts well.
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="artifacts">
+          <div class="section-header">
+            <div>
+              <div class="section-tag">8 / Artifact manifest</div>
+              <h2>Files created for this smoke test</h2>
+            </div>
+          </div>
+          <table class="artifact-table">
+            <thead>
+              <tr>
+                <th>Path</th>
+                <th>Purpose</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>/tmp/eval-smoke.html</code></td>
+                <td>Deliverable</td>
+                <td>Standalone landing page for the fictional Northstar product.</td>
+              </tr>
+              <tr>
+                <td><code>.pi/evaluations/2026-04-14-northstar-smoke-test.html</code></td>
+                <td>Evaluation package</td>
+                <td>Main report you are reading now.</td>
+              </tr>
+              <tr>
+                <td><code>.pi/evaluations/2026-04-14-northstar-smoke-test.assets/hero.png</code></td>
+                <td>Evidence</td>
+                <td>Hero proof image.</td>
+              </tr>
+              <tr>
+                <td><code>.pi/evaluations/2026-04-14-northstar-smoke-test.assets/cta.png</code></td>
+                <td>Evidence</td>
+                <td>CTA proof image.</td>
+              </tr>
+              <tr>
+                <td><code>.pi/evaluations/2026-04-14-northstar-smoke-test.assets/full-page.png</code></td>
+                <td>Evidence</td>
+                <td>Full-page render showing the complete layout.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </main>
+    </div>
+
+    <p class="footer-note">Generated as a smoke test for the evaluation-package workflow — optimized for fast human review rather than transcript completeness.</p>
+  </div>
+</body>
+</html>

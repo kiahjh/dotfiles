@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pi Config Audit — 2026-04-14</title>
+  <style>
+    :root {
+      --bg: oklch(0.96 0.02 95);
+      --bg-2: oklch(0.985 0.01 95);
+      --panel: oklch(0.99 0.01 95 / 0.92);
+      --ink: oklch(0.24 0.03 260);
+      --muted: oklch(0.47 0.03 255);
+      --line: oklch(0.84 0.03 90);
+      --accent: oklch(0.58 0.17 28);
+      --accent-2: oklch(0.56 0.12 210);
+      --good: oklch(0.58 0.13 150);
+      --warn: oklch(0.72 0.16 72);
+      --risk: oklch(0.6 0.2 24);
+      --shadow: 0 18px 50px rgba(58, 40, 20, 0.08);
+      --radius: 20px;
+      --radius-sm: 14px;
+      --max: 1320px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, oklch(0.92 0.04 35 / 0.55), transparent 34%),
+        radial-gradient(circle at top right, oklch(0.94 0.03 210 / 0.5), transparent 28%),
+        linear-gradient(180deg, var(--bg-2), var(--bg));
+      font: 16px/1.6 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    a { color: inherit; }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    .shell {
+      width: min(var(--max), calc(100vw - 32px));
+      margin: 24px auto 48px;
+      display: grid;
+      grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .rail {
+      position: sticky;
+      top: 16px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid color-mix(in oklab, var(--line) 72%, white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero {
+      padding: 28px;
+      overflow: clip;
+      position: relative;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -30px -30px auto;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: radial-gradient(circle, color-mix(in oklab, var(--accent) 24%, white), transparent 72%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: color-mix(in oklab, var(--accent) 8%, white);
+      color: color-mix(in oklab, var(--accent) 78%, black);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3 {
+      margin: 0;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+
+    h1 {
+      margin-top: 14px;
+      font-family: Georgia, "Iowan Old Style", serif;
+      font-size: clamp(2.1rem, 3.1vw, 3.75rem);
+      max-width: 100%;
+      overflow-wrap: break-word;
+      text-wrap: balance;
+    }
+
+    .subtitle {
+      margin-top: 16px;
+      max-width: 58ch;
+      color: var(--muted);
+      font-size: 1.03rem;
+    }
+
+    .scoreband {
+      margin-top: 24px;
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 14px;
+    }
+
+    .verdict-box,
+    .score-box {
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.5));
+      border: 1px solid color-mix(in oklab, var(--line) 78%, white);
+    }
+
+    .verdict-label,
+    .score-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .verdict-main {
+      margin-top: 6px;
+      font-weight: 800;
+      font-size: 1.05rem;
+    }
+
+    .score-main {
+      margin-top: 6px;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .score-main strong {
+      font-size: 2rem;
+      letter-spacing: -0.05em;
+      color: var(--accent);
+    }
+
+    .navcard,
+    .statcard,
+    .checkcard,
+    .smallpanel {
+      padding: 18px;
+    }
+
+    .navcard h2,
+    .smallpanel h2,
+    .checkcard h2 {
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .navlist {
+      display: grid;
+      gap: 8px;
+    }
+
+    .navlist a {
+      display: block;
+      text-decoration: none;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: color-mix(in oklab, white 72%, var(--bg));
+      border: 1px solid color-mix(in oklab, var(--line) 72%, white);
+      font-weight: 600;
+    }
+
+    .navlist a:hover { border-color: color-mix(in oklab, var(--accent) 30%, var(--line)); }
+
+    .statgrid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .stat {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px 12px;
+      align-items: start;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.45));
+      border: 1px solid color-mix(in oklab, var(--line) 70%, white);
+    }
+
+    .stat strong {
+      font-size: 1.2rem;
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    main {
+      display: grid;
+      gap: 24px;
+    }
+
+    .section {
+      padding: 26px;
+      position: relative;
+      overflow: clip;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-head h2 {
+      font-family: Georgia, "Iowan Old Style", serif;
+      font-size: clamp(1.6rem, 2.4vw, 2.5rem);
+    }
+
+    .section-head p {
+      margin: 0;
+      max-width: 48ch;
+      color: var(--muted);
+      text-wrap: balance;
+    }
+
+    .quicklist {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .quickitem {
+      padding: 16px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.46));
+      border: 1px solid color-mix(in oklab, var(--line) 70%, white);
+    }
+
+    .quickitem strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 1rem;
+    }
+
+    .quickitem p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.96rem;
+    }
+
+    .finding-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .finding {
+      display: grid;
+      grid-template-columns: 140px minmax(0, 1fr);
+      gap: 18px;
+      padding: 18px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.5));
+      border: 1px solid color-mix(in oklab, var(--line) 72%, white);
+    }
+
+    .sev {
+      align-self: start;
+      display: inline-flex;
+      justify-content: center;
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .sev.medium { background: color-mix(in oklab, var(--warn) 18%, white); color: color-mix(in oklab, var(--warn) 72%, black); }
+    .sev.low { background: color-mix(in oklab, var(--accent-2) 14%, white); color: color-mix(in oklab, var(--accent-2) 72%, black); }
+    .sev.good { background: color-mix(in oklab, var(--good) 18%, white); color: color-mix(in oklab, var(--good) 78%, black); }
+    .sev.note { background: color-mix(in oklab, var(--accent) 12%, white); color: color-mix(in oklab, var(--accent) 75%, black); }
+
+    .finding h3 {
+      font-size: 1.22rem;
+      margin-bottom: 8px;
+    }
+
+    .finding p { margin: 0 0 10px; }
+    .finding ul { margin: 0; padding-left: 18px; }
+    .finding li + li { margin-top: 6px; }
+
+    .pathpill,
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid color-mix(in oklab, var(--line) 74%, white);
+      background: rgba(255,255,255,0.72);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      margin: 0 8px 8px 0;
+    }
+
+    .evidence-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 16px;
+    }
+
+    pre {
+      margin: 0;
+      padding: 16px;
+      border-radius: 16px;
+      overflow: auto;
+      background: oklch(0.23 0.02 260);
+      color: oklch(0.94 0.02 95);
+      font-size: 13px;
+      line-height: 1.5;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    .stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    details {
+      border: 1px solid color-mix(in oklab, var(--line) 74%, white);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.58);
+      overflow: hidden;
+    }
+
+    summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 14px 16px;
+      font-weight: 700;
+    }
+
+    summary::-webkit-details-marker { display: none; }
+    details > div { padding: 0 16px 16px; }
+
+    .timeline {
+      display: grid;
+      gap: 12px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .step .n {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: color-mix(in oklab, var(--accent) 12%, white);
+      color: color-mix(in oklab, var(--accent) 82%, black);
+      font-weight: 800;
+    }
+
+    .step strong { display: block; margin-bottom: 4px; }
+    .step p { margin: 0; color: var(--muted); }
+
+    .action-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .action {
+      display: grid;
+      grid-template-columns: 84px 1fr;
+      gap: 16px;
+      padding: 16px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.76), rgba(255,255,255,0.52));
+      border: 1px solid color-mix(in oklab, var(--line) 70%, white);
+    }
+
+    .action .prio {
+      align-self: start;
+      text-align: center;
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: color-mix(in oklab, var(--accent-2) 12%, white);
+      color: color-mix(in oklab, var(--accent-2) 75%, black);
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 1360px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+      .rail {
+        position: static;
+      }
+      .scoreband,
+      .quicklist,
+      .evidence-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .section,
+      .hero,
+      .navcard,
+      .statcard,
+      .checkcard,
+      .smallpanel { padding: 18px; }
+      .finding,
+      .action { grid-template-columns: 1fr; }
+      .quicklist { grid-template-columns: 1fr; }
+      .section-head { display: block; }
+      .section-head p { margin-top: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="rail">
+      <section class="panel hero">
+        <div class="eyebrow">Evaluation package · Pi audit</div>
+        <h1>Lean config, mostly healthy, with a few maintainability fixes worth making.</h1>
+        <p class="subtitle">
+          I audited your global <code>~/.pi/agent</code> setup as represented in this dotfiles repo: settings, MCP config,
+          custom extensions, and your new prompt/skill additions. The overall shape is strong: minimal, purposeful,
+          and not over-engineered.
+        </p>
+        <div class="scoreband">
+          <div class="verdict-box">
+            <div class="verdict-label">Quick verdict</div>
+            <div class="verdict-main">Good config, low operational risk, biggest wins are reproducibility and cleanup.</div>
+          </div>
+          <div class="score-box">
+            <div class="score-label">Audit score</div>
+            <div class="score-main"><strong>8.7</strong><span>/ 10</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel navcard">
+        <h2>Sections</h2>
+        <nav class="navlist">
+          <a href="#overview">Overview</a>
+          <a href="#findings">Findings</a>
+          <a href="#evidence">Evidence</a>
+          <a href="#verification">Verification</a>
+          <a href="#risks">Risks & caveats</a>
+          <a href="#actions">Recommended next actions</a>
+        </nav>
+      </section>
+
+      <section class="panel statcard">
+        <h2>Audit snapshot</h2>
+        <div class="statgrid">
+          <div class="stat"><strong>2</strong><span>medium-priority improvements</span></div>
+          <div class="stat"><strong>4</strong><span>low-priority refinements / optional adds</span></div>
+          <div class="stat"><strong>3</strong><span>clear strengths worth keeping</span></div>
+          <div class="stat"><strong>198 MB</strong><span>browser-tools extension footprint with vendored <code>node_modules</code></span></div>
+        </div>
+      </section>
+
+      <section class="panel checkcard">
+        <h2>Files reviewed</h2>
+        <div>
+          <div class="pathpill">pi/.pi/agent/settings.json</div>
+          <div class="pathpill">pi/.pi/agent/mcp.json</div>
+          <div class="pathpill">pi/.pi/agent/extensions/ask.ts</div>
+          <div class="pathpill">pi/.pi/agent/extensions/webfetch.ts</div>
+          <div class="pathpill">pi/.pi/agent/extensions/browser-tools/index.ts</div>
+          <div class="pathpill">pi/.pi/agent/prompts/evaluation-package.md</div>
+          <div class="pathpill">pi/.pi/agent/skills/evaluation-package/SKILL.md</div>
+        </div>
+      </section>
+    </aside>
+
+    <main>
+      <section class="panel section" id="overview">
+        <div class="section-head">
+          <div>
+            <h2>Overview</h2>
+          </div>
+          <p>
+            Your setup is intentionally sparse. That is a strength. You are adding capability through a small number of sharp extensions,
+            not by turning every knob in <code>settings.json</code>.
+          </p>
+        </div>
+
+        <div class="quicklist">
+          <article class="quickitem">
+            <strong>What is already good</strong>
+            <p>Minimal defaults, sensible model choice, hidden thinking block, and a small MCP surface instead of a bloated tool list.</p>
+          </article>
+          <article class="quickitem">
+            <strong>Where the real issues are</strong>
+            <p>Package reproducibility, runtime-state churn in tracked settings, and the operational weight of the browser tools extension.</p>
+          </article>
+          <article class="quickitem">
+            <strong>What I would not change casually</strong>
+            <p>The overall philosophy. This config is opinionated in a good way: focused, low-noise, and easy to reason about.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel section" id="findings">
+        <div class="section-head">
+          <div>
+            <h2>Findings</h2>
+          </div>
+          <p>
+            Ranked by practical impact. None of these are emergencies. The first two are the highest-leverage cleanup items.
+          </p>
+        </div>
+
+        <div class="finding-grid">
+          <article class="finding">
+            <div class="sev medium">Medium</div>
+            <div>
+              <h3>Pin the MCP adapter source instead of tracking GitHub main implicitly</h3>
+              <p>
+                In <code>pi/.pi/agent/settings.json</code> you load the adapter via a raw GitHub URL. That works, but it is less reproducible than a pinned npm package or a git ref.
+              </p>
+              <div class="chip">Current source: <code>https://github.com/nicobailon/pi-mcp-adapter</code></div>
+              <div class="chip">Installed package version: <code>2.4.0</code></div>
+              <ul>
+                <li>The adapter's own README recommends <code>pi install npm:pi-mcp-adapter</code>.</li>
+                <li>Using a tag or explicit npm version makes machine rebuilds and future audits much clearer.</li>
+                <li>If you like following head intentionally, keep it — but that should be a conscious choice, not an accident.</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="finding">
+            <div class="sev medium">Medium</div>
+            <div>
+              <h3><code>lastChangelogVersion</code> looks like machine state, not durable config</h3>
+              <p>
+                This value is present inside your tracked <code>settings.json</code>. That means normal pi updates can create dotfiles churn for something that is really just “what version has already shown me the changelog?”
+              </p>
+              <ul>
+                <li>It is not harmful at runtime.</li>
+                <li>It is noisy in a dotfiles repo because it will change over time and may differ across machines.</li>
+                <li>If you keep syncing the full file, expect recurring diffs from this key.</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="finding">
+            <div class="sev good">Strength</div>
+            <div>
+              <h3>The core configuration is refreshingly minimal</h3>
+              <p>
+                Your top-level settings define only what clearly matters: provider, model, thinking level, padding, theme, package source, and whether to hide thinking output.
+                That is a better maintenance posture than an over-tuned settings file full of speculative options.
+              </p>
+              <ul>
+                <li><code>defaultThinkingLevel: "high"</code> + <code>hideThinkingBlock: true</code> is a coherent pair.</li>
+                <li><code>editorPaddingX: 1</code> is a tasteful tiny UX adjustment rather than meaningless theme churn.</li>
+                <li>The setup is legible at a glance.</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="finding">
+            <div class="sev low">Low</div>
+            <div>
+              <h3>The browser tools extension is powerful, but heavy for a dotfiles repo</h3>
+              <p>
+                The local browser-tools package follows pi’s documented “package with dependencies” extension pattern correctly — but the dependency footprint is large.
+              </p>
+              <ul>
+                <li><code>pi/.pi/agent/extensions/browser-tools</code> is about <strong>198 MB</strong>.</li>
+                <li>Its vendored <code>node_modules</code> contains <strong>421</strong> directories.</li>
+                <li>That is defensible for a self-contained workstation setup, but not especially elegant for dotfiles.</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="finding">
+            <div class="sev low">Low</div>
+            <div>
+              <h3>One small code-quality mismatch exists inside <code>browser-tools</code></h3>
+              <p>
+                The recording schema says the format defaults to mp4 only <em>if ffmpeg is available</em>, otherwise webm. The implementation currently hardcodes mp4 and only fails later if ffmpeg is missing.
+              </p>
+              <ul>
+                <li>This is minor, but it is the clearest correctness nit I found.</li>
+                <li>If you keep this extension long-term, I would fix the behavior or the description so they agree.</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="finding">
+            <div class="sev good">Strength</div>
+            <div>
+              <h3>Your prompt-template → skill pattern is good</h3>
+              <p>
+                <code>prompts/evaluation-package.md</code> is a thin, useful shortcut that delegates the real behavior to a proper skill. That separation is clean: command ergonomics in the prompt, durable workflow guidance in the skill.
+              </p>
+            </div>
+          </article>
+
+          <article class="finding">
+            <div class="sev low">Optional</div>
+            <div>
+              <h3>A few additions could improve ergonomics, but only if they match your workflow</h3>
+              <p>
+                I do not think you are missing anything essential. These are “nice if you want them,” not “you forgot this.”
+              </p>
+              <ul>
+                <li><code>enableInstallTelemetry: false</code> if you want an explicit privacy stance.</li>
+                <li><code>enabledModels</code> if you regularly cycle among a small curated set of models.</li>
+                <li><code>settings.autoAuth: true</code> in <code>mcp.json</code> if Supabase OAuth friction annoys you.</li>
+                <li>Selective <code>directTools</code> for a tiny set of favorite Xcode/Supabase tools if repeated search overhead bothers you.</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="finding">
+            <div class="sev note">Context</div>
+            <div>
+              <h3>I would keep <code>defaultThinkingLevel: "high"</code> unless speed/cost is a pain point</h3>
+              <p>
+                This is the one setting that many people would reflexively “optimize” down to <code>medium</code>. I would only do that if you personally feel the latency or usage cost. Otherwise, your current choice is coherent with a quality-first coding workflow.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel section" id="evidence">
+        <div class="section-head">
+          <div>
+            <h2>Evidence</h2>
+          </div>
+          <p>
+            High-signal excerpts only — enough to support the audit without drowning you in raw file dumps.
+          </p>
+        </div>
+
+        <div class="evidence-grid">
+          <div class="stack">
+            <details open>
+              <summary>Settings excerpt</summary>
+              <div>
+<pre>{
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.4",
+  "defaultThinkingLevel": "high",
+  "editorPaddingX": 1,
+  "theme": "dark",
+  "packages": [
+    "https://github.com/nicobailon/pi-mcp-adapter"
+  ],
+  "lastChangelogVersion": "0.67.1",
+  "hideThinkingBlock": true
+}</pre>
+              </div>
+            </details>
+
+            <details open>
+              <summary>MCP config excerpt</summary>
+              <div>
+<pre>{
+  "mcpServers": {
+    "supabase": {
+      "url": "https://mcp.supabase.com/mcp",
+      "auth": "oauth"
+    },
+    "xcode": {
+      "command": "xcrun",
+      "args": ["mcpbridge"]
+    }
+  }
+}</pre>
+              </div>
+            </details>
+
+            <details open>
+              <summary>Code excerpt: browser-tools recording default mismatch</summary>
+              <div>
+<pre>86: description: "Recording format. Defaults to mp4 if ffmpeg is available, otherwise webm."
+...
+528: const format: VideoFormat = params.format ?? "mp4";</pre>
+              </div>
+            </details>
+          </div>
+
+          <div class="stack">
+            <details open>
+              <summary>Command evidence</summary>
+              <div>
+<pre>$ pi --version
+0.67.1
+
+$ pi list
+User packages:
+  https://github.com/nicobailon/pi-mcp-adapter
+    /Users/miciah/.pi/agent/git/github.com/nicobailon/pi-mcp-adapter
+
+$ du -sh pi/.pi/agent/extensions/browser-tools \
+        pi/.pi/agent/extensions/browser-tools/node_modules
+198M  pi/.pi/agent/extensions/browser-tools
+198M  pi/.pi/agent/extensions/browser-tools/node_modules
+
+$ find pi/.pi/agent/extensions/browser-tools/node_modules -maxdepth 2 -type d | wc -l
+421
+
+$ git status --short
+ M pi/.pi/agent/settings.json
+?? pi/.pi/agent/extensions/browser-tools/
+?? pi/.pi/agent/prompts/
+?? pi/.pi/agent/skills/</pre>
+              </div>
+            </details>
+
+            <details>
+              <summary>Docs / package evidence</summary>
+              <div>
+<pre># pi docs
+- docs/settings.md documents settings like hideThinkingBlock,
+  enableInstallTelemetry, enabledModels, npmCommand, etc.
+- docs/extensions.md explicitly supports a “package with dependencies”
+  layout for extensions like your browser-tools directory.
+
+# installed adapter package
+name: pi-mcp-adapter
+version: 2.4.0
+
+# adapter README recommendation
+pi install npm:pi-mcp-adapter</pre>
+              </div>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel section" id="verification">
+        <div class="section-head">
+          <div>
+            <h2>Verification performed</h2>
+          </div>
+          <p>
+            This audit was based on local file inspection plus targeted command checks and relevant pi documentation review.
+          </p>
+        </div>
+
+        <div class="timeline">
+          <div class="step">
+            <div class="n">1</div>
+            <div>
+              <strong>Enumerated your pi package contents</strong>
+              <p>Confirmed current settings, MCP config, tracked custom extensions, and new untracked prompt/skill additions.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="n">2</div>
+            <div>
+              <strong>Cross-checked against pi documentation</strong>
+              <p>Reviewed <code>README.md</code>, <code>docs/settings.md</code>, <code>docs/packages.md</code>, <code>docs/extensions.md</code>, <code>docs/prompt-templates.md</code>, and <code>docs/providers.md</code>.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="n">3</div>
+            <div>
+              <strong>Validated package/runtime context</strong>
+              <p>Checked the installed MCP adapter path and version via <code>pi list</code> and its installed <code>package.json</code>.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="n">4</div>
+            <div>
+              <strong>Measured extension footprint</strong>
+              <p>Used <code>du</code> and directory counts to understand the operational cost of bundling browser tooling inside dotfiles.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel section" id="risks">
+        <div class="section-head">
+          <div>
+            <h2>Risks, caveats, and unresolved items</h2>
+          </div>
+          <p>
+            Places where I am deliberately cautious instead of over-prescriptive.
+          </p>
+        </div>
+
+        <div class="quicklist">
+          <article class="quickitem">
+            <strong>I did not audit credentials</strong>
+            <p><code>auth.json</code>, environment variables, and any secret management setup were out of scope.</p>
+          </article>
+          <article class="quickitem">
+            <strong>I did not runtime-test every custom tool path</strong>
+            <p>This was a configuration/code audit, not a full behavioral test pass of ask/webfetch/browser automation.</p>
+          </article>
+          <article class="quickitem">
+            <strong>Some “improvements” are preference-sensitive</strong>
+            <p>Thinking level, direct MCP tool exposure, and telemetry stance depend on how you personally use pi.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel section" id="actions">
+        <div class="section-head">
+          <div>
+            <h2>Recommended next actions</h2>
+          </div>
+          <p>
+            If you want the highest value from the least effort, I would do these in roughly this order.
+          </p>
+        </div>
+
+        <div class="action-list">
+          <article class="action">
+            <div class="prio">Priority 1</div>
+            <div>
+              <strong>Pin the MCP adapter package source</strong>
+              <p>
+                Switch from a floating GitHub URL to either <code>npm:pi-mcp-adapter@2.4.0</code> or a git URL with an explicit ref.
+                This gives you cleaner rebuilds and more predictable updates.
+              </p>
+            </div>
+          </article>
+
+          <article class="action">
+            <div class="prio">Priority 2</div>
+            <div>
+              <strong>Decide how you want to handle <code>lastChangelogVersion</code> churn</strong>
+              <p>
+                If tracked settings diffs annoy you, treat this key as machine state and keep it out of your durable config workflow as much as possible.
+              </p>
+            </div>
+          </article>
+
+          <article class="action">
+            <div class="prio">Priority 3</div>
+            <div>
+              <strong>Clean up browser-tools packaging if repo weight bothers you</strong>
+              <p>
+                Options: keep only the source + <code>package.json</code> and install after stow, move it into a standalone pi package, or keep the current self-contained setup if convenience matters more than repo neatness.
+              </p>
+            </div>
+          </article>
+
+          <article class="action">
+            <div class="prio">Optional</div>
+            <div>
+              <strong>Add small workflow niceties only if you will use them</strong>
+              <p>
+                Candidates: <code>enableInstallTelemetry: false</code>, curated <code>enabledModels</code>, <code>mcp.settings.autoAuth</code>, or selective <code>directTools</code> for your most-used MCP actions.
+              </p>
+            </div>
+          </article>
+
+          <article class="action">
+            <div class="prio">Optional</div>
+            <div>
+              <strong>Fix the browser recording default inconsistency</strong>
+              <p>
+                Either probe for <code>ffmpeg</code> and fall back to webm, or change the schema text so it matches the actual behavior.
+              </p>
+            </div>
+          </article>
+        </div>
+
+        <p class="footer-note">
+          Bottom line: I would describe this as a <strong>good, tasteful pi setup</strong> with a couple of infrastructure-level cleanups to make it easier to maintain over time. I do <em>not</em> think you are missing major features.
+        </p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
