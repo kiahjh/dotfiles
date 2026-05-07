@@ -1,12 +1,12 @@
 {
   "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-5.4",
-  "defaultThinkingLevel": "high",
+  "defaultModel": "gpt-5.5",
+  "defaultThinkingLevel": "xhigh",
   "editorPaddingX": 1,
   "theme": "dark",
   "packages": [
     "https://github.com/nicobailon/pi-mcp-adapter"
   ],
-  "lastChangelogVersion": "0.67.1",
+  "lastChangelogVersion": "0.74.0",
   "hideThinkingBlock": true
 }

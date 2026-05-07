@@ -125,7 +125,6 @@ require("lazy").setup({
 	require("plugins.multicursor"),
 	require("plugins.neo-tree"),
 	require("plugins.noice"),
-	require("plugins.smear-cursor"),
 	require("plugins.snacks"),
 	require("plugins.tiny-inline-diagnostic"),
 	require("plugins.treesitter"),
