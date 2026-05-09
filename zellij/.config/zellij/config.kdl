@@ -221,6 +221,7 @@ plugins {
     status-bar location="zellij:status-bar"
     strider location="zellij:strider"
     compact-bar location="zellij:compact-bar"
+    codex-status-bar location="file:/Users/miciah/.config/zellij/plugins/codex-status-bar.wasm"
     session-manager location="zellij:session-manager"
     welcome-screen location="zellij:session-manager" {
         welcome_screen true
@@ -275,7 +276,7 @@ ui {
 //   - true (default)
 //   - false
 //
-// pane_frames true
+pane_frames false
 
 // Toggle between having Zellij lay out panes according to a predefined set of layouts whenever possible
 // Options:
@@ -454,7 +455,7 @@ theme "rose-pine"
 // Default: "default"
 // (Requires restart)
 
-default_layout "default"
+default_layout "no-bars"
 
 // Choose the mode that zellij uses when starting up.
 // Default: normal

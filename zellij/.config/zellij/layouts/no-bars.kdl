@@ -1,0 +1,10 @@
+layout {
+    pane
+    pane size=2 borderless=true {
+        plugin location="codex-status-bar" {
+            command "CODEX_LIMITS_FORMAT=tsv /Users/miciah/.local/scripts/codex-limits"
+            git_command "/Users/miciah/.local/scripts/git-branch-status"
+            interval_seconds "60"
+        }
+    }
+}

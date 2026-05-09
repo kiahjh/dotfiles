@@ -1,0 +1,286 @@
+#!/usr/bin/env bun
+import { chmodSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+
+const AUTH_ERROR_OUTPUT = "Pi not authenticated with ChatGPT account";
+const DEFAULT_CHATGPT_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
+const REFRESH_ENDPOINT = "https://auth.openai.com/oauth/token";
+const CODEX_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann";
+const REFRESH_SKEW_MS = 60 * 1000;
+const JWT_CLAIM_PATH = "https://api.openai.com/auth";
+
+type PiAuthFile = {
+  "openai-codex"?: PiCodexAuthEntry;
+  [key: string]: unknown;
+};
+
+type PiCodexAuthEntry = {
+  type?: string;
+  access?: string;
+  refresh?: string;
+  expires?: number;
+  accountId?: string;
+  [key: string]: unknown;
+};
+
+type Credentials = {
+  access: string;
+  refresh: string;
+  expires: number;
+  accountId: string;
+};
+
+type UsageResponse = {
+  rate_limit?: {
+    primary_window?: UsageWindow | null;
+    secondary_window?: UsageWindow | null;
+  } | null;
+};
+
+type UsageWindow = {
+  used_percent?: number;
+  reset_at?: number;
+  limit_window_seconds?: number;
+};
+
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+class NotAuthenticatedError extends Error {}
+class UnauthorizedError extends Error {}
+
+const piAuthPath = process.env.PI_AUTH_FILE || join(homedir(), ".pi", "agent", "auth.json");
+
+function outputAuthError(message?: string): never {
+  if (process.env.CODEX_LIMITS_DEBUG && message) {
+    console.error(`codex-limits: ${message}`);
+  }
+  console.log(AUTH_ERROR_OUTPUT);
+  process.exit(0);
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() !== "" ? value : undefined;
+}
+
+function readPiAuthFile(): PiAuthFile {
+  if (!existsSync(piAuthPath)) {
+    throw new NotAuthenticatedError(`missing ${piAuthPath}`);
+  }
+
+  try {
+    return JSON.parse(readFileSync(piAuthPath, "utf8"));
+  } catch (error) {
+    throw new NotAuthenticatedError(`could not parse ${piAuthPath}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+function loadPiCredentials(auth: PiAuthFile): Credentials {
+  const entry = auth["openai-codex"];
+  if (!entry) {
+    throw new NotAuthenticatedError("missing openai-codex entry in Pi auth.json");
+  }
+
+  const access = stringValue(entry.access);
+  const refresh = stringValue(entry.refresh);
+  const accountId = stringValue(entry.accountId) ?? accountIdFromAccessToken(access);
+  const expires = typeof entry.expires === "number" && Number.isFinite(entry.expires) ? entry.expires : 0;
+
+  if (!access || !refresh || !accountId) {
+    throw new NotAuthenticatedError("Pi openai-codex auth entry is incomplete");
+  }
+
+  return { access, refresh, expires, accountId };
+}
+
+function accountIdFromAccessToken(accessToken: string | undefined): string | undefined {
+  if (!accessToken) return undefined;
+  const payload = decodeJwt(accessToken);
+  const auth = payload?.[JWT_CLAIM_PATH];
+  const accountId = isRecord(auth) ? auth.chatgpt_account_id : undefined;
+  return stringValue(accountId);
+}
+
+function decodeJwt(token: string): Record<string, unknown> | null {
+  const [, payload] = token.split(".");
+  if (!payload) return null;
+
+  try {
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), "=");
+    const decoded = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
+    return isRecord(decoded) ? decoded : null;
+  } catch {
+    return null;
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function needsRefresh(credentials: Credentials): boolean {
+  return Date.now() >= credentials.expires - REFRESH_SKEW_MS;
+}
+
+async function refreshCredentials(credentials: Credentials, auth: PiAuthFile): Promise<Credentials> {
+  const response = await fetch(REFRESH_ENDPOINT, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: credentials.refresh,
+      client_id: CODEX_CLIENT_ID,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new NotAuthenticatedError(`Pi openai-codex token refresh failed: HTTP ${response.status}${body ? ` ${body.slice(0, 200)}` : ""}`);
+  }
+
+  const json = await response.json();
+  const access = stringValue(json.access_token);
+  const refresh = stringValue(json.refresh_token);
+  const expiresIn = typeof json.expires_in === "number" && Number.isFinite(json.expires_in) ? json.expires_in : undefined;
+
+  if (!access || !refresh || expiresIn === undefined) {
+    throw new NotAuthenticatedError("Pi openai-codex token refresh response was incomplete");
+  }
+
+  const accountId = accountIdFromAccessToken(access);
+  if (!accountId) {
+    throw new NotAuthenticatedError("could not extract ChatGPT account ID from refreshed Pi token");
+  }
+
+  const refreshed: Credentials = {
+    access,
+    refresh,
+    expires: Date.now() + expiresIn * 1000,
+    accountId,
+  };
+
+  auth["openai-codex"] = {
+    ...(auth["openai-codex"] ?? {}),
+    type: auth["openai-codex"]?.type ?? "oauth",
+    access: refreshed.access,
+    refresh: refreshed.refresh,
+    expires: refreshed.expires,
+    accountId: refreshed.accountId,
+  };
+  writeFileSync(piAuthPath, `${JSON.stringify(auth, null, 2)}\n`, "utf8");
+  chmodSync(piAuthPath, 0o600);
+
+  return refreshed;
+}
+
+async function fetchUsage(credentials: Credentials): Promise<UsageResponse> {
+  const response = await fetch(DEFAULT_CHATGPT_USAGE_URL, {
+    headers: {
+      accept: "application/json",
+      authorization: `Bearer ${credentials.access}`,
+      "chatgpt-account-id": credentials.accountId,
+      "user-agent": "codex-limits/pi-auth",
+    },
+  });
+  const body = await response.text();
+
+  if (response.status === 401 || response.status === 403) {
+    throw new UnauthorizedError(`usage API unauthorized: HTTP ${response.status}`);
+  }
+  if (!response.ok) {
+    throw new Error(`usage API failed: HTTP ${response.status}${body ? ` ${body.slice(0, 200)}` : ""}`);
+  }
+
+  try {
+    return JSON.parse(body);
+  } catch (error) {
+    throw new Error(`usage API returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+function windowMinutes(window: UsageWindow | null | undefined): number | undefined {
+  return typeof window?.limit_window_seconds === "number" ? window.limit_window_seconds / 60 : undefined;
+}
+
+function remainingPercent(window: UsageWindow | null | undefined): string {
+  if (!window || typeof window.used_percent !== "number" || !Number.isFinite(window.used_percent)) {
+    return "?%";
+  }
+
+  const resetMs = typeof window.reset_at === "number" ? window.reset_at * 1000 : null;
+  const used = resetMs !== null && Date.now() >= resetMs ? 0 : window.used_percent;
+  return `${Math.max(0, Math.min(100, Math.round(100 - used)))}%`;
+}
+
+function resetDate(window: UsageWindow | null | undefined): Date | null {
+  if (!window || typeof window.reset_at !== "number" || !Number.isFinite(window.reset_at)) {
+    return null;
+  }
+
+  return new Date(window.reset_at * 1000);
+}
+
+function clockTime(date: Date): string {
+  const hours = date.getHours();
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  const hour12 = hours % 12 || 12;
+  const meridiem = hours < 12 ? "am" : "pm";
+  return `${hour12}:${minutes}${meridiem}`;
+}
+
+function resetText(window: UsageWindow | null | undefined, includeWeekday: boolean): string {
+  const date = resetDate(window);
+  if (!date) {
+    return "?";
+  }
+
+  return `${clockTime(date)}${includeWeekday ? ` ${WEEKDAYS[date.getDay()]}` : ""}`;
+}
+
+function renderWindow(label: string, window: UsageWindow | null | undefined, includeWeekday: boolean): string {
+  return `${label}: ${remainingPercent(window)} (${resetText(window, includeWeekday)})`;
+}
+
+function renderWindowFields(label: string, window: UsageWindow | null | undefined, includeWeekday: boolean): string {
+  return `${label}\t${remainingPercent(window)}\t${resetText(window, includeWeekday)}`;
+}
+
+function matchingWindow(windows: Array<UsageWindow | null | undefined>, minutes: number): UsageWindow | null | undefined {
+  return windows.find((window) => windowMinutes(window) === minutes) ?? null;
+}
+
+function renderUsage(usage: UsageResponse): string {
+  const windows = [usage.rate_limit?.primary_window, usage.rate_limit?.secondary_window];
+  const fiveHour = matchingWindow(windows, 300) ?? usage.rate_limit?.primary_window;
+  const sevenDay = matchingWindow(windows, 10080) ?? usage.rate_limit?.secondary_window;
+
+  if (process.env.CODEX_LIMITS_FORMAT === "tsv") {
+    return `${renderWindowFields("5h", fiveHour, false)}\t${renderWindowFields("7d", sevenDay, true)}`;
+  }
+
+  return `${renderWindow("5h", fiveHour, false)} • ${renderWindow("7d", sevenDay, true)}`;
+}
+
+async function main() {
+  try {
+    const auth = readPiAuthFile();
+    let credentials = loadPiCredentials(auth);
+
+    if (needsRefresh(credentials)) {
+      credentials = await refreshCredentials(credentials, auth);
+    }
+
+    try {
+      console.log(renderUsage(await fetchUsage(credentials)));
+    } catch (error) {
+      if (!(error instanceof UnauthorizedError)) throw error;
+      credentials = await refreshCredentials(credentials, auth);
+      console.log(renderUsage(await fetchUsage(credentials)));
+    }
+  } catch (error) {
+    outputAuthError(error instanceof Error ? error.message : String(error));
+  }
+}
+
+await main();

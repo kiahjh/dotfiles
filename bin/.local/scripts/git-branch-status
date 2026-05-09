@@ -1,0 +1,21 @@
+#!/bin/sh
+set -eu
+
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  exit 0
+fi
+
+branch=$(git branch --show-current 2>/dev/null || true)
+if [ -z "$branch" ]; then
+  branch="$(git rev-parse --short HEAD 2>/dev/null || true)"
+fi
+
+if [ -z "$branch" ]; then
+  exit 0
+fi
+
+if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+  printf '%s*\n' "$branch"
+else
+  printf '%s\n' "$branch"
+fi

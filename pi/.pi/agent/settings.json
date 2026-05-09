@@ -5,7 +5,16 @@
   "editorPaddingX": 1,
   "theme": "dark",
   "packages": [
-    "https://github.com/nicobailon/pi-mcp-adapter"
+    "https://github.com/nicobailon/pi-mcp-adapter",
+    {
+      "source": "git:github.com/ben-vargas/pi-packages",
+      "extensions": [
+        "packages/pi-openai-fast/extensions/index.ts"
+      ],
+      "skills": [],
+      "prompts": [],
+      "themes": []
+    }
   ],
   "lastChangelogVersion": "0.74.0",
   "hideThinkingBlock": true

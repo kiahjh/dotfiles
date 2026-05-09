@@ -1,6 +1,7 @@
 .DS_Store
 *.swp
 node_modules/
+target/
 .env
 karabiner/.config/karabiner/automatic_backups/
 nvim/.config/nvim/plugin/packer_compiled.lua
