@@ -5,7 +5,12 @@ import {
   isValidSlug,
   kdlString,
   parseKdlConfigStringValue,
+  renderTaskEnv,
+  renderTaskPorts,
   sessionNameForSlug,
+  taskDatabaseNames,
+  taskPortsForSlot,
+  taskPortSlotForSlug,
   zellijLayout,
   zellijSessionStateFromList,
   type KillSafetyFacts,
@@ -34,6 +39,69 @@ test("validates task slugs", () => {
 
 test("derives zellij session names", () => {
   expect(sessionNameForSlug("dashboard-redesign")).toBe("gertrude__dashboard-redesign");
+});
+
+test("derives safe per-task postgres database names", () => {
+  expect(taskDatabaseNames("dashboard-redesign")).toEqual({
+    databaseName: "gt_dashboard_redesign_04d31cb2",
+    testDatabaseName: "gt_dashboard_redesign_04d31cb2_test",
+  });
+
+  const names = taskDatabaseNames("This.IS.a-very-long.task-name-with_lots.of.parts-and-extra-words");
+  expect(names.databaseName).toMatch(/^gt_[a-z0-9_]+_[a-f0-9]{8}$/);
+  expect(names.testDatabaseName).toBe(`${names.databaseName}_test`);
+  expect(names.testDatabaseName.length).toBeLessThanOrEqual(63);
+});
+
+test("derives and renders per-task local ports", () => {
+  const slot = taskPortSlotForSlug("gertrude-fm");
+  expect(slot).toBeGreaterThanOrEqual(0);
+  expect(slot).toBeLessThan(4000);
+
+  expect(taskPortsForSlot(7)).toEqual({
+    slot: 7,
+    apiPort: 18070,
+    dashPort: 18071,
+    sitePort: 18072,
+    adminPort: 18073,
+    storybookPort: 18074,
+    ciApiPort: 18075,
+    ciDashPort: 18076,
+  });
+
+  const rendered = renderTaskPorts("demo", taskPortsForSlot(7));
+  expect(rendered).toContain("API_PORT=18070");
+  expect(rendered).toContain("DASH_PORT=18071");
+  expect(rendered).toContain("SITE_PORT=18072");
+  expect(rendered).toContain("ADMIN_PORT=18073");
+  expect(rendered).toContain("STORYBOOK_PORT=18074");
+  expect(rendered).toContain("VITE_API_ENDPOINT=http://127.0.0.1:18070");
+  expect(rendered).toContain("VITE_TURNSTILE_SITEKEY=not-real");
+});
+
+test("renders swift api env from template without changing non-changeme placeholders", () => {
+  const rendered = renderTaskEnv(
+    `DATABASE_USERNAME=changeme
+DATABASE_PASSWORD=
+DATABASE_NAME="changeme"
+TEST_DATABASE_NAME='changeme'
+SENDGRID_API_KEY=not-real
+REAL_KEY=real-looking-value
+`,
+    {
+      databaseUsername: "miciah",
+      databasePassword: "",
+      databaseName: "gt_dashboard_redesign_4d053875",
+      testDatabaseName: "gt_dashboard_redesign_4d053875_test",
+    },
+  );
+
+  expect(rendered).toContain("DATABASE_USERNAME=miciah");
+  expect(rendered).toContain("DATABASE_PASSWORD=");
+  expect(rendered).toContain("DATABASE_NAME=gt_dashboard_redesign_4d053875");
+  expect(rendered).toContain("TEST_DATABASE_NAME=gt_dashboard_redesign_4d053875_test");
+  expect(rendered).toContain("SENDGRID_API_KEY=not-real");
+  expect(rendered).toContain("REAL_KEY=real-looking-value");
 });
 
 test("escapes KDL strings", () => {

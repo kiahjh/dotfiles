@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { spawn, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createHash, createHmac } from "node:crypto";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import * as readline from "node:readline/promises";
@@ -9,6 +10,17 @@ const REPO_URL = "https://github.com/gertrude-app/gertrude.git";
 const BASE_DIR = join(homedir(), "active-projects", "gertrude");
 const MASTER_BRANCH = "master";
 const CONFIRMATION = "yes, I'm sure";
+const GT_PACKAGE_DIR = resolve(import.meta.dir, "..", "..");
+const ENV_TEMPLATE_PATH = process.env.GT_ENV_TEMPLATE || join(GT_PACKAGE_DIR, ".env.template");
+const GT_SECRETS_PATH = process.env.GT_SECRETS_FILE || join(GT_PACKAGE_DIR, ".env");
+const SCRUBBED_DUMP_BUCKET = "gertrude-scrubbed-dumps";
+const SCRUBBED_DUMP_KEY = "latest.sql.gz";
+const SCRUBBED_DUMP_ENDPOINT = "https://nyc3.digitaloceanspaces.com";
+const SCRUBBED_DUMP_REGION = "us-east-1";
+const SCRUBBED_DUMP_SERVICE = "s3";
+const TASK_PORT_BASE = 18_000;
+const TASK_PORT_BLOCK_SIZE = 10;
+const TASK_PORT_SLOT_COUNT = 4_000;
 
 class GtError extends Error {
   constructor(message: string, readonly exitCode = 1) {
@@ -46,14 +58,45 @@ export type KillSafetyEvaluation = {
   reasons: string[];
 };
 
+type TaskDatabaseNames = {
+  databaseName: string;
+  testDatabaseName: string;
+};
+
+type TaskEnvValues = TaskDatabaseNames & {
+  databaseUsername: string;
+  databasePassword: string;
+};
+
+type ScrubbedDumpCredentials = {
+  accessKeyId: string;
+  secretAccessKey: string;
+};
+
+export type TaskPorts = {
+  slot: number;
+  apiPort: number;
+  dashPort: number;
+  sitePort: number;
+  adminPort: number;
+  storybookPort: number;
+  ciApiPort: number;
+  ciDashPort: number;
+};
+
 function usage(): string {
   return `Usage:
   gt <slug>
   gt --kill
+  gt --setup-env-db [slug]
+  gt --setup-ports [slug]
 
 Create a fresh Gertrude task workspace:
   - clone master into ~/active-projects/gertrude/<slug>
   - create branch <slug>
+  - assign task-specific local ports in .gtask-ports
+  - create isolated local Postgres databases from the scrubbed production dump
+  - render swift/api/.env from gt/.env.template using those database names
   - run pnpm install in ./web
   - create zellij session gertrude__<slug> with pi left and nvim right
   - open a Ghostty tab titled <slug> attached to that session
@@ -63,6 +106,12 @@ Kill the current Gertrude task workspace from inside its dir/session/tab:
   - delete the task dir
   - close the Ghostty tab
   - delete the zellij session, including resurrection data
+
+Set up swift/api/.env and isolated Postgres DBs for an existing task:
+  - run gt --setup-env-db from inside the task checkout, or pass its slug
+
+Set up only task-specific local ports for an existing task:
+  - run gt --setup-ports from inside the task checkout, or pass its slug
 
 Slug must be a single path segment containing only letters, numbers, dots,
 underscores, and hyphens, and must start with a letter or number.`;
@@ -124,6 +173,325 @@ function requireCommands(commands: string[]): void {
   }
 }
 
+function currentSystemUser(): string {
+  return process.env.USER || runOutput("id", ["-un"]);
+}
+
+function dotenvValue(value: string): string {
+  if (/^[A-Za-z0-9_./:@-]*$/.test(value)) {
+    return value;
+  }
+
+  return JSON.stringify(value);
+}
+
+function parseSimpleDotenv(contents: string): Record<string, string> {
+  const values: Record<string, string> = {};
+
+  for (const rawLine of contents.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) {
+      continue;
+    }
+
+    const assignment = line.startsWith("export ") ? line.slice("export ".length).trim() : line;
+    const equalsIndex = assignment.indexOf("=");
+    if (equalsIndex === -1) {
+      continue;
+    }
+
+    const key = assignment.slice(0, equalsIndex).trim();
+    let value = assignment.slice(equalsIndex + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    values[key] = value;
+  }
+
+  return values;
+}
+
+function loadGtSecrets(): Record<string, string> {
+  if (!existsSync(GT_SECRETS_PATH)) {
+    return {};
+  }
+
+  return parseSimpleDotenv(readFileSync(GT_SECRETS_PATH, "utf8"));
+}
+
+function scrubbedDumpCredentials(): ScrubbedDumpCredentials {
+  const secrets = loadGtSecrets();
+  const accessKeyId = secrets.GT_SCRUBBED_DUMPS_ACCESS_KEY_ID || process.env.GT_SCRUBBED_DUMPS_ACCESS_KEY_ID || "";
+  const secretAccessKey =
+    secrets.GT_SCRUBBED_DUMPS_SECRET_ACCESS_KEY || process.env.GT_SCRUBBED_DUMPS_SECRET_ACCESS_KEY || "";
+
+  if (!accessKeyId || !secretAccessKey) {
+    fail(
+      `missing scrubbed dump credentials; set GT_SCRUBBED_DUMPS_ACCESS_KEY_ID and GT_SCRUBBED_DUMPS_SECRET_ACCESS_KEY in ${GT_SECRETS_PATH}`,
+    );
+  }
+
+  return { accessKeyId, secretAccessKey };
+}
+
+export function taskDatabaseNames(slug: string): TaskDatabaseNames {
+  const hash = createHash("sha1").update(slug).digest("hex").slice(0, 8);
+  const sanitized = slug
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "") || "task";
+  const maxStemLength = 46;
+  const stem = sanitized.slice(0, maxStemLength).replace(/_+$/g, "") || "task";
+  const databaseName = `gt_${stem}_${hash}`;
+  return {
+    databaseName,
+    testDatabaseName: `${databaseName}_test`,
+  };
+}
+
+export function renderTaskEnv(template: string, values: TaskEnvValues): string {
+  const replacements: Record<string, string> = {
+    DATABASE_USERNAME: values.databaseUsername,
+    DATABASE_PASSWORD: values.databasePassword,
+    DATABASE_NAME: values.databaseName,
+    TEST_DATABASE_NAME: values.testDatabaseName,
+  };
+  const unknownChangemeKeys = new Set<string>();
+
+  const rendered = template
+    .split(/\r?\n/)
+    .map((line) => {
+      const match = line.match(/^(\s*(?:export\s+)?)([A-Za-z_][A-Za-z0-9_]*)(\s*=\s*)(.*)$/);
+      if (!match) {
+        return line;
+      }
+
+      const [, prefix, key, separator, rawValue] = match;
+      if (!/changeme/i.test(rawValue)) {
+        return line;
+      }
+
+      const replacement = replacements[key];
+      if (replacement === undefined) {
+        unknownChangemeKeys.add(key);
+        return line;
+      }
+
+      return `${prefix}${key}${separator}${dotenvValue(replacement)}`;
+    })
+    .join("\n");
+
+  if (unknownChangemeKeys.size > 0) {
+    fail(`no gt value configured for changeme env var(s): ${[...unknownChangemeKeys].sort().join(", ")}`);
+  }
+
+  return rendered.endsWith("\n") ? rendered : `${rendered}\n`;
+}
+
+function writeSwiftApiEnv(worktreeDir: string, slug: string): TaskDatabaseNames {
+  const swiftApiDir = join(worktreeDir, "swift", "api");
+  if (!existsSync(swiftApiDir)) {
+    fail(`expected swift api directory to exist: ${swiftApiDir}`);
+  }
+
+  if (!existsSync(ENV_TEMPLATE_PATH)) {
+    fail(`missing env template: ${ENV_TEMPLATE_PATH}`);
+  }
+
+  const names = taskDatabaseNames(slug);
+  const contents = renderTaskEnv(readFileSync(ENV_TEMPLATE_PATH, "utf8"), {
+    ...names,
+    databaseUsername: currentSystemUser(),
+    databasePassword: "",
+  });
+  const envPath = join(swiftApiDir, ".env");
+  writeFileSync(envPath, contents, "utf8");
+  chmodSync(envPath, 0o600);
+  return names;
+}
+
+function numberFromEnv(values: Record<string, string>, key: string): number | null {
+  const value = values[key];
+  if (!value || !/^\d+$/.test(value)) {
+    return null;
+  }
+
+  return Number(value);
+}
+
+export function taskPortSlotForSlug(slug: string): number {
+  return Number.parseInt(createHash("sha1").update(slug).digest("hex").slice(0, 8), 16) % TASK_PORT_SLOT_COUNT;
+}
+
+export function taskPortsForSlot(slot: number): TaskPorts {
+  const base = TASK_PORT_BASE + slot * TASK_PORT_BLOCK_SIZE;
+  return {
+    slot,
+    apiPort: base,
+    dashPort: base + 1,
+    sitePort: base + 2,
+    adminPort: base + 3,
+    storybookPort: base + 4,
+    ciApiPort: base + 5,
+    ciDashPort: base + 6,
+  };
+}
+
+function taskPortsFromEnv(values: Record<string, string>): TaskPorts | null {
+  const apiPort = numberFromEnv(values, "API_PORT");
+  const dashPort = numberFromEnv(values, "DASH_PORT");
+  const sitePort = numberFromEnv(values, "SITE_PORT");
+  const adminPort = numberFromEnv(values, "ADMIN_PORT");
+  const storybookPort = numberFromEnv(values, "STORYBOOK_PORT");
+  const ciApiPort = numberFromEnv(values, "CI_API_PORT");
+  const ciDashPort = numberFromEnv(values, "CI_DASH_PORT");
+
+  if (
+    apiPort === null ||
+    dashPort === null ||
+    sitePort === null ||
+    adminPort === null ||
+    storybookPort === null ||
+    ciApiPort === null ||
+    ciDashPort === null
+  ) {
+    return null;
+  }
+
+  return {
+    slot: numberFromEnv(values, "GTASK_SLOT") ?? Math.floor((apiPort - TASK_PORT_BASE) / TASK_PORT_BLOCK_SIZE),
+    apiPort,
+    dashPort,
+    sitePort,
+    adminPort,
+    storybookPort,
+    ciApiPort,
+    ciDashPort,
+  };
+}
+
+function taskPortValues(ports: TaskPorts): Record<string, string> {
+  return {
+    GTASK_SLOT: String(ports.slot),
+    API_PORT: String(ports.apiPort),
+    DASH_PORT: String(ports.dashPort),
+    SITE_PORT: String(ports.sitePort),
+    ADMIN_PORT: String(ports.adminPort),
+    STORYBOOK_PORT: String(ports.storybookPort),
+    CI_API_PORT: String(ports.ciApiPort),
+    CI_DASH_PORT: String(ports.ciDashPort),
+    VITE_API_ENDPOINT: `http://127.0.0.1:${ports.apiPort}`,
+    VITE_TURNSTILE_SITEKEY: "not-real",
+    VITE_GTM_ID: "not-real",
+  };
+}
+
+export function renderTaskPorts(slug: string, ports: TaskPorts): string {
+  const values = taskPortValues(ports);
+  return `# Local ports for Gertrude task ${slug}\n# Generated by gt; safe to delete and regenerate with gt --setup-ports.\n${Object.entries(values)
+    .map(([key, value]) => `${key}=${dotenvValue(value)}`)
+    .join("\n")}\n`;
+}
+
+function taskPortsPath(worktreeDir: string): string {
+  return join(worktreeDir, ".gtask-ports");
+}
+
+function portNumbers(ports: TaskPorts): number[] {
+  return [
+    ports.apiPort,
+    ports.dashPort,
+    ports.sitePort,
+    ports.adminPort,
+    ports.storybookPort,
+    ports.ciApiPort,
+    ports.ciDashPort,
+  ];
+}
+
+function portInUse(port: number): boolean {
+  return run("/bin/sh", ["-c", 'nc -z 127.0.0.1 "$1" >/dev/null 2>&1', "sh", String(port)], {
+    allowFailure: true,
+  }).status === 0;
+}
+
+function existingTaskPortFiles(exceptWorktreeDir: string): string[] {
+  if (!existsSync(BASE_DIR)) {
+    return [];
+  }
+
+  return readdirSync(BASE_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => resolve(BASE_DIR, entry.name))
+    .filter((worktreeDir) => worktreeDir !== resolve(exceptWorktreeDir))
+    .map(taskPortsPath)
+    .filter(existsSync);
+}
+
+function usedTaskPortFacts(exceptWorktreeDir: string): { slots: Set<number>; ports: Set<number> } {
+  const slots = new Set<number>();
+  const ports = new Set<number>();
+
+  for (const file of existingTaskPortFiles(exceptWorktreeDir)) {
+    const parsed = taskPortsFromEnv(parseSimpleDotenv(readFileSync(file, "utf8")));
+    if (!parsed) {
+      continue;
+    }
+
+    slots.add(parsed.slot);
+    for (const port of portNumbers(parsed)) {
+      ports.add(port);
+    }
+  }
+
+  return { slots, ports };
+}
+
+function portsAreAvailable(ports: TaskPorts, usedSlots: Set<number>, usedPorts: Set<number>): boolean {
+  if (usedSlots.has(ports.slot)) {
+    return false;
+  }
+
+  for (const port of portNumbers(ports)) {
+    if (usedPorts.has(port) || portInUse(port)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function allocateTaskPorts(slug: string, worktreeDir: string): TaskPorts {
+  const existingPath = taskPortsPath(worktreeDir);
+  if (existsSync(existingPath)) {
+    const existing = taskPortsFromEnv(parseSimpleDotenv(readFileSync(existingPath, "utf8")));
+    if (existing) {
+      return existing;
+    }
+  }
+
+  const { slots, ports } = usedTaskPortFacts(worktreeDir);
+  const preferredSlot = taskPortSlotForSlug(slug);
+
+  for (let offset = 0; offset < TASK_PORT_SLOT_COUNT; offset++) {
+    const candidate = taskPortsForSlot((preferredSlot + offset) % TASK_PORT_SLOT_COUNT);
+    if (portsAreAvailable(candidate, slots, ports)) {
+      return candidate;
+    }
+  }
+
+  fail("could not find a free task port block");
+}
+
+function setupTaskPorts(worktreeDir: string, slug: string): TaskPorts {
+  const ports = allocateTaskPorts(slug, worktreeDir);
+  writeFileSync(taskPortsPath(worktreeDir), renderTaskPorts(slug, ports), "utf8");
+  return ports;
+}
+
 export function isValidSlug(slug: string): boolean {
   return /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(slug);
 }
@@ -140,6 +508,136 @@ function validateSlug(slug: string): void {
   const result = run("git", ["check-ref-format", "--branch", slug], { allowFailure: true });
   if (result.status !== 0) {
     fail(`invalid git branch name: ${slug}`);
+  }
+}
+
+function hmac(key: Buffer | string, value: string): Buffer {
+  return createHmac("sha256", key).update(value).digest();
+}
+
+function sha256Hex(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function amzDate(date: Date): string {
+  return date.toISOString().replace(/[:-]|\.\d{3}/g, "");
+}
+
+function dateStamp(date: Date): string {
+  return amzDate(date).slice(0, 8);
+}
+
+function signingKey(secretAccessKey: string, date: string, region: string, service: string): Buffer {
+  const kDate = hmac(`AWS4${secretAccessKey}`, date);
+  const kRegion = hmac(kDate, region);
+  const kService = hmac(kRegion, service);
+  return hmac(kService, "aws4_request");
+}
+
+function scrubbedDumpUrl(): URL {
+  return new URL(`${SCRUBBED_DUMP_ENDPOINT}/${SCRUBBED_DUMP_BUCKET}/${SCRUBBED_DUMP_KEY}`);
+}
+
+function signedScrubbedDumpHeaders(credentials: ScrubbedDumpCredentials, now = new Date()): Headers {
+  const url = scrubbedDumpUrl();
+  const host = url.host;
+  const amz = amzDate(now);
+  const date = dateStamp(now);
+  const payloadHash = sha256Hex("");
+  const canonicalUri = url.pathname
+    .split("/")
+    .map((part) => encodeURIComponent(part))
+    .join("/");
+  const signedHeaders = "host;x-amz-content-sha256;x-amz-date";
+  const canonicalHeaders = `host:${host}\nx-amz-content-sha256:${payloadHash}\nx-amz-date:${amz}\n`;
+  const canonicalRequest = ["GET", canonicalUri, "", canonicalHeaders, signedHeaders, payloadHash].join("\n");
+  const credentialScope = `${date}/${SCRUBBED_DUMP_REGION}/${SCRUBBED_DUMP_SERVICE}/aws4_request`;
+  const stringToSign = ["AWS4-HMAC-SHA256", amz, credentialScope, sha256Hex(canonicalRequest)].join("\n");
+  const signature = createHmac(
+    "sha256",
+    signingKey(credentials.secretAccessKey, date, SCRUBBED_DUMP_REGION, SCRUBBED_DUMP_SERVICE),
+  )
+    .update(stringToSign)
+    .digest("hex");
+
+  return new Headers({
+    authorization: `AWS4-HMAC-SHA256 Credential=${credentials.accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`,
+    "x-amz-content-sha256": payloadHash,
+    "x-amz-date": amz,
+  });
+}
+
+async function downloadScrubbedDump(destination: string): Promise<void> {
+  if (process.env.GT_SCRUBBED_DUMP_PATH) {
+    run("cp", [process.env.GT_SCRUBBED_DUMP_PATH, destination]);
+    return;
+  }
+
+  const response = await fetch(scrubbedDumpUrl(), {
+    headers: signedScrubbedDumpHeaders(scrubbedDumpCredentials()),
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    fail(`scrubbed dump download failed: HTTP ${response.status}${detail ? ` ${detail.slice(0, 160)}` : ""}`);
+  }
+
+  writeFileSync(destination, Buffer.from(await response.arrayBuffer()));
+}
+
+function dropDatabaseIfExists(databaseName: string): void {
+  run("dropdb", ["--if-exists", databaseName], { allowFailure: true });
+}
+
+function createEmptyDatabase(databaseName: string): void {
+  run("createdb", [databaseName]);
+}
+
+function restoreDumpIntoDatabase(dumpPath: string, databaseName: string): void {
+  // Newer pg_dump versions emit \\restrict/\\unrestrict meta-commands that older local psql
+  // clients do not understand. They are safety markers, so stripping them is fine for restore.
+  run(
+    "/bin/sh",
+    [
+      "-c",
+      "gunzip -c \"$1\" | sed '/^\\\\restrict /d;/^\\\\unrestrict /d;/^SET transaction_timeout = /d;/ OWNER TO /d;/^CREATE EVENT TRIGGER .* ON login/d;/EXECUTE FUNCTION public.set_search_path_on_login()/d;/^ALTER EVENT TRIGGER /d' | psql --quiet --set ON_ERROR_STOP=1 \"$2\"",
+      "sh",
+      dumpPath,
+      databaseName,
+    ],
+    { inherit: true },
+  );
+}
+
+function createDatabaseFromTemplate(templateDatabaseName: string, databaseName: string): void {
+  run("createdb", ["--template", templateDatabaseName, databaseName]);
+}
+
+async function setupTaskDatabases(slug: string): Promise<TaskDatabaseNames> {
+  const names = taskDatabaseNames(slug);
+  const dir = mkdtempSync(join(tmpdir(), "gt-scrubbed-db-"));
+  const dumpPath = join(dir, "latest.sql.gz");
+
+  try {
+    console.log("Downloading scrubbed production database dump...");
+    await downloadScrubbedDump(dumpPath);
+
+    console.log(`Creating local Postgres database ${names.databaseName}`);
+    dropDatabaseIfExists(names.testDatabaseName);
+    dropDatabaseIfExists(names.databaseName);
+    createEmptyDatabase(names.databaseName);
+    restoreDumpIntoDatabase(dumpPath, names.databaseName);
+
+    console.log(`Creating local Postgres test database ${names.testDatabaseName}`);
+    createDatabaseFromTemplate(names.databaseName, names.testDatabaseName);
+
+    return names;
+  } catch (error) {
+    dropDatabaseIfExists(names.testDatabaseName);
+    dropDatabaseIfExists(names.databaseName);
+    throw error;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 }
 
@@ -586,7 +1084,7 @@ end run
 
 async function createTask(slug: string): Promise<void> {
   validateSlug(slug);
-  requireCommands(["git", "zellij", "osascript", "pi", "nvim", "pnpm"]);
+  requireCommands(["git", "zellij", "osascript", "pi", "nvim", "pnpm", "psql", "createdb", "dropdb", "gunzip"]);
 
   const worktreeDir = join(BASE_DIR, slug);
   const sessionName = sessionNameForSlug(slug);
@@ -615,27 +1113,52 @@ async function createTask(slug: string): Promise<void> {
   console.log(`Creating branch ${slug}`);
   run("git", ["switch", "-c", slug], { cwd: worktreeDir, inherit: true });
 
+  const ports = setupTaskPorts(worktreeDir, slug);
+  console.log(`Assigned local ports: api ${ports.apiPort}, dash ${ports.dashPort}`);
+
+  const databaseNames = await setupTaskDatabases(slug);
+  try {
+    console.log("Writing swift/api/.env");
+    writeSwiftApiEnv(worktreeDir, slug);
+  } catch (error) {
+    dropDatabaseIfExists(databaseNames.testDatabaseName);
+    dropDatabaseIfExists(databaseNames.databaseName);
+    throw error;
+  }
+
   const webDir = join(worktreeDir, "web");
   if (!existsSync(webDir)) {
     fail(`expected web directory to exist: ${webDir}`);
   }
 
-  console.log("Installing web dependencies");
-  run("pnpm", ["install"], { cwd: webDir, inherit: true });
-
-  const { layoutFile, cleanup } = writeTempLayout(slug, worktreeDir);
-  try {
-    console.log(`Creating zellij session ${sessionName} with pi/nvim panes`);
-    run("zellij", ["attach", "--create-background", sessionName, "options", "--default-layout", layoutFile], {
-      cwd: worktreeDir,
-      inherit: true,
-    });
-  } finally {
-    cleanup();
+  if (process.env.GT_SKIP_PNPM_INSTALL === "1") {
+    console.log("Skipping web dependency install because GT_SKIP_PNPM_INSTALL=1");
+  } else {
+    console.log("Installing web dependencies");
+    run("pnpm", ["install"], { cwd: webDir, inherit: true });
   }
 
-  console.log(`Opening Ghostty tab ${slug}`);
-  openGhosttyTab(slug, worktreeDir, sessionName);
+  if (process.env.GT_SKIP_ZELLIJ === "1") {
+    console.log("Skipping zellij session creation because GT_SKIP_ZELLIJ=1");
+  } else {
+    const { layoutFile, cleanup } = writeTempLayout(slug, worktreeDir);
+    try {
+      console.log(`Creating zellij session ${sessionName} with pi/nvim panes`);
+      run("zellij", ["attach", "--create-background", sessionName, "options", "--default-layout", layoutFile], {
+        cwd: worktreeDir,
+        inherit: true,
+      });
+    } finally {
+      cleanup();
+    }
+  }
+
+  if (process.env.GT_SKIP_GHOSTTY === "1") {
+    console.log("Skipping Ghostty tab because GT_SKIP_GHOSTTY=1");
+  } else {
+    console.log(`Opening Ghostty tab ${slug}`);
+    openGhosttyTab(slug, worktreeDir, sessionName);
+  }
 
   console.log(`Ready: ${worktreeDir} (${sessionName})`);
 }
@@ -833,6 +1356,53 @@ rm -rf "$3"
   child.unref();
 }
 
+async function setupExistingTask(slugArg?: string): Promise<void> {
+  requireCommands(["git", "psql", "createdb", "dropdb", "gunzip"]);
+
+  const repoRoot = slugArg ? resolve(join(BASE_DIR, slugArg)) : getGitRoot(process.cwd());
+  if (!existsSync(repoRoot)) {
+    fail(`task checkout does not exist: ${repoRoot}`);
+  }
+  ensureTaskRoot(repoRoot);
+
+  const slug = basename(repoRoot);
+  validateSlug(slug);
+
+  console.log(`Setting up swift/api/.env, task ports, and local Postgres databases for ${slug}...`);
+  const ports = setupTaskPorts(repoRoot, slug);
+  console.log(`Assigned local ports: api ${ports.apiPort}, dash ${ports.dashPort}`);
+
+  const databaseNames = await setupTaskDatabases(slug);
+  try {
+    writeSwiftApiEnv(repoRoot, slug);
+  } catch (error) {
+    dropDatabaseIfExists(databaseNames.testDatabaseName);
+    dropDatabaseIfExists(databaseNames.databaseName);
+    throw error;
+  }
+
+  console.log(`Wrote ${join(repoRoot, "swift", "api", ".env")}`);
+  console.log(`Ready: ${databaseNames.databaseName} and ${databaseNames.testDatabaseName}`);
+}
+
+function setupExistingTaskPorts(slugArg?: string): void {
+  if (!slugArg) {
+    requireCommands(["git"]);
+  }
+
+  const repoRoot = slugArg ? resolve(join(BASE_DIR, slugArg)) : getGitRoot(process.cwd());
+  if (!existsSync(repoRoot)) {
+    fail(`task checkout does not exist: ${repoRoot}`);
+  }
+  ensureTaskRoot(repoRoot);
+
+  const slug = basename(repoRoot);
+  validateSlug(slug);
+  const ports = setupTaskPorts(repoRoot, slug);
+  console.log(`Wrote ${taskPortsPath(repoRoot)}`);
+  console.log(`Ready: api ${ports.apiPort}, dash ${ports.dashPort}, site ${ports.sitePort}, admin ${ports.adminPort}, storybook ${ports.storybookPort}`);
+}
+
 async function killTask(): Promise<void> {
   requireCommands(["git", "zellij", "osascript"]);
 
@@ -850,6 +1420,15 @@ async function killTask(): Promise<void> {
   rmSync(repoRoot, { recursive: true, force: true });
   console.log(`Deleted ${repoRoot}`);
 
+  if (commandExists("dropdb")) {
+    const names = taskDatabaseNames(slug);
+    dropDatabaseIfExists(names.testDatabaseName);
+    dropDatabaseIfExists(names.databaseName);
+    console.log(`Deleted local Postgres databases ${names.databaseName} and ${names.testDatabaseName}`);
+  } else {
+    console.warn("dropdb not found; skipping local Postgres database cleanup");
+  }
+
   launchDetachedTabCloseAndSessionDelete(slug, sessionName);
   console.log(`Closing Ghostty tab and deleting zellij session ${sessionName}...`);
 }
@@ -862,6 +1441,16 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
 
   if (argv.length === 1 && argv[0] === "--kill") {
     await killTask();
+    return;
+  }
+
+  if (argv[0] === "--setup-env-db" && argv.length <= 2) {
+    await setupExistingTask(argv[1]);
+    return;
+  }
+
+  if (argv[0] === "--setup-ports" && argv.length <= 2) {
+    setupExistingTaskPorts(argv[1]);
     return;
   }
 

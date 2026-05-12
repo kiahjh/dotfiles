@@ -2,13 +2,14 @@ _default:
   @just --choose
 
 test:
-  @bun test ./bin/.local/scripts/gt.test.ts
+  @bun test ./gt/.local/scripts/gt.test.ts
 
 stow:
   @stow git
   @stow ohmyzsh
   @stow stow
   @stow bin
+  @stow gt
   @stow zellij
   @stow ghostty
   @stow nvim

@@ -3,6 +3,8 @@
 node_modules/
 target/
 .env
+gt/.env
 karabiner/.config/karabiner/automatic_backups/
 nvim/.config/nvim/plugin/packer_compiled.lua
 .claude/
+gt/.env.template

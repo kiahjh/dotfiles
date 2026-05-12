@@ -18,6 +18,7 @@ For example:
 | `bin`      | Scripts in `~/.local/scripts/` |
 | `ghostty`  | Ghostty terminal               |
 | `git`      | Git config & global ignore     |
+| `gt`       | Gertrude task helper script    |
 | `nvim`     | Neovim config                  |
 | `ohmyzsh`  | `.zshrc` and `.zshenv`         |
 | `opencode` | opencode config                |
