@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo="${XCODEBRIDGE_REPO:-https://github.com/zac/XcodeBridge.git}"
+ref="${XCODEBRIDGE_REF:-main}"
+prefix="${XCODEBRIDGE_PREFIX:-$HOME/.local}"
+bin_dir="$prefix/bin"
+out="$bin_dir/xcbridge"
+
+workdir="$(mktemp -d)"
+trap 'rm -rf "$workdir"' EXIT
+
+mkdir -p "$bin_dir"
+
+echo "Cloning $repo ($ref)..." >&2
+git clone --depth 1 --branch "$ref" "$repo" "$workdir/XcodeBridge" >&2
+
+src="$workdir/XcodeBridge/XcodeBridge/xcbridge/main.swift"
+if [[ ! -f "$src" ]]; then
+  echo "xcodebridge-install: expected source not found: $src" >&2
+  exit 1
+fi
+
+echo "Building $out..." >&2
+swiftc -O "$src" -o "$out"
+chmod 0755 "$out"
+
+echo "Installed $out ($("$out" --version))" >&2

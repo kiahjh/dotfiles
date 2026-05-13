@@ -5,8 +5,8 @@
       "auth": "oauth"
     },
     "xcode": {
-      "command": "xcrun",
-      "args": ["mcpbridge"]
+      "command": "/Users/miciah/.local/bin/xcbridge",
+      "args": ["connect", "--socket", "/Users/miciah/.xcode-bridge.sock"]
     }
   }
 }

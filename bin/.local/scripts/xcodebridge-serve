@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+socket="${XCODE_BRIDGE_SOCKET:-$HOME/.xcode-bridge.sock}"
+xcbridge="${XCBRIDGE_BIN:-$HOME/.local/bin/xcbridge}"
+child=""
+
+log() {
+  printf '[%s] %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >&2
+}
+
+cleanup() {
+  if [[ -n "${child:-}" ]]; then
+    kill "$child" 2>/dev/null || true
+    wait "$child" 2>/dev/null || true
+  fi
+  rm -f "$socket" 2>/dev/null || true
+  exit 0
+}
+
+trap cleanup INT TERM HUP
+
+while true; do
+  if [[ ! -x "$xcbridge" ]]; then
+    log "missing executable: $xcbridge"
+    log "install it with: xcodebridge-install"
+    sleep 30 & child=$!
+    wait "$child" 2>/dev/null || true
+    child=""
+    continue
+  fi
+
+  # xcrun mcpbridge exits if Xcode is not running. Wait quietly so this
+  # LaunchAgent can be loaded at login without creating restart spam.
+  until /usr/bin/pgrep -x Xcode >/dev/null 2>&1; do
+    rm -f "$socket" 2>/dev/null || true
+    sleep 5 & child=$!
+    wait "$child" 2>/dev/null || true
+    child=""
+  done
+
+  log "starting xcbridge serve --socket $socket"
+  "$xcbridge" serve --socket "$socket" &
+  child=$!
+  wait "$child"
+  status=$?
+  child=""
+
+  log "xcbridge exited with status $status; restarting when Xcode is available"
+  rm -f "$socket" 2>/dev/null || true
+  sleep 3 & child=$!
+  wait "$child" 2>/dev/null || true
+  child=""
+done

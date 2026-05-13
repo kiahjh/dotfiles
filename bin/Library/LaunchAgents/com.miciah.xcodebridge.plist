@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.miciah.xcodebridge</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/miciah/.local/scripts/xcodebridge-serve</string>
+  </array>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>XCODE_BRIDGE_SOCKET</key>
+    <string>/Users/miciah/.xcode-bridge.sock</string>
+    <key>PATH</key>
+    <string>/Users/miciah/.local/bin:/Users/miciah/.local/scripts:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/miciah/Library/Logs/xcodebridge.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/miciah/Library/Logs/xcodebridge.err.log</string>
+</dict>
+</plist>
