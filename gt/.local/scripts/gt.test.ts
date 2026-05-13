@@ -1,15 +1,28 @@
 import { expect, test } from "bun:test";
 import {
+  commandUsage,
   defaultTabTemplateFromLayout,
+  dotenvValue,
   evaluateKillSafety,
+  forkTitleForCurrentTask,
   isValidSlug,
+  isValidTaskTitle,
   kdlString,
+  parseCli,
   parseKdlConfigStringValue,
+  parseSimpleDotenv,
   renderTaskEnv,
+  renderTaskList,
+  renderTaskMetadata,
   renderTaskPorts,
   sessionNameForSlug,
+  signedScrubbedDumpHeaders,
+  taskBranchNameForTitle,
   taskDatabaseNames,
+  taskDirectoryNameForTitle,
+  taskMetadataPath,
   taskPortsForSlot,
+  taskPortsFromEnv,
   taskPortSlotForSlug,
   zellijLayout,
   zellijSessionStateFromList,
@@ -39,6 +52,98 @@ test("validates task slugs", () => {
 
 test("derives zellij session names", () => {
   expect(sessionNameForSlug("dashboard-redesign")).toBe("gertrude__dashboard-redesign");
+  expect(sessionNameForSlug("dashboard-redesign/sidebar-spike")).toMatch(
+    /^gertrude__dashboard-redesign__sidebar-spike-[a-f0-9]{8}$/,
+  );
+});
+
+test("parses the subcommand-oriented cli", () => {
+  expect(parseCli([])).toEqual({ command: "help" });
+  expect(parseCli(["spawn", "dashboard-redesign"])).toEqual({
+    command: "spawn",
+    name: "dashboard-redesign",
+    agent: false,
+  });
+  expect(parseCli(["spawn", "--agent", "api-cleanup"])).toEqual({
+    command: "spawn",
+    name: "api-cleanup",
+    agent: true,
+  });
+  expect(parseCli(["fork", "model-spike", "--agent"])).toEqual({
+    command: "fork",
+    name: "model-spike",
+    agent: true,
+  });
+  expect(parseCli(["kill"])).toEqual({ command: "kill" });
+  expect(parseCli(["list"])).toEqual({ command: "list" });
+  expect(parseCli(["list", "--help"])).toEqual({ command: "help", topic: "list" });
+  expect(parseCli(["spawn", "--help"])).toEqual({ command: "help", topic: "spawn" });
+  expect(commandUsage("fork")).toContain("gt fork [--agent] <fork-name>");
+  expect(commandUsage("list")).toContain("gt list");
+  expect(() => parseCli(["dashboard-redesign"])).toThrow("Use `gt spawn dashboard-redesign` to create a task");
+});
+
+test("derives fork titles and path-safe task identifiers", () => {
+  expect(isValidTaskTitle("dashboard-redesign/sidebar-spike")).toBe(true);
+  expect(isValidTaskTitle("dashboard-redesign//sidebar-spike")).toBe(false);
+  expect(isValidTaskTitle("dashboard-redesign/../oops")).toBe(false);
+  expect(forkTitleForCurrentTask("dashboard-redesign", "sidebar-spike")).toBe(
+    "dashboard-redesign/sidebar-spike",
+  );
+
+  const directoryName = taskDirectoryNameForTitle("dashboard-redesign/sidebar-spike");
+  expect(directoryName).toMatch(/^dashboard-redesign--sidebar-spike-[a-f0-9]{8}$/);
+  expect(directoryName).not.toContain("/");
+  expect(taskBranchNameForTitle("dashboard-redesign/sidebar-spike")).toBe(directoryName);
+  expect(taskDirectoryNameForTitle("plain-task")).toBe("plain-task");
+
+  expect(renderTaskMetadata({
+    title: "dashboard-redesign/sidebar-spike",
+    branchName: directoryName,
+    directoryName,
+  })).toContain("GTASK_TITLE=dashboard-redesign/sidebar-spike");
+  expect(taskMetadataPath("/tmp/demo")).toBe("/tmp/demo/scratch/.gtask");
+});
+
+test("renders a task list with fork relationships", () => {
+  const rendered = renderTaskList(
+    [
+      {
+        title: "dashboard-redesign",
+        branchName: "dashboard-redesign",
+        directoryName: "dashboard-redesign",
+        worktreeDir: "/tasks/dashboard-redesign",
+        forkOf: null,
+        forkMissingParent: false,
+      },
+      {
+        title: "dashboard-redesign/sidebar-spike",
+        branchName: "dashboard-redesign--sidebar-spike-755f2331",
+        directoryName: "dashboard-redesign--sidebar-spike-755f2331",
+        worktreeDir: "/tasks/dashboard-redesign--sidebar-spike-755f2331",
+        forkOf: "dashboard-redesign",
+        forkMissingParent: false,
+      },
+      {
+        title: "missing-base/tangent",
+        branchName: "missing-base--tangent-deadbeef",
+        directoryName: "missing-base--tangent-deadbeef",
+        worktreeDir: "/tasks/missing-base--tangent-deadbeef",
+        forkOf: "missing-base",
+        forkMissingParent: true,
+      },
+    ],
+    "/tasks",
+  );
+
+  expect(rendered).toContain("Gertrude tasks (3) in /tasks");
+  expect(rendered).toContain("Task");
+  expect(rendered).toContain("Fork of");
+  expect(rendered).toContain("dashboard-redesign/sidebar-spike");
+  expect(rendered).toContain("dashboard-redesign");
+  expect(rendered).toContain("missing-base (missing)");
+
+  expect(renderTaskList([], "/tasks")).toBe("No Gertrude tasks found in /tasks.\n");
 });
 
 test("derives safe per-task postgres database names", () => {
@@ -213,5 +318,131 @@ test("kill safety prompts on wrong zellij session or branch", () => {
   expect(evaluation.reasons).toContain("current branch is other-branch, expected dashboard-redesign");
   expect(evaluation.reasons).toContain(
     "current zellij session is gertrude__other-branch, expected gertrude__dashboard-redesign",
+  );
+});
+
+test("parses and quotes simple dotenv values", () => {
+  expect(
+    parseSimpleDotenv(`
+# comment
+export SIMPLE=one
+SPACED = "two words"
+SINGLE='three=equals'
+EMPTY=
+IGNORED
+`),
+  ).toEqual({
+    SIMPLE: "one",
+    SPACED: "two words",
+    SINGLE: "three=equals",
+    EMPTY: "",
+  });
+
+  expect(dotenvValue("simple-1_2./:@")).toBe("simple-1_2./:@");
+  expect(dotenvValue("has space")).toBe('"has space"');
+  expect(dotenvValue('needs"quote')).toBe('"needs\\\"quote"');
+});
+
+test("round-trips rendered task ports through dotenv parsing", () => {
+  const ports = taskPortsForSlot(123);
+  const parsed = taskPortsFromEnv(parseSimpleDotenv(renderTaskPorts("demo", ports)));
+
+  expect(parsed).toEqual(ports);
+});
+
+test("rejects incomplete or malformed task port env files", () => {
+  expect(taskPortsFromEnv({ API_PORT: "18000" })).toBeNull();
+  expect(
+    taskPortsFromEnv({
+      API_PORT: "18000",
+      DASH_PORT: "18001",
+      SITE_PORT: "18002",
+      ADMIN_PORT: "18003",
+      STORYBOOK_PORT: "not-a-number",
+      CI_API_PORT: "18005",
+      CI_DASH_PORT: "18006",
+    }),
+  ).toBeNull();
+});
+
+test("renders env replacements with quoting and reports unknown changeme keys", () => {
+  const values = {
+    databaseUsername: "local user",
+    databasePassword: "secret value",
+    databaseName: "gt_demo_abcd1234",
+    testDatabaseName: "gt_demo_abcd1234_test",
+  };
+
+  expect(renderTaskEnv("export DATABASE_USERNAME=changeme\nDATABASE_PASSWORD=changeme\n", values)).toBe(
+    'export DATABASE_USERNAME="local user"\nDATABASE_PASSWORD="secret value"\n',
+  );
+
+  expect(() => renderTaskEnv("THIRD_PARTY_API_KEY=changeme\n", values)).toThrow(
+    "no gt value configured for changeme env var(s): THIRD_PARTY_API_KEY",
+  );
+});
+
+test("derives tab templates from new_tab_template and falls back for explicit tabs", () => {
+  expect(
+    defaultTabTemplateFromLayout(`layout {
+    new_tab_template {
+        pane size=1 borderless=true
+        children
+    }
+}`).startsWith("default_tab_template {"),
+  ).toBe(true);
+
+  expect(
+    defaultTabTemplateFromLayout(`layout {
+    tab name="already structured" {
+        pane
+    }
+}`),
+  ).toBe(`default_tab_template {
+    children
+}`);
+});
+
+test("kdl config parser unescapes strings and ignores session-name prefixes", () => {
+  expect(parseKdlConfigStringValue('default_layout "line\\nwith\\ttab and \\\"quote\\\""', "default_layout")).toBe(
+    'line\nwith\ttab and "quote"',
+  );
+
+  const listSessionsOutput = `gertrude__foo-extra [Created 1m ago]
+gertrude__foo [Created 2m ago] (EXITED - attach to resurrect)`;
+  expect(zellijSessionStateFromList(listSessionsOutput, "gertrude__foo")).toBe("exited");
+  expect(zellijSessionStateFromList("gertrude__foo-extra [Created 1m ago]", "gertrude__foo")).toBe("missing");
+});
+
+test("kill safety reports detached and remote availability problems", () => {
+  const evaluation = evaluateKillSafety({
+    ...safeFacts,
+    currentBranch: null,
+    actualZellijSessionName: null,
+    originMasterAvailable: false,
+    remoteBranchExists: false,
+  });
+
+  expect(evaluation.safeToSkipConfirmation).toBe(false);
+  expect(evaluation.reasons).toContain("checkout is in detached HEAD state");
+  expect(evaluation.reasons).toContain("origin/master could not be fetched");
+  expect(evaluation.reasons).toContain("origin/dashboard-redesign does not exist or could not be fetched");
+});
+
+test("signs scrubbed dump requests deterministically", () => {
+  const headers = signedScrubbedDumpHeaders(
+    {
+      accessKeyId: "AKIDEXAMPLE",
+      secretAccessKey: "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+    },
+    new Date("2015-08-30T12:36:00.000Z"),
+  );
+
+  expect(headers.get("x-amz-date")).toBe("20150830T123600Z");
+  expect(headers.get("x-amz-content-sha256")).toBe(
+    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  );
+  expect(headers.get("authorization")).toBe(
+    "AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/s3/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=ee59e322ac1a9593c606713f26265f30c617826a49811d5d5b44665edab86217",
   );
 });
