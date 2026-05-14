@@ -1,5 +1,5 @@
 import * as readline from "node:readline/promises";
-import { CONFIRMATION, MASTER_BRANCH } from "./constants.ts";
+import { MASTER_BRANCH } from "./constants.ts";
 import { fail } from "./errors.ts";
 import { fetchRemoteTrackingBranch, git, gitOutput, remoteTrackingRefExists } from "./git.ts";
 import { sessionNameForSlug } from "./zellij/session.ts";
@@ -98,7 +98,11 @@ export function evaluateKillSafety(facts: KillSafetyFacts): KillSafetyEvaluation
   };
 }
 
-export async function confirmKillIfNeeded(evaluation: KillSafetyEvaluation): Promise<void> {
+export function killConfirmationPhrase(taskTitle: string): string {
+  return `yes, kill ${taskTitle}`;
+}
+
+export async function confirmKillIfNeeded(evaluation: KillSafetyEvaluation, taskTitle: string): Promise<void> {
   if (evaluation.safeToSkipConfirmation) {
     console.log(`Branch is pushed and merged into origin/${MASTER_BRANCH}; skipping confirmation.`);
     return;
@@ -110,10 +114,11 @@ export async function confirmKillIfNeeded(evaluation: KillSafetyEvaluation): Pro
   }
   console.error("Are you sure you want to kill this task?");
 
+  const confirmationPhrase = killConfirmationPhrase(taskTitle);
   const rl = readline.createInterface({ input: process.stdin, output: process.stderr });
   try {
-    const answer = await rl.question(`Type "${CONFIRMATION}" to confirm: `);
-    if (answer !== CONFIRMATION) {
+    const answer = await rl.question(`Type "${confirmationPhrase}" to confirm: `);
+    if (answer !== confirmationPhrase) {
       fail("aborted");
     }
   } finally {

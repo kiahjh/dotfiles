@@ -21,7 +21,7 @@ export async function killTask(): Promise<void> {
 
   progress.step("Check branch safety");
   const facts = collectKillSafetyFacts(repoRoot, task.branchName, task.title);
-  await confirmKillIfNeeded(evaluateKillSafety(facts));
+  await confirmKillIfNeeded(evaluateKillSafety(facts), task.title);
 
   progress.step("Delete worktree");
   process.chdir(dirname(repoRoot));

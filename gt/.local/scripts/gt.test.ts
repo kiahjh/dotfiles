@@ -8,6 +8,7 @@ import {
   isValidSlug,
   isValidTaskTitle,
   kdlString,
+  killConfirmationPhrase,
   parseCli,
   parseKdlConfigStringValue,
   parseSimpleDotenv,
@@ -52,9 +53,12 @@ test("validates task slugs", () => {
 
 test("derives zellij session names", () => {
   expect(sessionNameForSlug("dashboard-redesign")).toBe("gertrude__dashboard-redesign");
-  expect(sessionNameForSlug("dashboard-redesign/sidebar-spike")).toMatch(
-    /^gertrude__dashboard-redesign__sidebar-spike-[a-f0-9]{8}$/,
-  );
+
+  const forkSessionName = sessionNameForSlug("dashboard-redesign/sidebar-spike");
+  expect(forkSessionName).toMatch(/^gertrude__[A-Za-z0-9._-]+-[a-f0-9]{8}$/);
+  expect(forkSessionName.length).toBeLessThanOrEqual(36);
+
+  expect(sessionNameForSlug("gertrude-fm/app-design")).toBe("gertrude__gertrude-fm__app-888e6e40");
 });
 
 test("parses the subcommand-oriented cli", () => {
@@ -322,6 +326,8 @@ test("kill safety prompts on wrong zellij session or branch", () => {
   expect(evaluation.reasons).toContain(
     "current zellij session is gertrude__other-branch, expected gertrude__dashboard-redesign",
   );
+  expect(killConfirmationPhrase("dashboard-redesign")).toBe("yes, kill dashboard-redesign");
+  expect(killConfirmationPhrase("gertrude-fm/app-design")).toBe("yes, kill gertrude-fm/app-design");
 });
 
 test("parses and quotes simple dotenv values", () => {

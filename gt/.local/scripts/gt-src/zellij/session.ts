@@ -3,14 +3,36 @@ import { run } from "../process.ts";
 
 export type ZellijSessionState = "missing" | "active" | "exited";
 
+const ZELLIJ_SESSION_NAME_MAX_LENGTH = 36;
+const ZELLIJ_SESSION_PREFIX = "gertrude__";
+
+function compactSessionStem(value: string): string {
+  return value
+    .replace(/[^A-Za-z0-9._-]+/g, "__")
+    .replace(/__+/g, "__")
+    .replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, "") || "task";
+}
+
 export function sessionNameForSlug(slug: string): string {
-  if (!slug.includes("/")) {
-    return `gertrude__${slug}`;
+  const stem = compactSessionStem(slug);
+  const hash = createHash("sha1").update(slug).digest("hex").slice(0, 8);
+  const suffix = slug.includes("/") ? `-${hash}` : "";
+  const fullName = `${ZELLIJ_SESSION_PREFIX}${stem}${suffix}`;
+
+  // zellij 0.43 hangs when `attach --create-background` is given long session
+  // names. Keep generated names short while preserving old names when safe.
+  if (fullName.length <= ZELLIJ_SESSION_NAME_MAX_LENGTH) {
+    return fullName;
   }
 
-  const readable = slug.replace(/[^A-Za-z0-9._-]+/g, "__").replace(/__+/g, "__");
-  const hash = createHash("sha1").update(slug).digest("hex").slice(0, 8);
-  return `gertrude__${readable}-${hash}`;
+  const hashedSuffix = `-${hash}`;
+  const maxStemLength = ZELLIJ_SESSION_NAME_MAX_LENGTH - ZELLIJ_SESSION_PREFIX.length - hashedSuffix.length;
+  const compactStem =
+    stem
+      .slice(0, maxStemLength)
+      .replace(/[^A-Za-z0-9]+$/g, "") || "task";
+
+  return `${ZELLIJ_SESSION_PREFIX}${compactStem}${hashedSuffix}`;
 }
 
 export function zellijSessionStateFromList(listSessionsOutput: string, sessionName: string): ZellijSessionState {

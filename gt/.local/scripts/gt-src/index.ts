@@ -37,6 +37,7 @@ export {
   collectKillSafetyFacts,
   confirmKillIfNeeded,
   evaluateKillSafety,
+  killConfirmationPhrase,
 } from "./kill-safety.ts";
 export type { KillSafetyEvaluation, KillSafetyFacts } from "./kill-safety.ts";
 
