@@ -37,8 +37,52 @@ export function currentTasks(): TaskListItem[] {
   });
 }
 
-function pad(value: string, width: number): string {
-  return value.padEnd(width, " ");
+function taskLeafName(title: string): string {
+  return title.split("/").at(-1) || title;
+}
+
+function childrenByParent(tasks: TaskListItem[]): Map<string, TaskListItem[]> {
+  const children = new Map<string, TaskListItem[]>();
+
+  for (const task of tasks) {
+    if (!task.forkOf || task.forkMissingParent) {
+      continue;
+    }
+
+    children.set(task.forkOf, [...(children.get(task.forkOf) ?? []), task]);
+  }
+
+  for (const taskChildren of children.values()) {
+    taskChildren.sort((left, right) => taskLeafName(left.title).localeCompare(taskLeafName(right.title)));
+  }
+
+  return children;
+}
+
+function renderTask(task: TaskListItem, children: Map<string, TaskListItem[]>, depth: number): string[] {
+  const indent = "  ".repeat(depth);
+  const marker = depth === 0 ? "•" : "↳";
+  const label = depth === 0 ? task.title : taskLeafName(task.title);
+  const lines = [`${indent}${marker} ${label}`];
+
+  if (task.forkOf && (depth === 0 || task.forkMissingParent)) {
+    lines.push(`${indent}  fork of: ${task.forkOf}${task.forkMissingParent ? " (missing)" : ""}`);
+  }
+
+  if (task.title !== label) {
+    lines.push(`${indent}  title: ${task.title}`);
+  }
+
+  lines.push(`${indent}  checkout: ${task.directoryName}`);
+  if (task.branchName !== task.directoryName) {
+    lines.push(`${indent}  branch: ${task.branchName}`);
+  }
+
+  for (const child of children.get(task.title) ?? []) {
+    lines.push(...renderTask(child, children, depth + 1));
+  }
+
+  return lines;
 }
 
 export function renderTaskList(tasks: TaskListItem[], baseDir = BASE_DIR): string {
@@ -46,44 +90,13 @@ export function renderTaskList(tasks: TaskListItem[], baseDir = BASE_DIR): strin
     return `No Gertrude tasks found in ${baseDir}.\n`;
   }
 
-  const rows = tasks.map((task) => ({
-    task: task.title,
-    forkOf: task.forkOf ? `${task.forkOf}${task.forkMissingParent ? " (missing)" : ""}` : "—",
-    branch: task.branchName,
-    directory: task.directoryName,
-  }));
+  const children = childrenByParent(tasks);
+  const roots = tasks
+    .filter((task) => !task.forkOf || task.forkMissingParent)
+    .sort((left, right) => left.title.localeCompare(right.title));
+  const body = roots.map((task) => renderTask(task, children, 0).join("\n")).join("\n\n");
 
-  const widths = {
-    task: Math.max("Task".length, ...rows.map((row) => row.task.length)),
-    forkOf: Math.max("Fork of".length, ...rows.map((row) => row.forkOf.length)),
-    branch: Math.max("Branch".length, ...rows.map((row) => row.branch.length)),
-    directory: Math.max("Directory".length, ...rows.map((row) => row.directory.length)),
-  };
-
-  const header = [
-    pad("Task", widths.task),
-    pad("Fork of", widths.forkOf),
-    pad("Branch", widths.branch),
-    pad("Directory", widths.directory),
-  ].join("  ");
-  const divider = [
-    "─".repeat(widths.task),
-    "─".repeat(widths.forkOf),
-    "─".repeat(widths.branch),
-    "─".repeat(widths.directory),
-  ].join("  ");
-  const body = rows
-    .map((row) =>
-      [
-        pad(row.task, widths.task),
-        pad(row.forkOf, widths.forkOf),
-        pad(row.branch, widths.branch),
-        pad(row.directory, widths.directory),
-      ].join("  "),
-    )
-    .join("\n");
-
-  return `Gertrude tasks (${tasks.length}) in ${baseDir}\n\n${header}\n${divider}\n${body}\n`;
+  return `Gertrude tasks (${tasks.length})\nRoot: ${baseDir}\n\n${body}\n`;
 }
 
 export function listTasks(): void {

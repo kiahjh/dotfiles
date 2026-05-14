@@ -136,12 +136,15 @@ test("renders a task list with fork relationships", () => {
     "/tasks",
   );
 
-  expect(rendered).toContain("Gertrude tasks (3) in /tasks");
-  expect(rendered).toContain("Task");
-  expect(rendered).toContain("Fork of");
-  expect(rendered).toContain("dashboard-redesign/sidebar-spike");
-  expect(rendered).toContain("dashboard-redesign");
-  expect(rendered).toContain("missing-base (missing)");
+  expect(rendered).toContain("Gertrude tasks (3)\nRoot: /tasks");
+  expect(rendered).not.toContain("Task  ");
+  expect(rendered).not.toContain("Fork of");
+  expect(rendered).toContain("• dashboard-redesign");
+  expect(rendered).toContain("  ↳ sidebar-spike");
+  expect(rendered).toContain("    title: dashboard-redesign/sidebar-spike");
+  expect(rendered).toContain("    checkout: dashboard-redesign--sidebar-spike-755f2331");
+  expect(rendered).toContain("• missing-base/tangent");
+  expect(rendered).toContain("  fork of: missing-base (missing)");
 
   expect(renderTaskList([], "/tasks")).toBe("No Gertrude tasks found in /tasks.\n");
 });
