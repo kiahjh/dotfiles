@@ -1,6 +1,8 @@
 return {
 	"romgrk/barbar.nvim",
-	event = "BufReadPost",
+	-- Load eagerly so it owns &showtabline before Snacks.dashboard hides/restores it.
+	-- Lazy-loading on BufReadPost also misses :enew / new-file-only sessions.
+	lazy = false,
 	dependencies = {
 		"lewis6991/gitsigns.nvim",
 		"nvim-tree/nvim-web-devicons",
