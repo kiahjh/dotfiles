@@ -34,14 +34,30 @@ function createEmptyDatabase(databaseName: string): void {
   run("createdb", [databaseName]);
 }
 
-function restoreDumpIntoDatabase(dumpPath: string, databaseName: string): void {
+export const LOCAL_RESTORE_SQL_FILTER = [
   // Newer pg_dump versions emit \\restrict/\\unrestrict meta-commands that older local psql
   // clients do not understand. They are safety markers, so stripping them is fine for restore.
+  "/^\\\\restrict /d",
+  "/^\\\\unrestrict /d",
+  // Production may run on a newer Postgres than local development machines.
+  "/^SET transaction_timeout = /d",
+  // The local restore user owns recreated objects; production ownership and role grants are not needed.
+  "/ OWNER TO /d",
+  "/^ALTER DEFAULT PRIVILEGES.* FOR ROLE /d",
+  "/^GRANT .* TO PUBLIC;$/!{/^GRANT /d;}",
+  "/^REVOKE .* FROM PUBLIC;$/!{/^REVOKE /d;}",
+  // Production-only login event triggers fail on local Postgres versions/configurations.
+  "/^CREATE EVENT TRIGGER .* ON login/d",
+  "/EXECUTE FUNCTION public.set_search_path_on_login()/d",
+  "/^ALTER EVENT TRIGGER /d",
+].join(";");
+
+function restoreDumpIntoDatabase(dumpPath: string, databaseName: string): void {
   run(
     "/bin/sh",
     [
       "-c",
-      "gunzip -c \"$1\" | sed '/^\\\\restrict /d;/^\\\\unrestrict /d;/^SET transaction_timeout = /d;/ OWNER TO /d;/^CREATE EVENT TRIGGER .* ON login/d;/EXECUTE FUNCTION public.set_search_path_on_login()/d;/^ALTER EVENT TRIGGER /d' | psql --quiet --set ON_ERROR_STOP=1 \"$2\"",
+      `gunzip -c "$1" | sed '${LOCAL_RESTORE_SQL_FILTER}' | psql --quiet --set ON_ERROR_STOP=1 "$2"`,
       "sh",
       dumpPath,
       databaseName,

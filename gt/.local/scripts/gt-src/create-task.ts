@@ -28,6 +28,7 @@ function spawnRequirements(options: CreateTaskOptions): string[] {
     "createdb",
     "dropdb",
     "gunzip",
+    "sed",
     ...launchCommandRequirements(options),
   ];
 }

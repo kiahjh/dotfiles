@@ -1,155 +1,147 @@
 ---
 name: model-code-council
-description: Run an adversarial model code review council between GPT-5.5 as driver and Opus 4.7 via Claude Code as reviewer. Use for Claude/Opus second opinions, Opus second opinion, Claude code review, adversarial review, model council, cross-review, or having GPT and Opus push back on each other before code edits.
+description: "Run a Multi-Character Code Council: parallel GPT-5.5/pi reviewer personas in isolated temp workspaces, followed by an xhigh chair synthesis. Use for adversarial review, second opinions, cross-review, review before implementation, or getting several distinct engineering perspectives on a change/plan/diff/architecture."
 ---
 
-# Model Code Council
+# Multi-Character Code Council
 
-Run a file-based code review council framed as **GPT-5.5 vs Opus 4.7**. Pi and Claude Code are only harnesses; write artifacts and summaries using the model names.
+Run a file-based code review council using **GPT-5.5 via the pi CLI** with several hard-coded reviewer personalities. This is personality diversity, not model diversity: every reviewer examines the full requested scope, but each applies a different professional temperament.
 
-GPT-5.5 is the driver/implementer. Opus 4.7 is the independent reviewer/adversary. Opus may inspect the real working directory and run tests/builds/checks, but persistent council output goes in a global review folder. Only GPT-5.5 edits the codebase, and only after the human approves the final plan.
-
-## When to use
-
-Use when the user asks for a Claude/Opus second opinion, adversarial code review, model debate, cross-review, code review before implementation, or review of a change/plan/diff/branch/file set/architecture.
-
-Do **not** assume the target is the current git diff. The user's request defines the scope. Ask one concise clarifying question only if the review target is too ambiguous to review responsibly.
-
-## Non-negotiables
-
-1. Pass the user's exact review request/scope to Opus.
-2. Create review artifacts under `~/.local/share/pi/model-code-council/`, never inside the project unless explicitly asked.
-3. Run Opus from the target working directory so it can inspect real project context.
-4. Opus may run read/analysis/test/build commands with `--dangerously-skip-permissions`.
-5. Opus may create/edit files only inside the global review folder; it must not intentionally edit the codebase.
-6. GPT-5.5 must not edit source code during the council. Code edits happen only after human approval.
-7. Each serious item gets its own append-only file under `items/`.
-8. Extra useful observations go in `findings.md`; actionable/decision-worthy observations become item files.
-9. Stop when each item is agreed, rejected, deferred, or escalated. Do not force consensus.
-10. Before implementation, summarize agreed changes and escalations and ask the human for approval/input.
-
-## Helper script
-
-Use the installed helper path for copy/paste-safe commands from any working directory:
+The council runner is a Bun/TypeScript CLI at:
 
 ```bash
 MCC="$HOME/.pi/agent/skills/model-code-council/scripts/mcc"
 ```
 
-Start from the target repo directory, or pass `--cwd <repo>`:
+## When to use
+
+Use when the user asks for a second opinion, adversarial review, model/council review, review before implementation, cross-review, or several different engineering perspectives on a change, plan, diff, branch, file set, or architecture.
+
+Do **not** assume the target is the current git diff. The user's request defines the scope. Ask one concise clarifying question only if the target is too ambiguous to review responsibly.
+
+## How it works
+
+1. `mcc run` creates a global council session under `~/.local/share/pi/model-code-council/`.
+2. The runner creates one disposable temp workspace per reviewer, copying the current working-tree state, including tracked and untracked non-ignored files.
+3. Six reviewer pi processes run **in parallel**:
+   - provider: `openai-codex`
+   - model: `gpt-5.5`
+   - thinking: `high`
+   - tools: `read,bash,write,edit,grep,find,ls`
+4. Each reviewer writes its own durable `report.md` inside its temp workspace; the runner copies it into the council session and deletes the temp workspace.
+5. After all reviewer processes finish, a chair pi process runs:
+   - provider: `openai-codex`
+   - model: `gpt-5.5`
+   - thinking: `xhigh`
+6. The chair reads all reviewer reports, weighs corroborated findings more heavily, preserves strong lone findings, rejects weak claims, and writes `chair/final.md` plus individual issue files.
+7. GPT-5.5 in the main Pi session reads the chair output, presents issues/proposed solutions/escalations to the human, and asks for approval before editing source code.
+
+## Hard-coded reviewer personalities
+
+All reviewers inspect correctness, safety, security, data integrity, architecture, maintainability, testing, UX, performance, deployment risk, and project fit. Their personality changes priors and pushback style, not scope.
+
+- `conservative-maintainer` — favors boring, explicit, debuggable long-term maintainability.
+- `production-incident-veteran` — imagines outages, partial failures, weird inputs, concurrency, rollback, and observability gaps.
+- `formal-correctness-thinker` — demands contracts, invariants, state transitions, edge cases, and verifiable behavior.
+- `pragmatic-product-engineer` — optimizes for smallest safe shippable improvement, clear value, low churn, and fast verification.
+- `high-standards-principal-engineer` — focuses on conceptual integrity, boundaries, naming, dependency direction, and long-term design shape.
+- `adversarial-cross-examiner` — challenges assumptions, weak evidence, hidden coupling, trust boundaries, abuse cases, and overconfidence.
+
+## Commands
+
+Run a complete council from the target repo or pass `--cwd`:
 
 ```bash
-"$MCC" start --cwd "$PWD" <<'REQUEST'
+"$MCC" run --cwd "$PWD" <<'REQUEST'
 <exact user review request>
 REQUEST
 ```
 
-Run Opus. Both foreground and background modes capture Opus stdout/stderr to log files; they do **not** stream model output into GPT-5.5 context. Prefer `--bg` for long reviews because it returns immediately and lets the driver wait/poll compact status.
+Useful commands:
 
 ```bash
-"$MCC" opus-initial --bg <session-dir>
-"$MCC" wait <session-dir> --timeout 1800
-"$MCC" status <session-dir>
-```
-
-After GPT-5.5 responds to item files, run Opus rebuttal passes as needed:
-
-```bash
-"$MCC" opus-respond --bg <session-dir>
-"$MCC" wait <session-dir> --timeout 1800
-```
-
-Useful helpers:
-
-```bash
-"$MCC" doctor
+"$MCC" status latest
+"$MCC" show latest
 "$MCC" latest
-"$MCC" status <session-dir>
-"$MCC" append-gpt <session-dir> O-001 --position accept-with-modification --body-file /tmp/response.md
-"$MCC" set-status <session-dir> O-001 NEEDS_OPUS
-"$MCC" resolve <session-dir> O-001 --status AGREED_IMPLEMENT_MODIFIED --decision-file /tmp/decision.md
-"$MCC" cancel <session-dir>
+"$MCC" doctor
 ```
 
-Environment knobs:
+Debug option:
 
 ```bash
-MCC_CLAUDE_BIN=claude
-MCC_OPUS_MODEL=opus
-MCC_OPUS_EFFORT=xhigh        # Claude also supports max
-MCC_DRIVER_MODEL_NAME='GPT-5.5'
-MCC_REVIEWER_MODEL_NAME='Opus 4.7'
-MCC_REVIEW_ROOT="$HOME/.local/share/pi/model-code-council"
-MCC_DOCTOR_MODEL=sonnet
-MCC_DOCTOR_EFFORT=low
+"$MCC" run --keep-workspaces --cwd "$PWD" --request "Review ..."
 ```
 
-The helper passes prompts via stdin because Claude Code's `--add-dir` accepts multiple values and can otherwise consume the prompt argument. Git status snapshots and lifecycle markers are stored in `logs/`.
+Environment knobs for the runner itself:
+
+```bash
+MCC_REVIEW_ROOT="$HOME/.local/share/pi/model-code-council"
+MCC_PI_BIN=pi
+MCC_PROVIDER=openai-codex
+MCC_MODEL=gpt-5.5
+```
+
+The model/provider are explicit so the council does not silently change if the user's interactive pi defaults change.
 
 ## Review folder
 
 ```text
 ~/.local/share/pi/model-code-council/YYYY-MM-DD-HHMMSS-repo-name/
   README.md
-  council.md
-  findings.md
   request.md
-  items/O-001-short-title.md
+  status.txt
+  run.json
+  reviewers/
+    conservative-maintainer/report.md
+    production-incident-veteran/report.md
+    formal-correctness-thinker/report.md
+    pragmatic-product-engineer/report.md
+    high-standards-principal-engineer/report.md
+    adversarial-cross-examiner/report.md
+  chair/
+    final.md
+    issues/01-short-title.md
   logs/
   prompts/
 ```
 
-Detailed Opus instructions, item templates, and the constitution live in `prompts/*.md`. GPT-5.5 should use `"$MCC" append-gpt`/`"$MCC" resolve` rather than hand-writing headers when possible.
+## Non-negotiables
 
-## Statuses GPT-5.5 needs
+1. Pass the user's exact review request/scope to the council.
+2. Create persistent council artifacts under `~/.local/share/pi/model-code-council/`, never inside the project unless explicitly asked.
+3. Reviewers and chair may use bash only in disposable temp workspace copies.
+4. Reviewers/chair must not intentionally mutate the real repo, home directory, global config, databases, cloud resources, Docker services, package registries, or network services.
+5. GPT-5.5 in the main Pi session must not edit source code during the council.
+6. After the council, read `chair/final.md` and relevant `chair/issues/*.md`, present the findings/proposed fixes/escalations, and ask the human for approval/input before implementation.
 
-Final statuses:
-
-- `AGREED_IMPLEMENT`
-- `AGREED_IMPLEMENT_MODIFIED`
-- `AGREED_REJECT`
-- `AGREED_DEFER`
-- `ESCALATED`
-
-Temporary statuses:
-
-- `NEEDS_GPT` — GPT-5.5 should respond.
-- `NEEDS_OPUS` — Opus should respond.
-- `NEEDS_TEST` — verification needed before deciding.
-- `OPEN` — legacy/ambiguous; move to a clearer status.
-
-`append-gpt` defaults to marking an item `NEEDS_OPUS`; use `--status keep`/`--no-status` to preserve status.
-
-## Escalation rules
-
-Mark an item `ESCALATED` when multiple good solutions remain without a clear technical winner, the choice depends on human/product preference, the fix is out of scope/risky, evidence cannot be cheaply verified, a serious objection remains unresolved, or further debate would repeat arguments without adding evidence.
-
-Escalation is a clean human handoff, not a failure.
-
-## GPT-5.5 workflow
+## Main Pi workflow
 
 1. Capture the user's exact review request.
-2. Start a session with `"$MCC" start --cwd <target-dir>`.
-3. Run `opus-initial --bg`, then `wait` or `status` until the run is terminal. Do not respond while a run is still `RUNNING`; item files may be partial.
-4. Read `council.md`, `findings.md`, and relevant `items/*.md`.
-5. Append GPT-5.5 responses with `append-gpt`.
-6. Run `opus-respond --bg` while items need Opus. Continue only while turns add evidence or narrow tradeoffs.
-7. When all items are final, create/update `final.md` with agreed implementation items, agreed rejections/deferments, escalations, and verification commands.
-8. Tell the user the council is complete. Ask whether to implement agreed changes and ask for decisions on escalated items.
-9. Only after user approval, edit code and run verification.
+2. Run `"$MCC" run --cwd <target-dir>`.
+3. Read `chair/final.md` and individual issue files if needed.
+4. Present:
+   - top issues
+   - proposed solutions
+   - corroboration/which perspectives raised them
+   - escalated questions or tradeoffs
+   - verification plan
+   - review folder path
+5. Ask for approval before editing code.
 
 ## Final response pattern
 
 ```text
-Model council complete.
+Multi-character code council complete.
 
-Agreed changes:
-- O-001: ...
+Top issues:
+- ...
 
-Escalated:
-- O-003: ... Option A ..., Option B ...
+Proposed implementation plan:
+- ...
+
+Escalated questions:
+- ...
 
 Review folder: <path>
-Ready for me to implement the agreed changes?
-For O-003, which option do you want?
+Ready for me to implement the recommended changes?
 ```

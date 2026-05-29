@@ -9,6 +9,7 @@ import {
   isValidTaskTitle,
   kdlString,
   killConfirmationPhrase,
+  LOCAL_RESTORE_SQL_FILTER,
   parseCli,
   parseKdlConfigStringValue,
   parseSimpleDotenv,
@@ -16,11 +17,13 @@ import {
   renderTaskList,
   renderTaskMetadata,
   renderTaskPorts,
+  run,
   sessionNameForSlug,
   signedScrubbedDumpHeaders,
   taskBranchNameForTitle,
   taskDatabaseNames,
   taskDirectoryNameForTitle,
+  taskEnvOverridesFromGtSecrets,
   taskMetadataPath,
   taskPortsForSlot,
   taskPortsFromEnv,
@@ -165,6 +168,32 @@ test("derives safe per-task postgres database names", () => {
   expect(names.testDatabaseName.length).toBeLessThanOrEqual(63);
 });
 
+test("filters production-only dump statements before local restore", () => {
+  const input = [
+    "\\restrict token",
+    "SET transaction_timeout = 0;",
+    "ALTER TABLE public.foo OWNER TO jared;",
+    "GRANT USAGE ON SCHEMA system TO ops_agentd;",
+    "GRANT ALL ON SCHEMA public TO PUBLIC;",
+    "REVOKE USAGE ON SCHEMA public FROM PUBLIC;",
+    "REVOKE USAGE ON SCHEMA system FROM ops_agentd;",
+    "ALTER DEFAULT PRIVILEGES FOR ROLE ops_agentd IN SCHEMA public GRANT SELECT ON TABLES TO readonly;",
+    "CREATE EVENT TRIGGER search_path_on_login ON login",
+    "    EXECUTE FUNCTION public.set_search_path_on_login();",
+    "ALTER EVENT TRIGGER search_path_on_login OWNER TO jared;",
+    "CREATE TABLE public.keep (id uuid);",
+    "\\unrestrict token",
+  ].join("\n") + "\n";
+
+  expect(run("sed", [LOCAL_RESTORE_SQL_FILTER], { input }).stdout).toBe(
+    [
+      "GRANT ALL ON SCHEMA public TO PUBLIC;",
+      "REVOKE USAGE ON SCHEMA public FROM PUBLIC;",
+      "CREATE TABLE public.keep (id uuid);",
+    ].join("\n") + "\n",
+  );
+});
+
 test("derives and renders per-task local ports", () => {
   const slot = taskPortSlotForSlug("gertrude-fm");
   expect(slot).toBeGreaterThanOrEqual(0);
@@ -191,13 +220,14 @@ test("derives and renders per-task local ports", () => {
   expect(rendered).toContain("VITE_TURNSTILE_SITEKEY=not-real");
 });
 
-test("renders swift api env from template without changing non-changeme placeholders", () => {
+test("renders swift api env from template with generated values and local overrides", () => {
   const rendered = renderTaskEnv(
     `DATABASE_USERNAME=changeme
 DATABASE_PASSWORD=
 DATABASE_NAME="changeme"
 TEST_DATABASE_NAME='changeme'
 SENDGRID_API_KEY=not-real
+POSTMARK_API_KEY=not-real
 REAL_KEY=real-looking-value
 `,
     {
@@ -206,6 +236,9 @@ REAL_KEY=real-looking-value
       databaseName: "gt_dashboard_redesign_4d053875",
       testDatabaseName: "gt_dashboard_redesign_4d053875_test",
     },
+    {
+      POSTMARK_API_KEY: "real key with spaces",
+    },
   );
 
   expect(rendered).toContain("DATABASE_USERNAME=miciah");
@@ -213,7 +246,23 @@ REAL_KEY=real-looking-value
   expect(rendered).toContain("DATABASE_NAME=gt_dashboard_redesign_4d053875");
   expect(rendered).toContain("TEST_DATABASE_NAME=gt_dashboard_redesign_4d053875_test");
   expect(rendered).toContain("SENDGRID_API_KEY=not-real");
+  expect(rendered).toContain('POSTMARK_API_KEY="real key with spaces"');
   expect(rendered).toContain("REAL_KEY=real-looking-value");
+});
+
+
+test("uses non-gt secrets as env overrides without replacing generated database settings", () => {
+  expect(
+    taskEnvOverridesFromGtSecrets({
+      GT_SCRUBBED_DUMPS_ACCESS_KEY_ID: "do-not-render",
+      DATABASE_NAME: "do-not-render",
+      POSTMARK_API_KEY: "real-postmark-key",
+      POSTMARK_SERVER_ID: "123",
+    }),
+  ).toEqual({
+    POSTMARK_API_KEY: "real-postmark-key",
+    POSTMARK_SERVER_ID: "123",
+  });
 });
 
 test("escapes KDL strings", () => {

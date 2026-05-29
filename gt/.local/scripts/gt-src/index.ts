@@ -6,10 +6,10 @@ export type { RunOptions, RunResult } from "./process.ts";
 export { dotenvValue, parseSimpleDotenv } from "./dotenv.ts";
 export { isValidSlug, isValidTaskTitle, validateGitBranchName, validateSlug, validateTaskTitle } from "./slug.ts";
 
-export { taskDatabaseNames, setupTaskDatabases, dropDatabaseIfExists } from "./databases.ts";
+export { LOCAL_RESTORE_SQL_FILTER, taskDatabaseNames, setupTaskDatabases, dropDatabaseIfExists } from "./databases.ts";
 export type { TaskDatabaseNames } from "./databases.ts";
-export { renderTaskEnv, writeSwiftApiEnv } from "./env.ts";
-export type { TaskEnvValues } from "./env.ts";
+export { renderTaskEnv, taskEnvOverridesFromGtSecrets, writeSwiftApiEnv } from "./env.ts";
+export type { TaskEnvOverrides, TaskEnvValues } from "./env.ts";
 
 export {
   allocateTaskPorts,

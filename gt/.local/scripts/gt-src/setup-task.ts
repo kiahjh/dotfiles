@@ -11,7 +11,7 @@ import { validateGitBranchName, validateTaskTitle } from "./slug.ts";
 import { Progress } from "./ui.ts";
 
 export async function setupExistingTask(taskArg?: string): Promise<void> {
-  requireCommands(["git", "psql", "createdb", "dropdb", "gunzip"]);
+  requireCommands(["git", "psql", "createdb", "dropdb", "gunzip", "sed"]);
 
   const repoRoot = taskRootFromArg(taskArg, process.cwd());
   if (!existsSync(repoRoot)) {
