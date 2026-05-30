@@ -16,9 +16,9 @@ import {
   renderReviewerPrompt,
   reviewerPersonas,
   repoContext,
+  renderSessionDiagnostics,
   runCli,
   runCouncil,
-  sessionSummary,
   type MccConfig,
 } from "./src/index.ts";
 import { createSession } from "./src/session.ts";
@@ -297,6 +297,32 @@ test("runCouncil can keep workspaces for debugging", async () =>
     expect(existsSync(result.chairResult.workspaceKeptAt!)).toBe(true);
   }));
 
+test("stale diagnostics mark abandoned sessions and cleanup removes known temp workspaces", async () =>
+  await withTempAsync(async (root) => {
+    const repo = makeRepo(root);
+    const cfg = config(root);
+    const session = createSession("Review but get interrupted.", repoContext(repo), cfg, new Date(2026, 0, 2, 6, 7, 8));
+    const workspace = join(root, "mcc-conservative-maintainer-leftover");
+    mkdirSync(workspace, { recursive: true });
+    mkdirSync(join(session.path, "reviewers", "conservative-maintainer"), { recursive: true });
+    writeFileSync(join(session.path, "reviewers", "conservative-maintainer", "workspace.txt"), `${workspace}\n`);
+    writeFileSync(
+      join(session.path, "logs", "conservative-maintainer.meta.json"),
+      JSON.stringify({ status: "RUNNING", pid: 99999999, tempRoot: workspace, stdoutFile: "x", stderrFile: "y" }, null, 2),
+    );
+
+    const status = renderSessionDiagnostics(session.path, { markStale: true });
+    expect(status).toContain("Computed status: STALE");
+    expect(status).toContain("conservative-maintainer");
+    expect(status).toContain("99999999!");
+    expect(text(join(session.path, "status.txt"))).toBe("STALE\n");
+
+    const cleanup = await runCli(["cleanup-stale", session.path], skillDir, { HOME: root, MCC_REVIEW_ROOT: cfg.reviewRoot, MCC_PI_BIN: cfg.piBin });
+    expect(cleanup.lines.join("\n")).toContain("Marked status: ABORTED");
+    expect(existsSync(workspace)).toBe(false);
+    expect(text(join(session.path, "status.txt"))).toBe("ABORTED\n");
+  }));
+
 test("latest, status, and show expose completed council artifacts", async () =>
   await withTempAsync(async (root) => {
     const repo = makeRepo(root);
@@ -305,9 +331,10 @@ test("latest, status, and show expose completed council artifacts", async () =>
     const result = await runCouncil({ cwd: repo, request: "Review for status commands." }, cfg);
 
     expect(latestSession(cfg.reviewRoot)).toBe(result.session);
-    expect(sessionSummary(result.session)).toContain("Final summary:");
+    expect(renderSessionDiagnostics(result.session)).toContain("Computed status: COMPLETE");
     const status = await runCli(["status", "latest"], skillDir, { HOME: root, MCC_REVIEW_ROOT: cfg.reviewRoot, MCC_PI_BIN: fakePi });
-    expect(status.lines.join("\n")).toContain("Status: COMPLETE");
+    expect(status.lines.join("\n")).toContain("Computed status: COMPLETE");
+    expect(status.lines.join("\n")).toContain("stdout");
     const shown = await runCli(["show", "latest"], skillDir, { HOME: root, MCC_REVIEW_ROOT: cfg.reviewRoot, MCC_PI_BIN: fakePi });
     expect(shown.lines.join("\n")).toContain("Multi-Character Code Council Summary");
   }));
@@ -321,6 +348,11 @@ test("CLI parsing, help, doctor, and run command", async () =>
       cwd: repo,
       request: "Review this",
       keepWorkspaces: true,
+    });
+    expect(parseRunArgs(["--cwd", repo], "Review from stdin\n")).toEqual({
+      cwd: repo,
+      request: "Review from stdin\n",
+      keepWorkspaces: false,
     });
 
     const help = await runCli(["help"], skillDir, { HOME: root });

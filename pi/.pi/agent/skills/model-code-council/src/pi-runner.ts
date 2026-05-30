@@ -14,6 +14,7 @@ export interface PiRunOptions {
   readonly metaFile: string;
   readonly thinking: "high" | "xhigh";
   readonly label: string;
+  readonly tempRoot?: string;
   readonly env?: NodeJS.ProcessEnv;
 }
 
@@ -25,6 +26,7 @@ export interface PiRunResult {
   readonly metaFile: string;
   readonly startedAt: string;
   readonly finishedAt: string;
+  readonly pid?: number;
 }
 
 export async function ensurePiAvailable(config: MccConfig): Promise<void> {
@@ -53,16 +55,14 @@ export function piArgs(config: MccConfig, thinking: "high" | "xhigh", promptFile
   ];
 }
 
-export async function runPi(options: PiRunOptions): Promise<PiRunResult> {
-  const startedAt = formatLocalIsoSeconds(new Date());
-  const args = piArgs(options.config, options.thinking, options.promptFile);
+function writeMeta(options: PiRunOptions, args: string[], data: Record<string, unknown>): void {
   writeText(
     options.metaFile,
     JSON.stringify(
       {
         label: options.label,
-        startedAt,
         cwd: options.cwd,
+        tempRoot: options.tempRoot,
         provider: options.config.provider,
         model: options.config.model,
         thinking: options.thinking,
@@ -70,20 +70,30 @@ export async function runPi(options: PiRunOptions): Promise<PiRunResult> {
         stdoutFile: options.stdoutFile,
         stderrFile: options.stderrFile,
         command: [options.config.piBin, ...args],
+        ...data,
       },
       null,
       2,
     ) + "\n",
   );
+}
+
+export async function runPi(options: PiRunOptions): Promise<PiRunResult> {
+  const startedAt = formatLocalIsoSeconds(new Date());
+  const args = piArgs(options.config, options.thinking, options.promptFile);
+  writeMeta(options, args, { status: "STARTING", startedAt });
 
   const stdoutFd = openSync(options.stdoutFile, "w");
   const stderrFd = openSync(options.stderrFile, "w");
+  let pid: number | undefined;
   const exitCode = await new Promise<number>((resolve) => {
     const child = spawn(options.config.piBin, args, {
       cwd: options.cwd,
       env: { ...process.env, ...(options.env ?? {}) },
       stdio: ["ignore", stdoutFd, stderrFd],
     });
+    pid = child.pid;
+    writeMeta(options, args, { status: "RUNNING", startedAt, pid });
     child.on("error", (error) => {
       writeFileSync(stderrFd, `\nFailed to spawn pi: ${error.message}\n`);
       resolve(127);
@@ -99,27 +109,7 @@ export async function runPi(options: PiRunOptions): Promise<PiRunResult> {
   closeSync(stderrFd);
 
   const finishedAt = formatLocalIsoSeconds(new Date());
-  writeText(
-    options.metaFile,
-    JSON.stringify(
-      {
-        label: options.label,
-        startedAt,
-        finishedAt,
-        exitCode,
-        cwd: options.cwd,
-        provider: options.config.provider,
-        model: options.config.model,
-        thinking: options.thinking,
-        promptFile: options.promptFile,
-        stdoutFile: options.stdoutFile,
-        stderrFile: options.stderrFile,
-        command: [options.config.piBin, ...args],
-      },
-      null,
-      2,
-    ) + "\n",
-  );
+  writeMeta(options, args, { status: "FINISHED", startedAt, finishedAt, exitCode, pid });
 
-  return { label: options.label, exitCode, stdoutFile: options.stdoutFile, stderrFile: options.stderrFile, metaFile: options.metaFile, startedAt, finishedAt };
+  return { label: options.label, exitCode, stdoutFile: options.stdoutFile, stderrFile: options.stderrFile, metaFile: options.metaFile, startedAt, finishedAt, pid };
 }

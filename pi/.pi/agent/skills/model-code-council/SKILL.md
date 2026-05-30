@@ -60,10 +60,13 @@ REQUEST
 Useful commands:
 
 ```bash
-"$MCC" status latest
-"$MCC" show latest
+"$MCC" status latest          # detailed per-reviewer state, PID, report existence, log sizes, activity
+"$MCC" show latest            # print chair/final.md if it exists
+"$MCC" doctor                 # check runner configuration
+"$MCC" doctor latest          # diagnose a session
+"$MCC" cleanup-stale latest   # mark stale sessions aborted and remove known temp workspaces
+"$MCC" retry latest           # start a fresh session with the same cwd/request
 "$MCC" latest
-"$MCC" doctor
 ```
 
 Debug option:
@@ -71,6 +74,8 @@ Debug option:
 ```bash
 "$MCC" run --keep-workspaces --cwd "$PWD" --request "Review ..."
 ```
+
+If a terminal disconnect, timeout, or abort interrupts the parent runner, `status` computes live state from per-process metadata. It marks abandoned `IN_PROGRESS` sessions as `STALE` when no reviewer/chair PID is alive and required outputs are missing. Use `cleanup-stale` to remove known temp workspaces and mark the session `ABORTED`; use `retry` to start a new session from the same request.
 
 Environment knobs for the runner itself:
 
@@ -90,8 +95,9 @@ The model/provider are explicit so the council does not silently change if the u
   README.md
   request.md
   status.txt
-  run.json
+  run.json                 # written at start; updated on completion/failure
   reviewers/
+    conservative-maintainer/workspace.txt
     conservative-maintainer/report.md
     production-incident-veteran/report.md
     formal-correctness-thinker/report.md
@@ -99,9 +105,10 @@ The model/provider are explicit so the council does not silently change if the u
     high-standards-principal-engineer/report.md
     adversarial-cross-examiner/report.md
   chair/
+    workspace.txt
     final.md
     issues/01-short-title.md
-  logs/
+  logs/                    # stdout/stderr/meta JSON with PIDs and exit codes
   prompts/
 ```
 

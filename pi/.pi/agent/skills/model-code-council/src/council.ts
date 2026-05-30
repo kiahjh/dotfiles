@@ -132,6 +132,9 @@ async function runReviewer(session: CouncilSession, persona: ReviewerPersona, co
   ensureDir(paths.dir);
 
   const workspace = await createWorkspaceCopy(session.context, persona.id);
+  writeText(join(paths.dir, "workspace.txt"), `${workspace.tempRoot}\n`);
+  writeText(join(workspace.tempRoot, ".mcc-session"), `${session.path}\n`);
+  writeText(join(workspace.tempRoot, ".mcc-role"), `${persona.id}\n`);
   const workspaceReport = join(workspace.reviewDir, `${persona.id}-report.md`);
   writeText(paths.prompt, renderReviewerPrompt({ config, persona, request: session.request, workspace, reportPath: workspaceReport }));
 
@@ -146,6 +149,7 @@ async function runReviewer(session: CouncilSession, persona: ReviewerPersona, co
       metaFile: paths.meta,
       thinking: config.reviewerThinking,
       label: persona.id,
+      tempRoot: workspace.tempRoot,
       env: runEnvironment(workspace),
     });
 
@@ -217,6 +221,9 @@ Chair stderr: ${result.stderrFile}
 async function runChair(session: CouncilSession, config: MccConfig, keepWorkspaces: boolean): Promise<ChairRunResult> {
   const paths = chairDirs(session.path);
   const workspace = await createWorkspaceCopy(session.context, "chair");
+  writeText(join(session.path, "chair", "workspace.txt"), `${workspace.tempRoot}\n`);
+  writeText(join(workspace.tempRoot, ".mcc-session"), `${session.path}\n`);
+  writeText(join(workspace.tempRoot, ".mcc-role"), "chair\n");
   const reportsDir = join(workspace.reviewDir, "reviewer-reports");
   const outputDir = join(workspace.reviewDir, "chair-output");
   const finalPath = join(outputDir, "final.md");
@@ -237,6 +244,7 @@ async function runChair(session: CouncilSession, config: MccConfig, keepWorkspac
       metaFile: paths.meta,
       thinking: config.chairThinking,
       label: "chair",
+      tempRoot: workspace.tempRoot,
       env: runEnvironment(workspace),
     });
 
@@ -264,9 +272,25 @@ export async function runCouncil(options: CouncilRunOptions, config: MccConfig):
   await ensurePiAvailable(config);
   const context = repoContext(options.cwd);
   const session = createSession(options.request, context, config, options.now);
+  const started = Date.now();
+  writeText(
+    join(session.path, "run.json"),
+    JSON.stringify(
+      {
+        status: "IN_PROGRESS",
+        startedAt: formatLocalIsoSeconds(new Date(started)),
+        provider: config.provider,
+        model: config.model,
+        reviewerThinking: config.reviewerThinking,
+        chairThinking: config.chairThinking,
+        expectedReviewers: reviewerPersonas.map((persona) => persona.id),
+      },
+      null,
+      2,
+    ) + "\n",
+  );
 
   try {
-    const started = Date.now();
     const reviewerResults = await Promise.all(reviewerPersonas.map((persona) => runReviewer(session, persona, config, Boolean(options.keepWorkspaces))));
     const chairResult = await runChair(session, config, Boolean(options.keepWorkspaces));
     markSessionComplete(session.path);
@@ -290,6 +314,22 @@ export async function runCouncil(options: CouncilRunOptions, config: MccConfig):
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     markSessionFailed(session.path, message);
+    writeText(
+      join(session.path, "run.json"),
+      JSON.stringify(
+        {
+          status: "FAILED",
+          startedAt: formatLocalIsoSeconds(new Date(started)),
+          finishedAt: formatLocalIsoSeconds(new Date()),
+          provider: config.provider,
+          model: config.model,
+          error: message,
+          expectedReviewers: reviewerPersonas.map((persona) => persona.id),
+        },
+        null,
+        2,
+      ) + "\n",
+    );
     throw error;
   }
 }
@@ -313,6 +353,9 @@ export function renderRunResult(result: CouncilRunResult): string {
 
 export function finalSummaryExcerpt(sessionPath: string, limit = 12000): string {
   const finalPath = chairDirs(sessionPath).final;
+  if (!existsSync(finalPath)) {
+    return `No final summary exists yet for ${sessionPath}.\nExpected: ${finalPath}\nRun \`mcc status ${sessionPath}\` for detailed progress/stale diagnostics.\n`;
+  }
   const final = readText(finalPath);
   return final.length <= limit ? final : `${final.slice(0, limit)}\n\n... truncated; see ${finalPath} ...\n`;
 }

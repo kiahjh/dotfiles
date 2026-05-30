@@ -19,4 +19,12 @@ export { createSession, latestSession, markSessionComplete, markSessionFailed, r
 export type { CouncilSession } from "./session.ts";
 export { createWorkspaceCopy, listFilesRecursive, removeWorkspace, repoContext } from "./workspace.ts";
 export type { RepoContext, WorkspaceCopy } from "./workspace.ts";
+export {
+  cleanupStaleSession,
+  diagnoseSession,
+  knownSessionDirs,
+  renderCleanupResult,
+  renderSessionDiagnostics,
+} from "./diagnostics.ts";
+export type { CleanupResult, OverallState, RoleDiagnostics, RoleKind, RoleState, SessionDiagnostics } from "./diagnostics.ts";
 export { main, parseRunArgs, runCli, usage } from "./cli.ts";
