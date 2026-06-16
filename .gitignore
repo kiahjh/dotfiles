@@ -9,3 +9,23 @@ nvim/.config/nvim/plugin/packer_compiled.lua
 .claude/
 gt/.env.template
 scratch/
+
+# Proprietary Point-Free skills (local only; do not commit/share)
+pi/.pi/agent/skills/case-paths/
+pi/.pi/agent/skills/composable-architecture/
+pi/.pi/agent/skills/custom-dump/
+pi/.pi/agent/skills/dependencies/
+pi/.pi/agent/skills/identified-collections/
+pi/.pi/agent/skills/issue-reporting/
+pi/.pi/agent/skills/macro-testing/
+pi/.pi/agent/skills/modern-swiftui/
+pi/.pi/agent/skills/observable-models/
+pi/.pi/agent/skills/perception/
+pi/.pi/agent/skills/pfw/
+pi/.pi/agent/skills/sharing/
+pi/.pi/agent/skills/snapshot-testing/
+pi/.pi/agent/skills/spm/
+pi/.pi/agent/skills/sqlite-data/
+pi/.pi/agent/skills/structured-queries/
+pi/.pi/agent/skills/swift-navigation/
+pi/.pi/agent/skills/testing/
