@@ -3,6 +3,11 @@
 -- [[ Performance ]]
 vim.loader.enable() -- Neovim 0.9+ byte-compilation cache
 
+-- ts_ls/tailwind can generate a lot of harmless request-cancellation noise while
+-- typing. Writing those errors to ~/.local/state/nvim/lsp.log makes editing feel
+-- worse, so keep LSP logging off unless explicitly debugging it.
+vim.lsp.set_log_level("OFF")
+
 -- [[ Basic Options ]]
 --
 -- set leader to <space>

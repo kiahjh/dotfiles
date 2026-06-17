@@ -15,8 +15,10 @@ return {
 				return {
 					sources.path,
 					utils.source.fallback({
-						sources.lsp,
+						-- Prefer treesitter for breadcrumbs; asking LSP for document
+						-- symbols on every TSX edit/cursor refresh is noticeably heavier.
 						sources.treesitter,
+						sources.lsp,
 					}),
 				}
 			end,

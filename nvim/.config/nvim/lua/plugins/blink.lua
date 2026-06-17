@@ -9,7 +9,10 @@ return {
       menu = { border = 'rounded' },
       documentation = {
         auto_show = true,
-        auto_show_delay_ms = 0,
+        -- 0ms makes TS/React docs fetch on every completion-menu selection while
+        -- typing. A short delay keeps docs available without turning completion
+        -- into a constant LSP request/cancel loop.
+        auto_show_delay_ms = 300,
         window = { border = 'rounded' }
       }
     },

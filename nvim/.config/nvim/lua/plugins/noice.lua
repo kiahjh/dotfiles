@@ -45,7 +45,9 @@ return {
 					["cmp.entry.get_documentation"] = true,
 				},
 				hover = { enabled = true, silent = true },
-				signature = { enabled = true },
+				-- blink.cmp already owns signature help. Running Noice's signature
+				-- autocmds too duplicates LSP requests on InsertEnter/TextChangedI.
+				signature = { enabled = false },
 			},
 			presets = {
 				bottom_search = false,

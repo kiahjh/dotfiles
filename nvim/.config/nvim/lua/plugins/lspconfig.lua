@@ -107,20 +107,39 @@ return {
 		-- TypeScript
 		vim.lsp.config["ts_ls"] = {
 		  capabilities = capabilities,
+		  -- nvim-lspconfig's default starts ts_ls at the package-manager lockfile
+		  -- root. In pnpm monorepos that can mean one huge TS server for every web
+		  -- package. Prefer the nearest package/tsconfig so completions and docs stay
+		  -- local to the app being edited and use that app's TypeScript version.
+		  root_dir = function(bufnr, on_dir)
+			local deno_root = vim.fs.root(bufnr, { "deno.json", "deno.jsonc", "deno.lock" })
+			local root = vim.fs.root(bufnr, { "tsconfig.json", "jsconfig.json", "package.json" })
+				or vim.fs.root(bufnr, { "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "bun.lockb", "bun.lock", ".git" })
+
+			if deno_root and root and #deno_root >= #root then
+				return
+			end
+
+			if root then
+				on_dir(root)
+			end
+		  end,
 		}
 		vim.lsp.enable('ts_ls')
 
-		-- CSS
+		-- TailwindCSS
 		vim.lsp.config["tailwindcss"] = {
 		  capabilities = capabilities,
 		}
 		vim.lsp.enable('tailwindcss')
 
-		-- TailwindCSS
+		-- CSS
 		vim.lsp.config["cssls"] = {
 		  capabilities = capabilities,
 		}
-		vim.lsp.enable('cssls')
+		if vim.fn.executable("vscode-css-language-server") == 1 then
+		  vim.lsp.enable('cssls')
+		end
 
 		-- Astro
 		vim.lsp.config["astro"] = {
