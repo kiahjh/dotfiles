@@ -3,7 +3,7 @@ font-family-italic = "Maple Mono NF CN"
 font-family-bold = "Maple Mono NF CN"
 font-family-bold-italic = "Maple Mono NF CN"
 
-font-size = 18
+font-size = 17
 adjust-cell-height = 10%
 
 adjust-cursor-thickness = 3
