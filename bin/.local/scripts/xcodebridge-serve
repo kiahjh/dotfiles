@@ -4,18 +4,46 @@ set -uo pipefail
 socket="${XCODE_BRIDGE_SOCKET:-$HOME/.xcode-bridge.sock}"
 xcbridge="${XCBRIDGE_BIN:-$HOME/.local/bin/xcbridge}"
 child=""
+sleep_child=""
 
 log() {
   printf '[%s] %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >&2
 }
 
+get_xcode_pid() {
+  /usr/bin/pgrep -nx Xcode 2>/dev/null || true
+}
+
 cleanup() {
+  if [[ -n "${sleep_child:-}" ]]; then
+    kill "$sleep_child" 2>/dev/null || true
+    wait "$sleep_child" 2>/dev/null || true
+  fi
+
   if [[ -n "${child:-}" ]]; then
     kill "$child" 2>/dev/null || true
     wait "$child" 2>/dev/null || true
   fi
+
   rm -f "$socket" 2>/dev/null || true
   exit 0
+}
+
+wait_for_xcode() {
+  local pid
+
+  while true; do
+    pid="$(get_xcode_pid)"
+    if [[ -n "$pid" ]]; then
+      xcode_pid="$pid"
+      return 0
+    fi
+
+    rm -f "$socket" 2>/dev/null || true
+    sleep 5 & sleep_child=$!
+    wait "$sleep_child" 2>/dev/null || true
+    sleep_child=""
+  done
 }
 
 trap cleanup INT TERM HUP
@@ -24,31 +52,62 @@ while true; do
   if [[ ! -x "$xcbridge" ]]; then
     log "missing executable: $xcbridge"
     log "install it with: xcodebridge-install"
-    sleep 30 & child=$!
-    wait "$child" 2>/dev/null || true
-    child=""
+    sleep 30 & sleep_child=$!
+    wait "$sleep_child" 2>/dev/null || true
+    sleep_child=""
     continue
   fi
 
-  # xcrun mcpbridge exits if Xcode is not running. Wait quietly so this
-  # LaunchAgent can be loaded at login without creating restart spam.
-  until /usr/bin/pgrep -x Xcode >/dev/null 2>&1; do
-    rm -f "$socket" 2>/dev/null || true
-    sleep 5 & child=$!
-    wait "$child" 2>/dev/null || true
-    child=""
-  done
+  # xcrun mcpbridge is tied to a particular Xcode process. If Xcode quits
+  # or relaunches while xcbridge is still serving, the next MCP connection can
+  # fail with "Connection closed" before launchd gets a chance to restart it.
+  # Track the Xcode PID and proactively recycle the bridge when it changes.
+  wait_for_xcode
 
-  log "starting xcbridge serve --socket $socket"
+  rm -f "$socket" 2>/dev/null || true
+  log "starting xcbridge serve --socket $socket (Xcode pid $xcode_pid)"
   "$xcbridge" serve --socket "$socket" &
   child=$!
-  wait "$child"
-  status=$?
-  child=""
+  status=""
 
-  log "xcbridge exited with status $status; restarting when Xcode is available"
+  while kill -0 "$child" 2>/dev/null; do
+    sleep 5 & sleep_child=$!
+    wait "$sleep_child" 2>/dev/null || true
+    sleep_child=""
+
+    if ! kill -0 "$child" 2>/dev/null; then
+      break
+    fi
+
+    current_xcode_pid="$(get_xcode_pid)"
+    if [[ -z "$current_xcode_pid" ]]; then
+      log "Xcode exited; stopping xcbridge"
+      kill "$child" 2>/dev/null || true
+      wait "$child" 2>/dev/null || true
+      status="stopped-after-xcode-exit"
+      child=""
+      break
+    fi
+
+    if [[ "$current_xcode_pid" != "$xcode_pid" ]]; then
+      log "Xcode pid changed ($xcode_pid -> $current_xcode_pid); restarting xcbridge"
+      kill "$child" 2>/dev/null || true
+      wait "$child" 2>/dev/null || true
+      status="restarted-after-xcode-pid-change"
+      child=""
+      break
+    fi
+  done
+
+  if [[ -n "${child:-}" ]]; then
+    wait "$child"
+    status=$?
+    child=""
+  fi
+
+  log "xcbridge exited with status ${status:-unknown}; restarting when Xcode is available"
   rm -f "$socket" 2>/dev/null || true
-  sleep 3 & child=$!
-  wait "$child" 2>/dev/null || true
-  child=""
+  sleep 3 & sleep_child=$!
+  wait "$sleep_child" 2>/dev/null || true
+  sleep_child=""
 done
