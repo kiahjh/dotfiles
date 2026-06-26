@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 import { run } from "../process.ts";
@@ -70,7 +70,7 @@ ${indentKdl(defaultTabTemplate.trim(), 4)}
 
     tab name=${kdlString(tabName)} cwd=${kdlString(cwd)} {
         pane split_direction="vertical" {
-            pane name="pi" command="pi" focus=true
+            pane name="codex" command="codex" focus=true
             pane name="nvim" command="nvim"
         }
     }
@@ -81,9 +81,27 @@ ${indentKdl(defaultTabTemplate.trim(), 4)}
 export function writeTempLayout(slug: string, worktreeDir: string): { layoutFile: string; cleanup: () => void } {
   const dir = mkdtempSync(join(tmpdir(), "gt-zellij-layout-"));
   const layoutFile = join(dir, "layout.kdl");
-  writeFileSync(layoutFile, zellijLayout(slug, worktreeDir, loadZellijDefaultTabTemplate()));
+  writeFileSync(layoutFile, zellijLayoutForCurrentConfig(slug, worktreeDir));
   return {
     layoutFile,
     cleanup: () => rmSync(dir, { recursive: true, force: true }),
   };
+}
+
+export function zellijLayoutForCurrentConfig(slug: string, worktreeDir: string): string {
+  return zellijLayout(slug, worktreeDir, loadZellijDefaultTabTemplate());
+}
+
+export function writeCachedLayout(layoutName: string, slug: string, worktreeDir: string): string {
+  const dir = join(tmpdir(), "gt-zellij-layouts");
+  mkdirSync(dir, { recursive: true });
+
+  const safeName =
+    layoutName
+      .replace(/[^A-Za-z0-9._-]+/g, "__")
+      .replace(/__+/g, "__")
+      .replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, "") || "layout";
+  const layoutFile = join(dir, `${safeName}.kdl`);
+  writeFileSync(layoutFile, zellijLayoutForCurrentConfig(slug, worktreeDir));
+  return layoutFile;
 }

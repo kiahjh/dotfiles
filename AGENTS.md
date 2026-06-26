@@ -15,6 +15,7 @@ For example:
 
 | Package    | What it configures             |
 |------------|--------------------------------|
+| `agents`   | Global Codex/agent skills      |
 | `bin`      | Scripts in `~/.local/scripts/` |
 | `ghostty`  | Ghostty terminal               |
 | `git`      | Git config & global ignore     |

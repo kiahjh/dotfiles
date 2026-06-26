@@ -4,18 +4,24 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { run } from "./process.ts";
 
-export function openGhosttyTab(slug: string, worktreeDir: string, sessionName: string): void {
+export function openGhosttyTab(slug: string, worktreeDir: string, sessionName: string, layoutFile?: string): void {
   const script = String.raw`on run argv
   set taskSlug to item 1 of argv
   set taskDir to item 2 of argv
   set sessionName to item 3 of argv
+  set zellijCommand to "zellij attach " & quoted form of sessionName
+
+  if (count of argv) > 3 then
+    set layoutFile to item 4 of argv
+    set zellijCommand to "zellij --session " & quoted form of sessionName & " --new-session-with-layout " & quoted form of layoutFile
+  end if
 
   tell application "Ghostty"
     activate
 
     set cfg to new surface configuration
     set initial working directory of cfg to taskDir
-    set initial input of cfg to "zellij attach " & quoted form of sessionName & linefeed
+    set initial input of cfg to zellijCommand & linefeed
 
     if (count of windows) = 0 then
       set win to new window with configuration cfg
@@ -32,7 +38,12 @@ export function openGhosttyTab(slug: string, worktreeDir: string, sessionName: s
 end run
 `;
 
-  run("osascript", ["-", slug, worktreeDir, sessionName], { input: script, inherit: true });
+  const args = ["-", slug, worktreeDir, sessionName];
+  if (layoutFile) {
+    args.push(layoutFile);
+  }
+
+  run("osascript", args, { input: script, inherit: true });
 }
 
 export function closeGhosttyTabScript(): string {
