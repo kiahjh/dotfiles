@@ -15,7 +15,7 @@ export function launchCommandRequirements(options: TaskLaunchOptions): string[] 
 
   const commands: string[] = [];
   if (process.env.GT_SKIP_ZELLIJ !== "1") {
-    commands.push("zellij", "codex", "nvim");
+    commands.push("zellij", "pi", "nvim");
   }
   if (process.env.GT_SKIP_GHOSTTY !== "1") {
     commands.push("osascript");

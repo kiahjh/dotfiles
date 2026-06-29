@@ -269,12 +269,12 @@ test("escapes KDL strings", () => {
   expect(kdlString('a "quoted" path \\ with newline\n')).toBe('"a \\"quoted\\" path \\\\ with newline\\n"');
 });
 
-test("zellij layout starts codex left and nvim right without bars by default", () => {
+test("zellij layout starts pi left and nvim right without bars by default", () => {
   const layout = zellijLayout("dashboard-redesign", "/tmp/dashboard-redesign");
 
   expect(layout).toContain('tab name="dashboard-redesign" cwd="/tmp/dashboard-redesign"');
   expect(layout).toContain('pane split_direction="vertical"');
-  expect(layout).toContain('pane name="codex" command="codex" focus=true');
+  expect(layout).toContain('pane name="pi" command="pi" focus=true');
   expect(layout).toContain('pane name="nvim" command="nvim"');
   expect(layout).not.toContain("tab-bar");
   expect(layout).not.toContain("status-bar");
@@ -295,7 +295,7 @@ test("zellij layout uses a supplied default tab template", () => {
   expect(layout).toContain("default_tab_template");
   expect(layout).toContain("children");
   expect(layout).toContain('plugin location="zellij:compact-bar"');
-  expect(layout).toContain('pane name="codex" command="codex" focus=true');
+  expect(layout).toContain('pane name="pi" command="pi" focus=true');
   expect(layout).toContain('pane name="nvim" command="nvim"');
 });
 

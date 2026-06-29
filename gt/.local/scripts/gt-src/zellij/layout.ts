@@ -70,7 +70,7 @@ ${indentKdl(defaultTabTemplate.trim(), 4)}
 
     tab name=${kdlString(tabName)} cwd=${kdlString(cwd)} {
         pane split_direction="vertical" {
-            pane name="codex" command="codex" focus=true
+            pane name="pi" command="pi" focus=true
             pane name="nvim" command="nvim"
         }
     }
