@@ -208,6 +208,7 @@ test("derives and renders per-task local ports", () => {
     storybookPort: 18074,
     ciApiPort: 18075,
     ciDashPort: 18076,
+    accountPort: 18077,
   });
 
   const rendered = renderTaskPorts("demo", taskPortsForSlot(7));
@@ -216,6 +217,7 @@ test("derives and renders per-task local ports", () => {
   expect(rendered).toContain("SITE_PORT=18072");
   expect(rendered).toContain("ADMIN_PORT=18073");
   expect(rendered).toContain("STORYBOOK_PORT=18074");
+  expect(rendered).toContain("ACCOUNT_PORT=18077");
   expect(rendered).toContain("VITE_API_ENDPOINT=http://127.0.0.1:18070");
   expect(rendered).toContain("VITE_TURNSTILE_SITEKEY=not-real");
 });
@@ -226,6 +228,7 @@ test("renders swift api env from template with generated values and local overri
 DATABASE_PASSWORD=
 DATABASE_NAME="changeme"
 TEST_DATABASE_NAME='changeme'
+ACCOUNT_DASHBOARD_URL=changeme
 SENDGRID_API_KEY=not-real
 POSTMARK_API_KEY=not-real
 REAL_KEY=real-looking-value
@@ -235,6 +238,7 @@ REAL_KEY=real-looking-value
       databasePassword: "",
       databaseName: "gt_dashboard_redesign_4d053875",
       testDatabaseName: "gt_dashboard_redesign_4d053875_test",
+      accountDashboardUrl: "http://localhost:18077",
     },
     {
       POSTMARK_API_KEY: "real key with spaces",
@@ -245,6 +249,7 @@ REAL_KEY=real-looking-value
   expect(rendered).toContain("DATABASE_PASSWORD=");
   expect(rendered).toContain("DATABASE_NAME=gt_dashboard_redesign_4d053875");
   expect(rendered).toContain("TEST_DATABASE_NAME=gt_dashboard_redesign_4d053875_test");
+  expect(rendered).toContain("ACCOUNT_DASHBOARD_URL=http://localhost:18077");
   expect(rendered).toContain("SENDGRID_API_KEY=not-real");
   expect(rendered).toContain('POSTMARK_API_KEY="real key with spaces"');
   expect(rendered).toContain("REAL_KEY=real-looking-value");
@@ -256,6 +261,7 @@ test("uses non-gt secrets as env overrides without replacing generated database 
     taskEnvOverridesFromGtSecrets({
       GT_SCRUBBED_DUMPS_ACCESS_KEY_ID: "do-not-render",
       DATABASE_NAME: "do-not-render",
+      ACCOUNT_DASHBOARD_URL: "do-not-render",
       POSTMARK_API_KEY: "real-postmark-key",
       POSTMARK_SERVER_ID: "123",
     }),
@@ -406,6 +412,15 @@ test("round-trips rendered task ports through dotenv parsing", () => {
   const parsed = taskPortsFromEnv(parseSimpleDotenv(renderTaskPorts("demo", ports)));
 
   expect(parsed).toEqual(ports);
+  expect(taskPortsFromEnv({
+    API_PORT: "18000",
+    DASH_PORT: "18001",
+    SITE_PORT: "18002",
+    ADMIN_PORT: "18003",
+    STORYBOOK_PORT: "18004",
+    CI_API_PORT: "18005",
+    CI_DASH_PORT: "18006",
+  })?.accountPort).toBe(18007);
 });
 
 test("rejects incomplete or malformed task port env files", () => {
@@ -421,6 +436,18 @@ test("rejects incomplete or malformed task port env files", () => {
       CI_DASH_PORT: "18006",
     }),
   ).toBeNull();
+  expect(
+    taskPortsFromEnv({
+      API_PORT: "18000",
+      DASH_PORT: "18001",
+      SITE_PORT: "18002",
+      ADMIN_PORT: "18003",
+      STORYBOOK_PORT: "18004",
+      CI_API_PORT: "18005",
+      CI_DASH_PORT: "18006",
+      ACCOUNT_PORT: "not-a-number",
+    }),
+  ).toBeNull();
 });
 
 test("renders env replacements with quoting and reports unknown changeme keys", () => {
@@ -429,6 +456,7 @@ test("renders env replacements with quoting and reports unknown changeme keys", 
     databasePassword: "secret value",
     databaseName: "gt_demo_abcd1234",
     testDatabaseName: "gt_demo_abcd1234_test",
+    accountDashboardUrl: "http://localhost:18077",
   };
 
   expect(renderTaskEnv("export DATABASE_USERNAME=changeme\nDATABASE_PASSWORD=changeme\n", values)).toBe(

@@ -6,15 +6,23 @@ import { dotenvValue } from "./dotenv.ts";
 import { fail } from "./errors.ts";
 import { loadGtSecrets } from "./scrubbed-dump.ts";
 import { currentSystemUser } from "./process.ts";
+import type { TaskPorts } from "./ports.ts";
 
 export type TaskEnvValues = TaskDatabaseNames & {
   databaseUsername: string;
   databasePassword: string;
+  accountDashboardUrl: string;
 };
 
 export type TaskEnvOverrides = Record<string, string>;
 
-const GENERATED_ENV_KEYS = new Set(["DATABASE_USERNAME", "DATABASE_PASSWORD", "DATABASE_NAME", "TEST_DATABASE_NAME"]);
+const GENERATED_ENV_KEYS = new Set([
+  "DATABASE_USERNAME",
+  "DATABASE_PASSWORD",
+  "DATABASE_NAME",
+  "TEST_DATABASE_NAME",
+  "ACCOUNT_DASHBOARD_URL",
+]);
 
 export function taskEnvOverridesFromGtSecrets(secrets: Record<string, string>): TaskEnvOverrides {
   return Object.fromEntries(
@@ -28,6 +36,7 @@ export function renderTaskEnv(template: string, values: TaskEnvValues, overrides
     DATABASE_PASSWORD: values.databasePassword,
     DATABASE_NAME: values.databaseName,
     TEST_DATABASE_NAME: values.testDatabaseName,
+    ACCOUNT_DASHBOARD_URL: values.accountDashboardUrl,
   };
   const unknownChangemeKeys = new Set<string>();
 
@@ -66,7 +75,7 @@ export function renderTaskEnv(template: string, values: TaskEnvValues, overrides
   return rendered.endsWith("\n") ? rendered : `${rendered}\n`;
 }
 
-export function writeSwiftApiEnv(worktreeDir: string, slug: string): TaskDatabaseNames {
+export function writeSwiftApiEnv(worktreeDir: string, slug: string, ports: TaskPorts): TaskDatabaseNames {
   const swiftApiDir = join(worktreeDir, "swift", "api");
   if (!existsSync(swiftApiDir)) {
     fail(`expected swift api directory to exist: ${swiftApiDir}`);
@@ -83,6 +92,7 @@ export function writeSwiftApiEnv(worktreeDir: string, slug: string): TaskDatabas
       ...names,
       databaseUsername: currentSystemUser(),
       databasePassword: "",
+      accountDashboardUrl: `http://localhost:${ports.accountPort}`,
     },
     taskEnvOverridesFromGtSecrets(loadGtSecrets()),
   );

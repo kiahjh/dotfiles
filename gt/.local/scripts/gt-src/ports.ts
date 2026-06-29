@@ -15,6 +15,7 @@ export type TaskPorts = {
   storybookPort: number;
   ciApiPort: number;
   ciDashPort: number;
+  accountPort: number;
 };
 
 function numberFromEnv(values: Record<string, string>, key: string): number | null {
@@ -41,6 +42,7 @@ export function taskPortsForSlot(slot: number): TaskPorts {
     storybookPort: base + 4,
     ciApiPort: base + 5,
     ciDashPort: base + 6,
+    accountPort: base + 7,
   };
 }
 
@@ -52,6 +54,8 @@ export function taskPortsFromEnv(values: Record<string, string>): TaskPorts | nu
   const storybookPort = numberFromEnv(values, "STORYBOOK_PORT");
   const ciApiPort = numberFromEnv(values, "CI_API_PORT");
   const ciDashPort = numberFromEnv(values, "CI_DASH_PORT");
+  const accountPort = numberFromEnv(values, "ACCOUNT_PORT");
+  const hasAccountPort = values["ACCOUNT_PORT"] !== undefined;
 
   if (
     apiPort === null ||
@@ -60,7 +64,8 @@ export function taskPortsFromEnv(values: Record<string, string>): TaskPorts | nu
     adminPort === null ||
     storybookPort === null ||
     ciApiPort === null ||
-    ciDashPort === null
+    ciDashPort === null ||
+    (hasAccountPort && accountPort === null)
   ) {
     return null;
   }
@@ -74,6 +79,7 @@ export function taskPortsFromEnv(values: Record<string, string>): TaskPorts | nu
     storybookPort,
     ciApiPort,
     ciDashPort,
+    accountPort: accountPort ?? apiPort + 7,
   };
 }
 
@@ -87,6 +93,7 @@ function taskPortValues(ports: TaskPorts): Record<string, string> {
     STORYBOOK_PORT: String(ports.storybookPort),
     CI_API_PORT: String(ports.ciApiPort),
     CI_DASH_PORT: String(ports.ciDashPort),
+    ACCOUNT_PORT: String(ports.accountPort),
     VITE_API_ENDPOINT: `http://127.0.0.1:${ports.apiPort}`,
     VITE_TURNSTILE_SITEKEY: "not-real",
     VITE_GTM_ID: "not-real",
@@ -113,6 +120,7 @@ function portNumbers(ports: TaskPorts): number[] {
     ports.storybookPort,
     ports.ciApiPort,
     ports.ciDashPort,
+    ports.accountPort,
   ];
 }
 

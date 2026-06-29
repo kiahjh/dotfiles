@@ -27,7 +27,7 @@ export async function setupExistingTask(taskArg?: string): Promise<void> {
 
   progress.step("Assign local ports");
   const ports = setupTaskPorts(repoRoot, task.title);
-  progress.done(`api ${ports.apiPort}, dash ${ports.dashPort}, site ${ports.sitePort}`);
+  progress.done(`api ${ports.apiPort}, dash ${ports.dashPort}, site ${ports.sitePort}, account ${ports.accountPort}`);
 
   progress.step("Create local Postgres databases");
   const databaseNames = await setupTaskDatabases(task.title);
@@ -35,7 +35,7 @@ export async function setupExistingTask(taskArg?: string): Promise<void> {
 
   progress.step("Render swift/api/.env");
   try {
-    writeSwiftApiEnv(repoRoot, task.title);
+    writeSwiftApiEnv(repoRoot, task.title, ports);
   } catch (error) {
     dropDatabaseIfExists(databaseNames.testDatabaseName);
     dropDatabaseIfExists(databaseNames.databaseName);
@@ -64,5 +64,5 @@ export function setupExistingTaskPorts(taskArg?: string): void {
   progress.step("Assign local ports");
   const ports = setupTaskPorts(repoRoot, task.title);
   progress.ready(`Wrote ${taskPortsPath(repoRoot)}`);
-  progress.note(`api ${ports.apiPort}, dash ${ports.dashPort}, site ${ports.sitePort}, admin ${ports.adminPort}, storybook ${ports.storybookPort}`);
+  progress.note(`api ${ports.apiPort}, dash ${ports.dashPort}, site ${ports.sitePort}, admin ${ports.adminPort}, storybook ${ports.storybookPort}, account ${ports.accountPort}`);
 }

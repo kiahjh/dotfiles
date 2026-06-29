@@ -101,7 +101,7 @@ export async function forkTask(forkName: string, options: ForkTaskOptions = {}):
 
   progress.step("Assign fresh local ports");
   const ports = setupTaskPorts(worktreeDir, taskTitle);
-  progress.done(`api ${ports.apiPort}, dash ${ports.dashPort}, site ${ports.sitePort}`);
+  progress.done(`api ${ports.apiPort}, dash ${ports.dashPort}, site ${ports.sitePort}, account ${ports.accountPort}`);
 
   progress.step("Create local Postgres databases");
   const databaseNames = await setupTaskDatabases(taskTitle);
@@ -109,7 +109,7 @@ export async function forkTask(forkName: string, options: ForkTaskOptions = {}):
 
   progress.step("Render swift/api/.env");
   try {
-    writeSwiftApiEnv(worktreeDir, taskTitle);
+    writeSwiftApiEnv(worktreeDir, taskTitle, ports);
   } catch (error) {
     dropDatabaseIfExists(databaseNames.testDatabaseName);
     dropDatabaseIfExists(databaseNames.databaseName);
