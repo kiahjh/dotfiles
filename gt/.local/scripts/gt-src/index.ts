@@ -61,5 +61,5 @@ export {
   parseKdlConfigStringValue,
 } from "./zellij/kdl.ts";
 export { writeCachedLayout, zellijLayout, zellijLayoutForCurrentConfig } from "./zellij/layout.ts";
-export { sessionNameForSlug, zellijSessionStateFromList } from "./zellij/session.ts";
+export { sessionNameForSlug, zellijSessionNameMaxLength, zellijSessionStateFromList } from "./zellij/session.ts";
 export type { ZellijSessionState } from "./zellij/session.ts";

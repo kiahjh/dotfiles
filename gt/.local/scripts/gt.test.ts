@@ -29,6 +29,7 @@ import {
   taskPortsFromEnv,
   taskPortSlotForSlug,
   zellijLayout,
+  zellijSessionNameMaxLength,
   zellijSessionStateFromList,
   type KillSafetyFacts,
 } from "./gt";
@@ -55,13 +56,19 @@ test("validates task slugs", () => {
 });
 
 test("derives zellij session names", () => {
-  expect(sessionNameForSlug("dashboard-redesign")).toBe("gertrude__dashboard-redesign");
+  expect(sessionNameForSlug("dashboard-redesign", 36)).toBe("gertrude__dashboard-redesign");
 
-  const forkSessionName = sessionNameForSlug("dashboard-redesign/sidebar-spike");
+  const forkSessionName = sessionNameForSlug("dashboard-redesign/sidebar-spike", 36);
   expect(forkSessionName).toMatch(/^gertrude__[A-Za-z0-9._-]+-[a-f0-9]{8}$/);
   expect(forkSessionName.length).toBeLessThanOrEqual(36);
 
-  expect(sessionNameForSlug("gertrude-fm/app-design")).toBe("gertrude__gertrude-fm__app-888e6e40");
+  expect(sessionNameForSlug("gertrude-fm/app-design", 36)).toBe("gertrude__gertrude-fm__app-888e6e40");
+
+  expect(sessionNameForSlug("dashboard-redesign", 22)).toBe("gt__dashboard-redesign");
+  expect(sessionNameForSlug("music-rejection-exploration", 22)).toBe("gt__music-rej-6b9ace0e");
+  expect(sessionNameForSlug("music-rejection-exploration").length).toBeLessThanOrEqual(
+    zellijSessionNameMaxLength(),
+  );
 });
 
 test("parses the subcommand-oriented cli", () => {
