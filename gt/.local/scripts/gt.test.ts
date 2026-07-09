@@ -12,11 +12,13 @@ import {
   LOCAL_RESTORE_SQL_FILTER,
   parseCli,
   parseKdlConfigStringValue,
+  parsePullRequestNumber,
   parseSimpleDotenv,
   renderTaskEnv,
   renderTaskList,
   renderTaskMetadata,
   renderTaskPorts,
+  reviewTaskTitleForPullRequest,
   run,
   sessionNameForSlug,
   signedScrubbedDumpHeaders,
@@ -88,13 +90,32 @@ test("parses the subcommand-oriented cli", () => {
     name: "model-spike",
     agent: true,
   });
+  expect(parseCli(["review", "891"])).toEqual({
+    command: "review",
+    pullRequestNumber: 891,
+    agent: false,
+  });
+  expect(parseCli(["review", "#891", "--agent"])).toEqual({
+    command: "review",
+    pullRequestNumber: 891,
+    agent: true,
+  });
   expect(parseCli(["kill"])).toEqual({ command: "kill" });
   expect(parseCli(["list"])).toEqual({ command: "list" });
   expect(parseCli(["list", "--help"])).toEqual({ command: "help", topic: "list" });
   expect(parseCli(["spawn", "--help"])).toEqual({ command: "help", topic: "spawn" });
   expect(commandUsage("fork")).toContain("gt fork [--agent] <fork-name>");
+  expect(commandUsage("review")).toContain("gt review [--agent] <PR#>");
   expect(commandUsage("list")).toContain("gt list");
+  expect(() => parseCli(["review", "nope"])).toThrow("invalid pull request number: nope");
   expect(() => parseCli(["dashboard-redesign"])).toThrow("Use `gt spawn dashboard-redesign` to create a task");
+});
+
+test("derives review task names from pull requests", () => {
+  expect(parsePullRequestNumber("891")).toBe(891);
+  expect(parsePullRequestNumber("#891")).toBe(891);
+  expect(reviewTaskTitleForPullRequest(891)).toBe("review-891");
+  expect(taskBranchNameForTitle(reviewTaskTitleForPullRequest(891))).toBe("review-891");
 });
 
 test("derives fork titles and path-safe task identifiers", () => {

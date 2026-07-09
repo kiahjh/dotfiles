@@ -33,6 +33,7 @@ export type { ScrubbedDumpCredentials } from "./scrubbed-dump.ts";
 export { ensureTaskRoot, getGitRoot, taskRootFromArg } from "./git.ts";
 export { currentTasks, listTasks, renderTaskList } from "./list-tasks.ts";
 export type { TaskListItem } from "./list-tasks.ts";
+export { parsePullRequestNumber, reviewTaskTitleForPullRequest } from "./review-task.ts";
 export {
   collectKillSafetyFacts,
   confirmKillIfNeeded,

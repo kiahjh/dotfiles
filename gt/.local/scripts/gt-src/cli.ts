@@ -4,12 +4,14 @@ import { GtError } from "./errors.ts";
 import { forkTask } from "./fork-task.ts";
 import { killTask } from "./kill-task.ts";
 import { listTasks } from "./list-tasks.ts";
+import { parsePullRequestNumber, reviewTask } from "./review-task.ts";
 import { setupExistingTask, setupExistingTaskPorts } from "./setup-task.ts";
 
 type CliAction =
   | { command: "help"; topic?: string }
   | { command: "spawn"; name: string; agent: boolean }
   | { command: "fork"; name: string; agent: boolean }
+  | { command: "review"; pullRequestNumber: number; agent: boolean }
   | { command: "kill" }
   | { command: "list" }
   | { command: "setup-env-db"; taskArg?: string }
@@ -24,8 +26,9 @@ Usage:
   gt <command> [options]
 
 Commands:
-  spawn [--agent] <task-name>  Create a fresh task from origin/${MASTER_BRANCH}
-  fork  [--agent] <fork-name>  Copy the current task into <current>/<fork-name>
+  spawn  [--agent] <task-name> Create a fresh task from origin/${MASTER_BRANCH}
+  fork   [--agent] <fork-name> Copy the current task into <current>/<fork-name>
+  review [--agent] <PR#>       Create a review task from a pull request branch
   kill                         Delete the current task after safety checks
   list                         Show current tasks and forks
   setup-env-db [task]          Recreate swift/api/.env and local databases
@@ -37,6 +40,8 @@ Options:
 Examples:
   gt spawn dashboard-redesign
   gt spawn --agent api-cleanup
+  gt review 891
+  gt review --agent 891
   gt fork sidebar-spike
   gt fork --agent model-experiment
 
@@ -74,6 +79,23 @@ for tangents/spikes that you may later manually pull back into the base task.
 
 Options:
   --agent                      Prepare the fork without zellij or Ghostty
+  -h, --help                   Show this help`;
+
+    case "review":
+      return `Usage:
+  gt review [--agent] <PR#>
+
+Create a Gertrude review workspace for a GitHub pull request:
+  - clone the repository into ~/active-projects/gertrude/review-<PR#>
+  - fetch refs/pull/<PR#>/head and check it out as branch review-<PR#>
+  - assign task-specific local ports in .gtask-ports
+  - create isolated local Postgres databases from the scrubbed dump
+  - render swift/api/.env
+  - run pnpm install in ./web
+  - open zellij/Ghostty unless --agent is set
+
+Options:
+  --agent                      Prepare the review without zellij or Ghostty
   -h, --help                   Show this help`;
 
     case "kill":
@@ -147,6 +169,31 @@ function parseNameCommand(command: "spawn" | "fork", args: string[]): CliAction 
   return { command, name: positional[0], agent };
 }
 
+function parseReviewCommand(args: string[]): CliAction {
+  if (args.some((arg) => HELP_FLAGS.has(arg))) {
+    return { command: "help", topic: "review" };
+  }
+
+  let agent = false;
+  const positional: string[] = [];
+
+  for (const arg of args) {
+    if (arg === "--agent") {
+      agent = true;
+    } else if (arg.startsWith("-")) {
+      throw new GtError(`unknown option for gt review: ${arg}`, 2);
+    } else {
+      positional.push(arg);
+    }
+  }
+
+  if (positional.length !== 1) {
+    throw new GtError("gt review requires exactly one pull request number", 2);
+  }
+
+  return { command: "review", pullRequestNumber: parsePullRequestNumber(positional[0]), agent };
+}
+
 function parseOptionalTaskCommand(command: "setup-env-db" | "setup-ports", args: string[]): CliAction {
   if (args.some((arg) => HELP_FLAGS.has(arg))) {
     return { command: "help", topic: command };
@@ -178,6 +225,9 @@ export function parseCli(argv: string[]): CliAction {
     case "spawn":
     case "fork":
       return parseNameCommand(command, args);
+
+    case "review":
+      return parseReviewCommand(args);
 
     case "kill":
     case "list":
@@ -236,6 +286,9 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
       return;
     case "fork":
       await forkTask(action.name, { agent: action.agent });
+      return;
+    case "review":
+      await reviewTask(action.pullRequestNumber, { agent: action.agent });
       return;
     case "kill":
       await killTask();

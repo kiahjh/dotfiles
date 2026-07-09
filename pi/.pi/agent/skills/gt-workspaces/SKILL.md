@@ -1,6 +1,6 @@
 ---
 name: gt-workspaces
-description: Use the local Gertrude `gt` task helper to list, spawn, fork, and clean Gertrude task workspaces. Load when working on Gertrude, creating or forking GT tasks, choosing an isolated agent workspace, or explaining how to use `gt`.
+description: Use the local Gertrude `gt` task helper to list, spawn, review, fork, and clean Gertrude task workspaces. Load when working on Gertrude, creating, reviewing, or forking GT tasks, choosing an isolated agent workspace, or explaining how to use `gt`.
 ---
 
 # GT Workspaces
@@ -14,8 +14,9 @@ Use this skill when:
 
 - The user asks to work on Gertrude or “GT”.
 - You need a fresh isolated Gertrude checkout for agent work.
+- You need a review checkout for a Gertrude pull request.
 - You need to branch off from an existing Gertrude task for a tangent/spike.
-- The user asks to list, spawn, fork, or kill Gertrude tasks.
+- The user asks to list, spawn, review, fork, or kill Gertrude tasks.
 - You are unsure which Gertrude task checkout should be used.
 
 ## Core commands
@@ -37,6 +38,22 @@ zellij or Ghostty.
 
 ```bash
 gt spawn <task-name>
+```
+
+Same as above, but opens the human-facing zellij/Ghostty workspace. Only use this
+when the user wants a workspace opened for them.
+
+```bash
+gt review --agent <PR#>
+```
+
+Creates a review task like `review-891` from the pull request's GitHub head ref
+(`refs/pull/<PR#>/head`) instead of `origin/master`. This sets up ports, local
+Postgres DBs, `swift/api/.env`, and web dependencies without opening zellij or
+Ghostty.
+
+```bash
+gt review <PR#>
 ```
 
 Same as above, but opens the human-facing zellij/Ghostty workspace. Only use this
@@ -76,18 +93,24 @@ All commands support `--help` / `-h`, e.g. `gt fork --help`.
    ```bash
    gt spawn --agent <short-kebab-slug>
    ```
-4. If the work is a tangent from the current task, run from that task:
+4. If the work is reviewing a PR, run:
+   ```bash
+   gt review --agent <PR#>
+   ```
+5. If the work is a tangent from the current task, run from that task:
    ```bash
    gt fork --agent <short-kebab-slug>
    ```
-5. Do the requested work in the resulting task directory.
+6. Do the requested work in the resulting task directory.
 
 Default to `--agent` for work you are doing yourself. Omit `--agent` only when the
 user explicitly asks for a human workspace/window/session.
 
 ## Naming rules
 
-Task and fork names are single path segments:
+Task and fork names are single path segments. Review task names are generated as `review-<PR#>`.
+
+Task and fork names:
 
 - Start with a letter or number.
 - Use letters, numbers, dots, underscores, and hyphens.
