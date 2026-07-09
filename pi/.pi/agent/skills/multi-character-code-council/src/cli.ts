@@ -20,10 +20,10 @@ Usage:
   mcc doctor [session-dir|latest]
 
 What run does:
-  - Creates a council session under ~/.local/share/pi/model-code-council
+  - Creates a council session under ~/.local/share/pi/multi-character-code-council
   - Copies the current repo state into one temp workspace per reviewer
-  - Runs six independent reviewer pi processes in parallel
-  - Uses gpt-5.5 via openai-codex explicitly, not your mutable pi defaults
+  - Runs four deliberately different reviewer pi processes in parallel
+  - Uses gpt-5.6-sol via openai-codex explicitly, not your mutable pi defaults
   - Runs reviewers with --thinking high and the chair with --thinking xhigh
   - Lets reviewers use read/bash/write/edit/grep/find/ls inside disposable workspaces
   - Deletes temp workspaces unless --keep-workspaces is passed
@@ -33,10 +33,10 @@ Hard-coded reviewer personalities:
 ${reviewerPersonas.map((persona) => `  - ${persona.id}`).join("\n")}
 
 Environment for the runner itself:
-  MCC_REVIEW_ROOT   default: ~/.local/share/pi/model-code-council
+  MCC_REVIEW_ROOT   default: ~/.local/share/pi/multi-character-code-council
   MCC_PI_BIN        default: pi
   MCC_PROVIDER      default: openai-codex
-  MCC_MODEL         default: gpt-5.5
+  MCC_MODEL         default: gpt-5.6-sol
 `;
 }
 

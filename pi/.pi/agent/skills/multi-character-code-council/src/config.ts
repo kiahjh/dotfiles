@@ -15,10 +15,10 @@ export interface MccConfig {
 export function configFromEnv(skillDir: string, env: Environment = process.env): MccConfig {
   return {
     skillDir,
-    reviewRoot: env.MCC_REVIEW_ROOT ?? join(env.HOME ?? "", ".local/share/pi/model-code-council"),
+    reviewRoot: env.MCC_REVIEW_ROOT ?? join(env.HOME ?? "", ".local/share/pi/multi-character-code-council"),
     piBin: env.MCC_PI_BIN ?? "pi",
     provider: env.MCC_PROVIDER ?? "openai-codex",
-    model: env.MCC_MODEL ?? "gpt-5.5",
+    model: env.MCC_MODEL ?? "gpt-5.6-sol",
     reviewerThinking: "high",
     chairThinking: "xhigh",
   };

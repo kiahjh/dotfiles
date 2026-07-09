@@ -53,7 +53,7 @@ function config(root: string, overrides: Partial<MccConfig> = {}): MccConfig {
     reviewRoot: join(root, "reviews"),
     piBin: join(root, "fake-pi"),
     provider: "openai-codex",
-    model: "gpt-5.5",
+    model: "gpt-5.6-sol",
     reviewerThinking: "high",
     chairThinking: "xhigh",
     ...overrides,
@@ -149,27 +149,34 @@ throw new Error("unknown prompt");
   return fakePi;
 }
 
-test("config defaults explicitly target gpt-5.5 through openai-codex", () => {
+test("config defaults explicitly target gpt-5.6-sol through openai-codex", () => {
   const cfg = configFromEnv(skillDir, { HOME: "/Users/example" });
   expect(cfg.provider).toBe("openai-codex");
-  expect(cfg.model).toBe("gpt-5.5");
+  expect(cfg.model).toBe("gpt-5.6-sol");
   expect(cfg.reviewerThinking).toBe("high");
   expect(cfg.chairThinking).toBe("xhigh");
   expect(cfg.piBin).toBe("pi");
 });
 
-test("reviewer roster is hard-coded and full-spectrum", () => {
+test("reviewer roster has four deeply specified, orthogonal characters", () => {
   expect(reviewerPersonas.map((persona) => persona.id)).toEqual([
-    "conservative-maintainer",
-    "production-incident-veteran",
-    "formal-correctness-thinker",
-    "pragmatic-product-engineer",
-    "high-standards-principal-engineer",
-    "adversarial-cross-examiner",
+    "ruthless-simplifier",
+    "failure-mode-red-teamer",
+    "shipping-intent-advocate",
+    "contract-prosecutor",
   ]);
   for (const persona of reviewerPersonas) {
-    expect(persona.description.length).toBeGreaterThan(80);
+    expect(persona.name.length).toBeGreaterThan(10);
+    expect(persona.description.length).toBeGreaterThan(100);
+    expect(persona.prompt.length).toBeGreaterThan(1_500);
+    expect(persona.prompt).toContain("YOUR VOICE");
+    expect(persona.prompt).toContain("DO NOT DRIFT");
+    expect(persona.prompt).toContain("YOUR REPORT MUST FEEL LIKE YOUR WORK");
   }
+  expect(reviewerPersonas[0].prompt).toContain("KEEP, FLATTEN, MOVE, or DELETE");
+  expect(reviewerPersonas[1].prompt).toContain("T+0 / T+1");
+  expect(reviewerPersonas[2].prompt).toContain("SHIP AFTER SMALL FIXES");
+  expect(reviewerPersonas[3].prompt).toContain("Label them C1, C2, C3");
 });
 
 test("pi arguments pin provider, model, thinking, tools, and no-session mode", () =>
@@ -180,7 +187,7 @@ test("pi arguments pin provider, model, thinking, tools, and no-session mode", (
     expect(args).toContain("--no-session");
     expect(args).toContain("--no-context-files");
     expect(args).toContain("openai-codex");
-    expect(args).toContain("gpt-5.5");
+    expect(args).toContain("gpt-5.6-sol");
     expect(args).toContain("high");
     expect(args).toContain("read,bash,write,edit,grep,find,ls");
     expect(args.at(-1)).toBe(`@${join(root, "prompt.md")}`);
@@ -211,8 +218,8 @@ test("session creation records request, model, reviewer list, and stable layout"
     expect(basename(session.path)).toBe("2026-01-02-030405-repo");
     expect(text(join(session.path, "request.md"))).toBe("Review this exact thing.\n");
     expect(text(join(session.path, ".provider"))).toBe("openai-codex\n");
-    expect(text(join(session.path, ".model"))).toBe("gpt-5.5\n");
-    expect(text(join(session.path, "README.md"))).toContain("conservative-maintainer");
+    expect(text(join(session.path, ".model"))).toBe("gpt-5.6-sol\n");
+    expect(text(join(session.path, "README.md"))).toContain("ruthless-simplifier");
     expect(text(join(session.path, "status.txt"))).toBe("IN_PROGRESS\n");
   }));
 
@@ -230,9 +237,11 @@ test("prompt rendering requires reviewer report files and chair output files", a
         workspace,
         reportPath: join(workspace.reviewDir, "report.md"),
       });
-      expect(reviewer).toContain("REVIEWER_ID: conservative-maintainer");
+      expect(reviewer).toContain("REVIEWER_ID: ruthless-simplifier");
+      expect(reviewer).toContain("REVIEWER_NAME: The Ruthless Simplifier");
+      expect(reviewer).toContain("Build a complexity ledger");
+      expect(reviewer).toContain("Stay in your jurisdiction");
       expect(reviewer).toContain("REVIEWER_REPORT_PATH:");
-      expect(reviewer).toContain("Review the whole requested scope");
       expect(reviewer).toContain("bash");
 
       const chair = renderChairPrompt({
@@ -244,8 +253,9 @@ test("prompt rendering requires reviewer report files and chair output files", a
       });
       expect(chair).toContain("CHAIR_OUTPUT_DIR:");
       expect(chair).toContain("FINAL_SUMMARY_PATH:");
-      expect(chair).toContain("Pay extra attention to issues raised independently by multiple reviewers.");
-      expect(chair).toContain("adversarial-cross-examiner");
+      expect(chair).toContain("correlated evidence, not statistically independent votes");
+      expect(chair).toContain("Cross-examine the council");
+      expect(chair).toContain("contract-prosecutor");
     } finally {
       rmSync(workspace.tempRoot, { recursive: true, force: true });
     }
@@ -261,7 +271,7 @@ test("runCouncil executes all reviewers in parallel-ish, then chair, and deletes
       cfg,
     );
 
-    expect(result.reviewerResults).toHaveLength(6);
+    expect(result.reviewerResults).toHaveLength(4);
     expect(result.reviewerResults.every((entry) => entry.exitCode === 0)).toBe(true);
     for (const reviewer of result.reviewerResults) {
       expect(text(reviewer.reportPath)).toContain(`# Reviewer report: ${reviewer.persona.id}`);
@@ -270,14 +280,14 @@ test("runCouncil executes all reviewers in parallel-ish, then chair, and deletes
     expect(text(result.finalPath)).toContain("Fake chair synthesized reviewer reports.");
     expect(text(join(result.session, "chair", "issues", "01-shared-fake-issue.md"))).toContain("Shared fake issue");
     expect(text(join(result.session, "status.txt"))).toBe("COMPLETE\n");
-    expect(text(join(result.session, "run.json"))).toContain('"model": "gpt-5.5"');
+    expect(text(join(result.session, "run.json"))).toContain('"model": "gpt-5.6-sol"');
 
     const calls = text(join(root, "fake-pi-calls.log")).trim().split("\n").map((line) => JSON.parse(line));
-    expect(calls).toHaveLength(7);
-    expect(calls.slice(0, 6).every((call) => call.args.includes("high"))).toBe(true);
-    expect(calls[6].args.includes("xhigh")).toBe(true);
+    expect(calls).toHaveLength(5);
+    expect(calls.slice(0, 4).every((call) => call.args.includes("high"))).toBe(true);
+    expect(calls[4].args.includes("xhigh")).toBe(true);
     expect(calls.every((call) => call.args.includes("--no-session"))).toBe(true);
-    expect(calls.every((call) => call.args.includes("gpt-5.5"))).toBe(true);
+    expect(calls.every((call) => call.args.includes("gpt-5.6-sol"))).toBe(true);
     expect(calls.every((call) => String(call.cwd).includes("/repo"))).toBe(true);
     expect(calls.every((call) => !existsSync(String(call.tmp).replace(/\/tmp$/, "")))).toBe(true);
   }));
@@ -302,18 +312,18 @@ test("stale diagnostics mark abandoned sessions and cleanup removes known temp w
     const repo = makeRepo(root);
     const cfg = config(root);
     const session = createSession("Review but get interrupted.", repoContext(repo), cfg, new Date(2026, 0, 2, 6, 7, 8));
-    const workspace = join(root, "mcc-conservative-maintainer-leftover");
+    const workspace = join(root, "mcc-ruthless-simplifier-leftover");
     mkdirSync(workspace, { recursive: true });
-    mkdirSync(join(session.path, "reviewers", "conservative-maintainer"), { recursive: true });
-    writeFileSync(join(session.path, "reviewers", "conservative-maintainer", "workspace.txt"), `${workspace}\n`);
+    mkdirSync(join(session.path, "reviewers", "ruthless-simplifier"), { recursive: true });
+    writeFileSync(join(session.path, "reviewers", "ruthless-simplifier", "workspace.txt"), `${workspace}\n`);
     writeFileSync(
-      join(session.path, "logs", "conservative-maintainer.meta.json"),
+      join(session.path, "logs", "ruthless-simplifier.meta.json"),
       JSON.stringify({ status: "RUNNING", pid: 99999999, tempRoot: workspace, stdoutFile: "x", stderrFile: "y" }, null, 2),
     );
 
     const status = renderSessionDiagnostics(session.path, { markStale: true });
     expect(status).toContain("Computed status: STALE");
-    expect(status).toContain("conservative-maintainer");
+    expect(status).toContain("ruthless-simplifier");
     expect(status).toContain("99999999!");
     expect(text(join(session.path, "status.txt"))).toBe("STALE\n");
 
@@ -356,11 +366,11 @@ test("CLI parsing, help, doctor, and run command", async () =>
     });
 
     const help = await runCli(["help"], skillDir, { HOME: root });
-    expect(help.lines.join("\n")).toContain("Uses gpt-5.5 via openai-codex explicitly");
-    expect(help.lines.join("\n")).toContain("conservative-maintainer");
+    expect(help.lines.join("\n")).toContain("Uses gpt-5.6-sol via openai-codex explicitly");
+    expect(help.lines.join("\n")).toContain("ruthless-simplifier");
 
     const doctor = await runCli(["doctor"], skillDir, { HOME: root, MCC_PI_BIN: fakePi });
-    expect(doctor.lines).toContain("Doctor: model=gpt-5.5");
+    expect(doctor.lines).toContain("Doctor: model=gpt-5.6-sol");
 
     const run = await runCli(
       ["run", "--cwd", repo, "--request", "Review through CLI."],

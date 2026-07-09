@@ -361,7 +361,7 @@ export function finalSummaryExcerpt(sessionPath: string, limit = 12000): string 
 }
 
 export function makeManualRunCommand(config: MccConfig, cwd: string): string {
-  return `MCC=\"$HOME/.pi/agent/skills/model-code-council/scripts/mcc\"\n\"$MCC\" run --cwd ${shellQuoteForDisplay(cwd)}`;
+  return `MCC=\"$HOME/.pi/agent/skills/multi-character-code-council/scripts/mcc\"\n\"$MCC\" run --cwd ${shellQuoteForDisplay(cwd)}`;
 }
 
 export function listIssueFiles(sessionPath: string): string[] {

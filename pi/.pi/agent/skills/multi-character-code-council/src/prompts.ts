@@ -22,7 +22,9 @@ export function renderReviewerPrompt(options: ReviewerPromptOptions): string {
   const template = readText(join(options.config.skillDir, "prompts", "reviewer.md"));
   return fillTemplate(template, {
     REVIEWER_ID: options.persona.id,
+    REVIEWER_NAME: options.persona.name,
     REVIEWER_DESCRIPTION: options.persona.description,
+    REVIEWER_PROMPT: options.persona.prompt,
     WORKSPACE_ROOT: options.workspace.repoRoot,
     WORKING_DIRECTORY: options.workspace.cwd,
     REPORT_PATH: options.reportPath,

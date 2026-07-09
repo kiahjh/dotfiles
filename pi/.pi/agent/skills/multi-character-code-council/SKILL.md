@@ -1,16 +1,16 @@
 ---
-name: model-code-council
-description: "Run a Multi-Character Code Council: parallel GPT-5.5/pi reviewer personas in isolated temp workspaces, followed by an xhigh chair synthesis. Use for adversarial review, second opinions, cross-review, review before implementation, or getting several distinct engineering perspectives on a change/plan/diff/architecture."
+name: multi-character-code-council
+description: "Run a Multi-Character Code Council: four radically different GPT-5.6 Sol reviewer characters in isolated temp workspaces, followed by an xhigh skeptical chair. Use for adversarial review, second opinions, cross-review, review before implementation, or distinct engineering perspectives on a change, plan, diff, or architecture."
 ---
 
 # Multi-Character Code Council
 
-Run a file-based code review council using **GPT-5.5 via the pi CLI** with several hard-coded reviewer personalities. This is personality diversity, not model diversity: every reviewer examines the full requested scope, but each applies a different professional temperament.
+Run a file-based code review council using **GPT-5.6 Sol via the pi CLI** with four deliberately incompatible reviewer characters. This is personality diversity, not model diversity: each reviewer owns a different jurisdiction, method, voice, and definition of a valuable finding.
 
 The council runner is a Bun/TypeScript CLI at:
 
 ```bash
-MCC="$HOME/.pi/agent/skills/model-code-council/scripts/mcc"
+MCC="$HOME/.pi/agent/skills/multi-character-code-council/scripts/mcc"
 ```
 
 ## When to use
@@ -21,31 +21,31 @@ Do **not** assume the target is the current git diff. The user's request defines
 
 ## How it works
 
-1. `mcc run` creates a global council session under `~/.local/share/pi/model-code-council/`.
+1. `mcc run` creates a global council session under `~/.local/share/pi/multi-character-code-council/`.
 2. The runner creates one disposable temp workspace per reviewer, copying the current working-tree state, including tracked and untracked non-ignored files.
-3. Six reviewer pi processes run **in parallel**:
+3. Four reviewer pi processes run **in parallel**:
    - provider: `openai-codex`
-   - model: `gpt-5.5`
+   - model: `gpt-5.6-sol`
    - thinking: `high`
    - tools: `read,bash,write,edit,grep,find,ls`
-4. Each reviewer writes its own durable `report.md` inside its temp workspace; the runner copies it into the council session and deletes the temp workspace.
-5. After all reviewer processes finish, a chair pi process runs:
+4. Each reviewer follows a role-specific method and report anatomy, writes its own durable `report.md` inside its temp workspace, and stays out of the other reviewers' jurisdictions. The runner copies the report into the council session and deletes the temp workspace.
+5. After all reviewer processes finish, a skeptical chair pi process runs:
    - provider: `openai-codex`
-   - model: `gpt-5.5`
+   - model: `gpt-5.6-sol`
    - thinking: `xhigh`
-6. The chair reads all reviewer reports, weighs corroborated findings more heavily, preserves strong lone findings, rejects weak claims, and writes `chair/final.md` plus individual issue files.
-7. GPT-5.5 in the main Pi session reads the chair output, presents issues/proposed solutions/escalations to the human, and asks for approval before editing source code.
+6. The chair reads all reviewer reports, treats repeated same-model claims as correlated evidence rather than votes, cross-examines consensus, preserves dissent, separates facts from intent assumptions, and writes `chair/final.md` plus individual issue files.
+7. The main Pi session reads the chair output, presents issues/proposed solutions/escalations to the human, and asks for approval before editing source code.
 
-## Hard-coded reviewer personalities
+## Hard-coded reviewer characters
 
-All reviewers inspect correctness, safety, security, data integrity, architecture, maintainability, testing, UX, performance, deployment risk, and project fit. Their personality changes priors and pushback style, not scope.
+The reviewers are intentionally not full-spectrum clones. Each has exclusive interests, a distinct investigative method, explicit anti-goals, a finding budget, characteristic language, and a role-specific report structure. Out-of-jurisdiction blockers may be noted briefly, but reviewers must not widen into generic review.
 
-- `conservative-maintainer` — favors boring, explicit, debuggable long-term maintainability.
-- `production-incident-veteran` — imagines outages, partial failures, weird inputs, concurrency, rollback, and observability gaps.
-- `formal-correctness-thinker` — demands contracts, invariants, state transitions, edge cases, and verifiable behavior.
-- `pragmatic-product-engineer` — optimizes for smallest safe shippable improvement, clear value, low churn, and fast verification.
-- `high-standards-principal-engineer` — focuses on conceptual integrity, boundaries, naming, dependency direction, and long-term design shape.
-- `adversarial-cross-examiner` — challenges assumptions, weak evidence, hidden coupling, trust boundaries, abuse cases, and overconfidence.
+- `ruthless-simplifier` — audits abstraction rent, API surface, dependency choices, and existing simpler alternatives; writes blunt KEEP/FLATTEN/MOVE/DELETE judgments and a complexity ledger.
+- `failure-mode-red-teamer` — runs concrete incident pre-mortems through trigger, propagation, impact, detection, and recovery; ignores aesthetics and unsupported hypotheticals.
+- `shipping-intent-advocate` — steelmans the intended workflow, protects user value and team velocity, classifies concerns as FIX/ASK/DEFER/REJECT, and pushes back on review-driven overbuilding.
+- `contract-prosecutor` — derives numbered invariants, constructs minimal counterexamples, and reports only proved contract violations or explicitly unproven obligations.
+
+The chair performs the true adversarial cross-examination because it can see all reports; an isolated reviewer cannot challenge a consensus it has never observed.
 
 ## Commands
 
@@ -80,10 +80,10 @@ If a terminal disconnect, timeout, or abort interrupts the parent runner, `statu
 Environment knobs for the runner itself:
 
 ```bash
-MCC_REVIEW_ROOT="$HOME/.local/share/pi/model-code-council"
+MCC_REVIEW_ROOT="$HOME/.local/share/pi/multi-character-code-council"
 MCC_PI_BIN=pi
 MCC_PROVIDER=openai-codex
-MCC_MODEL=gpt-5.5
+MCC_MODEL=gpt-5.6-sol
 ```
 
 The model/provider are explicit so the council does not silently change if the user's interactive pi defaults change.
@@ -91,19 +91,17 @@ The model/provider are explicit so the council does not silently change if the u
 ## Review folder
 
 ```text
-~/.local/share/pi/model-code-council/YYYY-MM-DD-HHMMSS-repo-name/
+~/.local/share/pi/multi-character-code-council/YYYY-MM-DD-HHMMSS-repo-name/
   README.md
   request.md
   status.txt
   run.json                 # written at start; updated on completion/failure
   reviewers/
-    conservative-maintainer/workspace.txt
-    conservative-maintainer/report.md
-    production-incident-veteran/report.md
-    formal-correctness-thinker/report.md
-    pragmatic-product-engineer/report.md
-    high-standards-principal-engineer/report.md
-    adversarial-cross-examiner/report.md
+    ruthless-simplifier/workspace.txt
+    ruthless-simplifier/report.md
+    failure-mode-red-teamer/report.md
+    shipping-intent-advocate/report.md
+    contract-prosecutor/report.md
   chair/
     workspace.txt
     final.md
@@ -115,10 +113,10 @@ The model/provider are explicit so the council does not silently change if the u
 ## Non-negotiables
 
 1. Pass the user's exact review request/scope to the council.
-2. Create persistent council artifacts under `~/.local/share/pi/model-code-council/`, never inside the project unless explicitly asked.
+2. Create persistent council artifacts under `~/.local/share/pi/multi-character-code-council/`, never inside the project unless explicitly asked.
 3. Reviewers and chair may use bash only in disposable temp workspace copies.
 4. Reviewers/chair must not intentionally mutate the real repo, home directory, global config, databases, cloud resources, Docker services, package registries, or network services.
-5. GPT-5.5 in the main Pi session must not edit source code during the council.
+5. The main Pi session must not edit source code during the council.
 6. After the council, read `chair/final.md` and relevant `chair/issues/*.md`, present the findings/proposed fixes/escalations, and ask the human for approval/input before implementation.
 
 ## Main Pi workflow
