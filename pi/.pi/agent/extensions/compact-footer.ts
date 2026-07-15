@@ -23,9 +23,19 @@ const PROGRESS_WIDTH = 20;
 const DEFAULT_SUPPORTED_MODEL_KEYS = [
 	"openai/gpt-5.4",
 	"openai/gpt-5.5",
+	"openai/gpt-5.6-sol",
+	"openai/gpt-5.6-terra",
+	"openai/gpt-5.6-luna",
 	"openai-codex/gpt-5.4",
 	"openai-codex/gpt-5.5",
-];
+	"openai-codex/gpt-5.6-sol",
+	"openai-codex/gpt-5.6-terra",
+	"openai-codex/gpt-5.6-luna",
+] as const;
+const LEGACY_DEFAULT_SUPPORTED_MODEL_KEY_SETS = [
+	["openai/gpt-5.4", "openai-codex/gpt-5.4"],
+	["openai/gpt-5.4", "openai/gpt-5.5", "openai-codex/gpt-5.4", "openai-codex/gpt-5.5"],
+] as const;
 
 interface FastConfigFile {
 	persistState?: boolean;
@@ -80,6 +90,18 @@ function parseSupportedModels(value: readonly string[]): FastSupportedModel[] {
 	});
 }
 
+function sameModelKeys(left: readonly string[] | undefined, right: readonly string[]): boolean {
+	if (!left || left.length !== right.length) return false;
+	return left.every((value, index) => value === right[index]);
+}
+
+function migrateSupportedModelKeys(value: string[] | undefined): readonly string[] | undefined {
+	if (LEGACY_DEFAULT_SUPPORTED_MODEL_KEY_SETS.some((legacyKeys) => sameModelKeys(value, legacyKeys))) {
+		return DEFAULT_SUPPORTED_MODEL_KEYS;
+	}
+	return value;
+}
+
 function readFastConfigFile(path: string): FastConfigFile | undefined {
 	if (!existsSync(path)) return undefined;
 
@@ -108,9 +130,11 @@ function resolveFastConfig(cwd: string): ResolvedFastConfig {
 	const merged = { ...globalConfig, ...projectConfig };
 
 	return {
-		// Matches pi-openai-fast startup behavior for config-backed state.
+		// Mirror pi-openai-fast's config-backed state and legacy default-list migration.
 		active: merged.persistState !== false && merged.active === true,
-		supportedModels: parseSupportedModels(merged.supportedModels ?? DEFAULT_SUPPORTED_MODEL_KEYS),
+		supportedModels: parseSupportedModels(
+			migrateSupportedModelKeys(merged.supportedModels) ?? DEFAULT_SUPPORTED_MODEL_KEYS,
+		),
 	};
 }
 
