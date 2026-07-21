@@ -1,13 +1,13 @@
 ---
 name: context-capture
-description: Capture durable resume context into a project-local agent state file and design a bespoke browser dashboard. Use when the user asks to capture the current session, prepare a handoff before starting a new session, preserve resume context, or update saved agent state.
+description: Capture durable resume context into a project-local agent state file. Use when the user asks to capture the current session, prepare a handoff before starting a new session, preserve resume context, or update saved agent state.
 ---
 
 # Context Capture
 
-Capture the current session's durable resume context for the next agent, and create a useful visual status artifact for the user.
+Capture the current session's durable resume context for the next agent.
 
-Use any focus, priorities, exclusions, or other context from the user's surrounding prompt when deciding what to preserve. Optimize for the next agent's fastest safe resume and the user's clearest view of the project, not for audit history.
+Use any focus, priorities, exclusions, or other context from the user's surrounding prompt when deciding what to preserve. Optimize for the next agent's fastest safe resume, not for audit history.
 
 ## Storage layout
 
@@ -21,7 +21,6 @@ Store context under:
 ```txt
 scratch/agent/
   state.md
-  dashboard.html
   context/
     <optional-topic>.md
 ```
@@ -29,7 +28,6 @@ scratch/agent/
 Roles:
 
 - `state.md` is the canonical agent entrypoint and source of truth.
-- `dashboard.html` is a human-facing interpretation of current state. It is not canonical.
 - `context/*.md` contains optional durable detail that would make `state.md` noisy. Create these files sparingly.
 
 If `scratch/` does not exist, create it. In a Git worktree, ensure the repository `.gitignore` at the Git root covers `scratch/`:
@@ -84,48 +82,6 @@ There is no mandatory template for context files. Give each one a descriptive ti
 
 Update, merge, rename, or delete context files aggressively. Do not preserve them merely because they already exist. Prefer no optional files over weakly useful files, and strongly consider consolidation if more than about three are active.
 
-## `dashboard.html`: bespoke user-facing artifact
-
-Design `dashboard.html` from scratch on every capture.
-
-Do not:
-
-- use a reusable dashboard template
-- invoke a deterministic renderer
-- impose a standard set of sections or cards
-- mechanically preserve the previous dashboard's structure
-- treat the previous HTML as the source of truth
-
-Instead, treat each capture as a fresh visual-design brief. Read the canonical Markdown and decide what visual form best explains this particular project right now.
-
-Possible forms include, but are not limited to:
-
-- a focused checklist or progress board
-- a roadmap or timeline
-- an architecture or data-flow diagram using inline SVG
-- a migration matrix
-- a debugging evidence board
-- a decision comparison
-- a compact single-screen status page
-- a mixture of visuals, metrics, prose, and next actions
-
-These are examples, not required components. Some dashboards should be visually rich; others should be intentionally minimal.
-
-Dashboard requirements:
-
-- Write a complete new `dashboard.html`, overwriting the old file rather than patching its layout.
-- Make it immediately understandable in a browser and visually appropriate to the project.
-- Use semantic HTML and deliberate typography, spacing, hierarchy, and color.
-- Keep it responsive and readable on both wide and narrow windows.
-- Prefer a self-contained file with inline CSS and, when useful, inline SVG or small inline JavaScript.
-- Avoid external network dependencies unless the project specifically justifies them.
-- Represent the current Markdown truth faithfully without copying every detail.
-- Include freshness or provenance somewhere unobtrusive so the user can tell when the view was captured.
-- Clearly indicate that the HTML is generated and that `state.md` is canonical.
-- Escape project-provided text safely and never expose secrets.
-
-The dashboard may summarize or visualize optional context, but the agent should continue to use Markdown—not HTML—for future preflight.
-
 ## Legacy migration
 
 Older captures may use:
@@ -179,17 +135,11 @@ Do not carry forward stale chronology merely to preserve the old format.
    - `git status --short`
    - relevant diffs or files only when needed for accuracy
 5. Use the conversation and inspected state to rewrite concise current truth.
-6. Update, create, merge, or delete optional context files as justified.
+6. Update, create, merge, rename, or delete optional context files as justified.
 7. Write `state.md` after the context-file set is settled so all references are accurate.
-8. Forget the previous dashboard layout and design a complete new `dashboard.html` suited to the current project and moment.
-9. Verify that:
-   - `state.md` and `dashboard.html` exist
-   - the HTML reflects the current state and opens as a standalone document
-   - all context files referenced from `state.md` exist
-   - the dashboard identifies `state.md` as canonical
+8. Delete any legacy `scratch/agent/dashboard.html`.
+9. Verify that `state.md` and all context files it references exist.
 10. Report what changed.
-
-If dashboard creation fails, preserve the correctly updated Markdown source of truth and report that the dashboard is stale or missing.
 
 ## Final response
 
@@ -197,7 +147,6 @@ Respond briefly with:
 
 - `state.md` updated or created.
 - Context files created, merged, renamed, or deleted.
-- `dashboard.html` freshly redesigned, including its path and the visual approach chosen.
 - The immediate next step.
 - Any caveat if important context could not be inspected.
 

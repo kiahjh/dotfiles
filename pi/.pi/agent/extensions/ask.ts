@@ -5,28 +5,18 @@
  * Multiple questions: tab bar navigation between questions
  */
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { Editor, type EditorTheme, Key, matchesKey, Text, truncateToWidth } from "@mariozechner/pi-tui";
-import { Type } from "@sinclair/typebox";
-
-// Word-wrap a string to fit within a given width, preserving a prefix (e.g. " ") on each line
-function wordWrap(text: string, width: number, prefix: string = " "): string[] {
-	const maxLen = width - prefix.length;
-	if (maxLen <= 0) return [text];
-	const words = text.split(/\s+/);
-	const result: string[] = [];
-	let line = "";
-	for (const word of words) {
-		if (line && line.length + 1 + word.length > maxLen) {
-			result.push(prefix + line);
-			line = word;
-		} else {
-			line = line ? line + " " + word : word;
-		}
-	}
-	if (line) result.push(prefix + line);
-	return result;
-}
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import {
+	Editor,
+	type EditorTheme,
+	Key,
+	matchesKey,
+	Text,
+	truncateToWidth,
+	visibleWidth,
+	wrapTextWithAnsi,
+} from "@earendil-works/pi-tui";
+import { Type } from "typebox";
 
 // Types
 interface QuestionOption {
@@ -278,13 +268,28 @@ export default function ask(pi: ExtensionAPI) {
 					if (cachedLines) return cachedLines;
 
 					const lines: string[] = [];
+					const renderWidth = Math.max(1, width);
 					const q = currentQuestion();
 					const opts = currentOptions();
 
-					// Helper to add truncated line
-					const add = (s: string) => lines.push(truncateToWidth(s, width));
+					function addWrapped(text: string) {
+						lines.push(...wrapTextWithAnsi(text, renderWidth));
+					}
 
-					add(theme.fg("accent", "─".repeat(width)));
+					function addWrappedWithPrefix(prefix: string, text: string) {
+						const prefixWidth = visibleWidth(prefix);
+						if (prefixWidth >= renderWidth) {
+							addWrapped(prefix + text);
+							return;
+						}
+						const wrapped = wrapTextWithAnsi(text, renderWidth - prefixWidth);
+						const continuationPrefix = " ".repeat(prefixWidth);
+						for (let i = 0; i < wrapped.length; i++) {
+							lines.push(`${i === 0 ? prefix : continuationPrefix}${wrapped[i]}`);
+						}
+					}
+
+					lines.push(theme.fg("accent", "─".repeat(renderWidth)));
 
 					// Tab bar (multi-question only)
 					if (isMulti) {
@@ -306,7 +311,7 @@ export default function ask(pi: ExtensionAPI) {
 							? theme.bg("selectedBg", theme.fg("text", submitText))
 							: theme.fg(canSubmit ? "success" : "dim", submitText);
 						tabs.push(`${submitStyled} →`);
-						add(` ${tabs.join("")}`);
+						addWrappedWithPrefix(" ", tabs.join(""));
 						lines.push("");
 					}
 
@@ -317,54 +322,52 @@ export default function ask(pi: ExtensionAPI) {
 							const selected = i === optionIndex;
 							const isOther = opt.isOther === true;
 							const prefix = selected ? theme.fg("accent", "> ") : "  ";
-							const color = selected ? "accent" : "text";
-							// Mark "Type something" differently when in input mode
-							if (isOther && inputMode) {
-								add(prefix + theme.fg("accent", `${i + 1}. ${opt.label} ✎`));
-							} else {
-								add(prefix + theme.fg(color, `${i + 1}. ${opt.label}`));
-							}
+							const label = `${i + 1}. ${opt.label}${isOther && inputMode ? " ✎" : ""}`;
+							const color = selected || (isOther && inputMode) ? "accent" : "text";
+
+							addWrappedWithPrefix(prefix, theme.fg(color, label));
 							if (opt.description) {
-								add(`     ${theme.fg("muted", opt.description)}`);
+								addWrappedWithPrefix("     ", theme.fg("muted", opt.description));
 							}
 						}
 					}
 
 					// Content
 					if (inputMode && q) {
-						for (const wl of wordWrap(q.prompt, width)) lines.push(theme.fg("text", wl));
+						addWrappedWithPrefix(" ", theme.fg("text", q.prompt));
 						lines.push("");
 						// Show options for reference
 						renderOptions();
 						lines.push("");
-						add(theme.fg("muted", " Your answer:"));
-						for (const line of editor.render(width - 2)) {
-							add(` ${line}`);
+						addWrappedWithPrefix(" ", theme.fg("muted", "Your answer:"));
+						for (const line of editor.render(Math.max(1, renderWidth - 2))) {
+							lines.push(` ${line}`);
 						}
 						lines.push("");
-						add(theme.fg("dim", " Enter to submit • Esc to cancel"));
+						addWrappedWithPrefix(" ", theme.fg("dim", "Enter to submit • Esc to cancel"));
 					} else if (currentTab === questions.length) {
-						add(theme.fg("accent", theme.bold(" Ready to submit")));
+						addWrappedWithPrefix(" ", theme.fg("accent", theme.bold("Ready to submit")));
 						lines.push("");
 						for (const question of questions) {
 							const answer = answers.get(question.id);
 							if (answer) {
 								const prefix = answer.wasCustom ? "(wrote) " : "";
-								add(`${theme.fg("muted", ` ${question.label}: `)}${theme.fg("text", prefix + answer.label)}`);
+								const summary = `${theme.fg("muted", `${question.label}: `)}${theme.fg("text", prefix + answer.label)}`;
+								addWrappedWithPrefix(" ", summary);
 							}
 						}
 						lines.push("");
 						if (allAnswered()) {
-							add(theme.fg("success", " Press Enter to submit"));
+							addWrappedWithPrefix(" ", theme.fg("success", "Press Enter to submit"));
 						} else {
 							const missing = questions
 								.filter((q) => !answers.has(q.id))
 								.map((q) => q.label)
 								.join(", ");
-							add(theme.fg("warning", ` Unanswered: ${missing}`));
+							addWrappedWithPrefix(" ", theme.fg("warning", `Unanswered: ${missing}`));
 						}
 					} else if (q) {
-						for (const wl of wordWrap(q.prompt, width)) lines.push(theme.fg("text", wl));
+						addWrappedWithPrefix(" ", theme.fg("text", q.prompt));
 						lines.push("");
 						renderOptions();
 					}
@@ -372,11 +375,11 @@ export default function ask(pi: ExtensionAPI) {
 					lines.push("");
 					if (!inputMode) {
 						const help = isMulti
-							? " Tab/←→ navigate • ↑↓ select • Enter confirm • Esc cancel"
-							: " ↑↓ navigate • Enter select • Esc cancel";
-						add(theme.fg("dim", help));
+							? "Tab/←→ navigate • ↑↓ select • Enter confirm • Esc cancel"
+							: "↑↓ navigate • Enter select • Esc cancel";
+						addWrappedWithPrefix(" ", theme.fg("dim", help));
 					}
-					add(theme.fg("accent", "─".repeat(width)));
+					lines.push(theme.fg("accent", "─".repeat(renderWidth)));
 
 					cachedLines = lines;
 					return lines;

@@ -16,7 +16,6 @@ This skill is preflight/orientation only.
 Do not:
 
 - edit files
-- regenerate the dashboard
 - implement changes
 - run tests or builds as a way of starting work
 - fix problems you notice
@@ -36,7 +35,6 @@ The context layout is:
 ```txt
 scratch/agent/
   state.md
-  dashboard.html
   context/
     <optional-topic>.md
 ```
@@ -44,7 +42,6 @@ scratch/agent/
 Roles:
 
 - `state.md` is the canonical agent entrypoint and source of truth. Always read it first.
-- `dashboard.html` is a generated human-facing view. Do not use it as agent context or edit it.
 - `context/*.md` contains optional supporting detail. Read selectively, not automatically.
 
 These files are usually gitignored. Use Bash `find` or `ls` when discovering them rather than tools that may respect ignore rules.
@@ -80,8 +77,6 @@ If `state.md` does not exist:
 - If legacy `scratch/agent/handoff.md` or `ledger.*.md` files exist, read only enough active legacy context to orient.
 - Identify it as legacy context and suggest running the `context-capture` skill later to migrate it.
 - Do not perform the migration during preflight.
-
-If only `dashboard.html` exists, do not treat it as canonical. Report that the Markdown source of truth is missing.
 
 ## Output format
 

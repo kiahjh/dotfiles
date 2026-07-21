@@ -16,6 +16,9 @@
       "themes": []
     }
   ],
-  "lastChangelogVersion": "0.80.6",
-  "hideThinkingBlock": true
+  "lastChangelogVersion": "0.80.10",
+  "hideThinkingBlock": true,
+  "terminal": {
+    "showImages": false
+  }
 }

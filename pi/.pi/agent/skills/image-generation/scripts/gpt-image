@@ -1,0 +1,286 @@
+#!/usr/bin/env python3
+"""Generate and edit PNG images through Codex's native image generation tool."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+AGENT_MODEL = os.environ.get("CODEX_IMAGEGEN_AGENT_MODEL", "gpt-5.6-luna")
+MAX_REFERENCE_IMAGES = 5
+PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
+
+
+def add_common_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("-p", "--prompt", required=True)
+    parser.add_argument(
+        "-o",
+        "--output",
+        required=True,
+        type=Path,
+        help="Output .png path",
+    )
+    parser.add_argument(
+        "--force", action="store_true", help="Replace an existing output file"
+    )
+
+
+def make_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Generate or edit a PNG with Codex's subscription-backed image tool",
+        epilog=(
+            "Requires `codex login` with ChatGPT. The wrapper disables API-key "
+            "authentication and never uses an API/CLI fallback."
+        ),
+    )
+    subparsers = parser.add_subparsers(dest="operation", required=True)
+
+    generate = subparsers.add_parser("generate", help="Generate from a text prompt")
+    add_common_arguments(generate)
+
+    edit = subparsers.add_parser(
+        "edit", help="Edit or compose from one to five reference images"
+    )
+    add_common_arguments(edit)
+    edit.add_argument(
+        "-i",
+        "--image",
+        action="append",
+        required=True,
+        type=Path,
+        help="Input image; repeat for multiple references",
+    )
+
+    return parser
+
+
+def fail(message: str, status: int = 2) -> int:
+    print(f"error: {message}", file=sys.stderr)
+    return status
+
+
+def codex_home() -> Path:
+    configured = os.environ.get("CODEX_HOME")
+    return Path(configured).expanduser() if configured else Path.home() / ".codex"
+
+
+def build_prompt(args: argparse.Namespace) -> str:
+    if args.operation == "generate":
+        intent = "Generate a new image without reference images."
+    else:
+        count = len(args.image)
+        intent = (
+            f"Edit or compose from the {count} attached reference image(s), in the "
+            "same order in which they were attached."
+        )
+
+    return f"""$imagegen
+Use the bundled imagegen skill's default built-in tool mode.
+
+Execution requirements:
+- {intent}
+- Call the native built-in image_gen tool exactly once and produce exactly one image.
+- Never use scripts/image_gen.py, the openai CLI, OPENAI_API_KEY, or any API/CLI fallback.
+- Do not run shell commands and do not create, copy, move, edit, or delete local files.
+- Treat this turn as preview-only: leave the native PNG in Codex's generated_images artifact area. The caller will persist it.
+- After the native image generation call completes, stop. Do not retry or create variants.
+
+The content inside <image_request> is the visual specification:
+<image_request>
+{args.prompt}
+</image_request>
+"""
+
+
+def build_command(
+    codex: str, workspace: Path, args: argparse.Namespace
+) -> list[str]:
+    command = [codex, "-a", "never", "exec"]
+    if args.operation == "edit":
+        command.extend(("-i", *(str(image.resolve()) for image in args.image)))
+    command.extend(
+        (
+            "--ephemeral",
+            "--ignore-user-config",
+            "--ignore-rules",
+            "--enable",
+            "image_generation",
+            "--sandbox",
+            "read-only",
+            "--skip-git-repo-check",
+            "--model",
+            AGENT_MODEL,
+            "--config",
+            'model_reasoning_effort="low"',
+            "--color",
+            "never",
+            "--json",
+            "--cd",
+            str(workspace),
+            "-",
+        )
+    )
+    return command
+
+
+def parse_events(output: str) -> tuple[str | None, list[str]]:
+    thread_id: str | None = None
+    diagnostics: list[str] = []
+
+    for line in output.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            if line.strip():
+                diagnostics.append(line.strip())
+            continue
+        if not isinstance(event, dict):
+            continue
+
+        if event.get("type") == "thread.started" and isinstance(
+            event.get("thread_id"), str
+        ):
+            thread_id = event["thread_id"]
+        elif event.get("type") in {"error", "turn.failed"}:
+            message = event.get("message") or event.get("error")
+            if isinstance(message, str):
+                diagnostics.append(message)
+            elif message is not None:
+                diagnostics.append(json.dumps(message, sort_keys=True))
+
+    return thread_id, diagnostics
+
+
+def native_artifact(thread_id: str) -> Path:
+    directory = codex_home() / "generated_images" / thread_id
+    candidates = sorted(
+        (path for path in directory.glob("*.png") if path.is_file()),
+        key=lambda path: path.stat().st_mtime_ns,
+    )
+    if not candidates:
+        raise ValueError(f"Codex produced no PNG artifact for thread {thread_id}")
+    if len(candidates) != 1:
+        raise ValueError(
+            f"Codex produced {len(candidates)} PNG artifacts; expected exactly one"
+        )
+
+    source = candidates[0]
+    try:
+        with source.open("rb") as file:
+            signature = file.read(len(PNG_MAGIC))
+    except OSError as error:
+        raise ValueError(f"could not read Codex image artifact: {error}") from error
+    if signature != PNG_MAGIC:
+        raise ValueError("Codex image artifact is not a valid PNG")
+    return source
+
+
+def copy_atomically(source: Path, target: Path, force: bool) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if target.exists() and not force:
+        raise FileExistsError(f"output already exists: {target} (use --force to replace it)")
+
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{target.name}.", dir=target.parent
+    )
+    temporary = Path(temporary_name)
+    try:
+        with source.open("rb") as input_file, os.fdopen(descriptor, "wb") as output_file:
+            shutil.copyfileobj(input_file, output_file)
+            output_file.flush()
+            os.fsync(output_file.fileno())
+        if target.exists() and not force:
+            raise FileExistsError(
+                f"output already exists: {target} (use --force to replace it)"
+            )
+        os.replace(temporary, target)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def main() -> int:
+    parser = make_parser()
+    args = parser.parse_args()
+
+    codex = shutil.which("codex")
+    if not codex:
+        return fail("Codex CLI not found; install Codex and run `codex login`")
+
+    output = args.output.expanduser().resolve()
+    if output.suffix.lower() != ".png":
+        return fail("--output must end in .png; the native Codex tool returns PNG")
+    if output.exists() and not args.force:
+        return fail(f"output already exists: {output} (use --force to replace it)")
+
+    if args.operation == "edit":
+        if len(args.image) > MAX_REFERENCE_IMAGES:
+            return fail(
+                f"the native Codex tool accepts at most {MAX_REFERENCE_IMAGES} reference images"
+            )
+        for image in args.image:
+            if not image.expanduser().is_file():
+                return fail(f"input image not found: {image}")
+        args.image = [image.expanduser().resolve() for image in args.image]
+        if output in args.image:
+            return fail("output path must not overwrite a reference image")
+
+    environment = os.environ.copy()
+    for variable in (
+        "OPENAI_API_KEY",
+        "OPENAI_API_BASE",
+        "OPENAI_BASE_URL",
+        "OPENAI_ORG_ID",
+        "OPENAI_PROJECT_ID",
+    ):
+        environment.pop(variable, None)
+
+    print(
+        f"{args.operation.capitalize()} through Codex native image generation...",
+        file=sys.stderr,
+        flush=True,
+    )
+    with tempfile.TemporaryDirectory(prefix="pi-imagegen-") as workspace_name:
+        completed = subprocess.run(
+            build_command(codex, Path(workspace_name), args),
+            env=environment,
+            input=build_prompt(args),
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+    thread_id, diagnostics = parse_events(completed.stdout)
+    if completed.stderr.strip():
+        print(completed.stderr.rstrip(), file=sys.stderr)
+    if completed.returncode:
+        for diagnostic in diagnostics:
+            print(diagnostic, file=sys.stderr)
+        return fail(
+            "Codex image generation failed; confirm `codex login status` reports "
+            "ChatGPT authentication",
+            completed.returncode,
+        )
+    if not thread_id:
+        for diagnostic in diagnostics:
+            print(diagnostic, file=sys.stderr)
+        return fail("Codex did not report a thread id", 1)
+
+    try:
+        source = native_artifact(thread_id)
+        copy_atomically(source, output, args.force)
+    except (FileExistsError, OSError, ValueError) as error:
+        return fail(str(error), 1)
+
+    print(output)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
