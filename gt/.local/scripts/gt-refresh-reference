@@ -1,0 +1,43 @@
+#!/bin/bash
+set -euo pipefail
+
+export PATH="${HOME}/.bun/bin:${HOME}/.local/bin:${HOME}/.local/scripts:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+reference_dir="${GT_REFERENCE_DIR:-${HOME}/active-projects/gertrude/reference}"
+gt_bin="${GT_REFERENCE_GT_BIN:-${HOME}/.local/scripts/gt}"
+branch="${GT_REFERENCE_BRANCH:-master}"
+lock_file="${GT_REFERENCE_LOCK_FILE:-${HOME}/Library/Caches/com.miciah.gt-reference-refresh.lock}"
+
+log() {
+  printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
+}
+
+mkdir -p "$(dirname "${lock_file}")"
+exec 9>"${lock_file}"
+if ! /usr/bin/lockf -st 0 9; then
+  log "A reference refresh is already running; skipping."
+  exit 0
+fi
+
+if [[ ! -d "${reference_dir}/.git" ]]; then
+  log "Reference task not found at ${reference_dir}; create it with: gt spawn reference" >&2
+  exit 1
+fi
+
+if [[ ! -x "${gt_bin}" ]]; then
+  log "gt executable not found at ${gt_bin}" >&2
+  exit 1
+fi
+
+trap 'status=$?; if [[ ${status} -ne 0 ]]; then log "Reference refresh failed (exit ${status})." >&2; fi' EXIT
+
+log "Refreshing Gertrude reference task."
+cd "${reference_dir}"
+
+git fetch --prune origin "+refs/heads/${branch}:refs/remotes/origin/${branch}"
+git reset --hard "origin/${branch}"
+log "Code updated to $(git rev-parse --short HEAD)."
+
+"${gt_bin}" setup-env-db
+
+log "Reference refresh complete."
