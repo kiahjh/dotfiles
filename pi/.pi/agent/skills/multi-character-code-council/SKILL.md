@@ -1,6 +1,6 @@
 ---
 name: multi-character-code-council
-description: "Run a Multi-Character Code Council: four radically different GPT-5.6 Sol reviewer characters in isolated temp workspaces, followed by an xhigh skeptical chair. Use for adversarial review, second opinions, cross-review, review before implementation, or distinct engineering perspectives on a change, plan, diff, or architecture."
+description: "Run a Multi-Character Code Council with four GPT-5.6 Sol reviewer characters and an xhigh skeptical chair. Use only when the user explicitly requests an MCC review, names the Multi-Character Code Council, or directly invokes this skill. Never use for a generic review, second opinion, adversarial review, cross-review, pre-implementation review, or request for multiple perspectives unless the user explicitly asks for MCC."
 ---
 
 # Multi-Character Code Council
@@ -13,11 +13,17 @@ The council runner is a Bun/TypeScript CLI at:
 MCC="$HOME/.pi/agent/skills/multi-character-code-council/scripts/mcc"
 ```
 
-## When to use
+## Invocation gate (strict)
 
-Use when the user asks for a second opinion, adversarial review, model/council review, review before implementation, cross-review, or several different engineering perspectives on a change, plan, diff, branch, file set, or architecture.
+Run this skill **only** when the user explicitly distinguishes their request as an MCC review. Qualifying requests must directly name one of:
 
-Do **not** assume the target is the current git diff. The user's request defines the scope. Ask one concise clarifying question only if the target is too ambiguous to review responsibly.
+- “MCC” or “MCC review”
+- “Multi-Character Code Council” or an unmistakable reference to this specific council
+- `/skill:multi-character-code-council`
+
+A generic request for a review, code review, second opinion, adversarial review, cross-review, review before implementation, council/model review, or several engineering perspectives does **not** qualify. Do not infer that the user wants MCC from the review's complexity or stakes, and do not run the MCC CLI unless the explicit invocation gate is met. Handle non-qualifying requests with the normal review workflow instead.
+
+Once explicitly invoked, the user's request defines the review scope. Do **not** assume the target is the current git diff. Ask one concise clarifying question only if the target is too ambiguous to review responsibly.
 
 ## How it works
 
