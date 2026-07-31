@@ -17,6 +17,7 @@ For example:
 |------------|--------------------------------|
 | `agents`   | Global Codex/agent skills      |
 | `bin`      | Scripts in `~/.local/scripts/` |
+| `capslock` | Native dual-role key app       |
 | `ghostty`  | Ghostty terminal               |
 | `git`      | Git config & global ignore     |
 | `gt`       | Gertrude task helper script    |
@@ -30,6 +31,8 @@ For example:
 ## Commands
 
 - **`just stow`** — Symlink all packages into `~`
+- **`just capslock-install`** — Build, sign, install, and launch the Caps Lock agent
+- **`just capslock-uninstall`** — Stop and remove the Caps Lock agent
 - **`just`** (no args) — Interactive package chooser
 
 ## Adding files

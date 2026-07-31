@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+resolve_script() {
+  local path="$1"
+  local directory target
+
+  while [[ -L "$path" ]]; do
+    directory="$(cd "$(dirname "$path")" && pwd -P)"
+    target="$(readlink "$path")"
+    if [[ "$target" = /* ]]; then
+      path="$target"
+    else
+      path="$directory/$target"
+    fi
+  done
+
+  directory="$(cd "$(dirname "$path")" && pwd -P)"
+  printf '%s/%s\n' "$directory" "$(basename "$path")"
+}
+
+script_path="$(resolve_script "${BASH_SOURCE[0]}")"
+script_dir="$(dirname "$script_path")"
+package_root="$(cd "$script_dir/../.." && pwd -P)"
+source_dir="$package_root/.local/src/capslock"
+scratch="$(mktemp -d "${TMPDIR:-/tmp}/capslock-test.XXXXXX")"
+trap 'rm -rf "$scratch"' EXIT
+
+plutil -lint "$source_dir/Resources/Info.plist"
+plutil -lint "$package_root/Library/LaunchAgents/com.miciah.capslock.plist"
+swift test \
+  --package-path "$source_dir" \
+  --scratch-path "$scratch"

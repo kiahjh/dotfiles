@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+resolve_script() {
+  local path="$1"
+  local directory target
+
+  while [[ -L "$path" ]]; do
+    directory="$(cd "$(dirname "$path")" && pwd -P)"
+    target="$(readlink "$path")"
+    if [[ "$target" = /* ]]; then
+      path="$target"
+    else
+      path="$directory/$target"
+    fi
+  done
+
+  directory="$(cd "$(dirname "$path")" && pwd -P)"
+  printf '%s/%s\n' "$directory" "$(basename "$path")"
+}
+
+script_path="$(resolve_script "${BASH_SOURCE[0]}")"
+script_dir="$(dirname "$script_path")"
+package_root="$(cd "$script_dir/../.." && pwd -P)"
+repo_root="$(cd "$package_root/.." && pwd -P)"
+source_dir="$package_root/.local/src/capslock"
+app_dir="$HOME/Applications/CapsLock.app"
+launch_agent="$HOME/Library/LaunchAgents/com.miciah.capslock.plist"
+label="com.miciah.capslock"
+domain="gui/$(id -u)"
+mkdir -p "$HOME/Applications"
+scratch="$(mktemp -d "${TMPDIR:-/tmp}/capslock-install.XXXXXX")"
+staging_root="$(mktemp -d "$HOME/Applications/.capslock-install.XXXXXX")"
+staged_app="$staging_root/CapsLock.app"
+trap 'rm -rf "$scratch" "$staging_root"' EXIT
+
+"$package_root/.local/scripts/capslock-test"
+
+printf 'Building CapsLock.app...\n' >&2
+swift build \
+  --configuration release \
+  --package-path "$source_dir" \
+  --scratch-path "$scratch"
+bin_dir="$(swift build \
+  --configuration release \
+  --package-path "$source_dir" \
+  --scratch-path "$scratch" \
+  --show-bin-path)"
+
+mkdir -p "$staged_app/Contents/MacOS"
+cp "$source_dir/Resources/Info.plist" "$staged_app/Contents/Info.plist"
+install -m 0755 "$bin_dir/CapsLock" "$staged_app/Contents/MacOS/CapsLock"
+
+identity="${CAPSLOCK_CODESIGN_IDENTITY:-}"
+if [[ -z "$identity" ]]; then
+  identity="$(security find-identity -v -p codesigning 2>/dev/null \
+    | awk -F'"' '/Apple Development: Miciah Henderson/{print $2; exit}')"
+fi
+if [[ -z "$identity" ]]; then
+  identity="$(security find-identity -v -p codesigning 2>/dev/null \
+    | awk -F'"' '/Apple Development:/{print $2; exit}')"
+fi
+if [[ -z "$identity" ]]; then
+  identity="-"
+  printf 'Warning: no Apple Development signing identity found; using ad-hoc signing.\n' >&2
+  printf 'Accessibility permissions may need to be granted again after rebuilds.\n' >&2
+fi
+
+printf 'Signing with %s...\n' "$identity" >&2
+codesign \
+  --force \
+  --sign "$identity" \
+  --identifier com.miciah.capslock \
+  --timestamp=none \
+  "$staged_app"
+codesign --verify --deep --strict --verbose=2 "$staged_app"
+
+printf 'Stowing capslock configuration...\n' >&2
+stow --dir "$repo_root" --target "$HOME" capslock
+mkdir -p "$HOME/Library/Logs"
+
+if launchctl print "$domain/$label" >/dev/null 2>&1; then
+  launchctl bootout "$domain/$label"
+fi
+
+for _ in {1..20}; do
+  if ! pgrep -f "$app_dir/Contents/MacOS/CapsLock" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.1
+done
+
+rm -rf "$app_dir"
+mv "$staged_app" "$app_dir"
+
+lsregister="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+if [[ -x "$lsregister" ]]; then
+  "$lsregister" -f "$app_dir" >/dev/null 2>&1 || true
+fi
+
+printf 'Starting %s...\n' "$label" >&2
+launchctl bootstrap "$domain" "$launch_agent"
+launchctl kickstart -k "$domain/$label"
+sleep 2
+
+if ! launchctl print "$domain/$label" >/dev/null 2>&1; then
+  printf 'capslock-install: launch agent did not start\n' >&2
+  exit 1
+fi
+
+set +e
+"$app_dir/Contents/MacOS/CapsLock" --status
+status=$?
+set -e
+
+printf '\nInstalled %s\n' "$app_dir" >&2
+if [[ $status -ne 0 ]]; then
+  printf '%s\n' \
+    'Finish setup from the temporary Caps Lock menu-bar icon:' \
+    '  1. Grant any permissions shown as missing.' \
+    '  2. Choose “Restart Agent After Granting”.' \
+    'Repeat once if macOS reveals the Accessibility request after the first restart.' >&2
+else
+  printf 'Ready: tap Caps Lock/Return for Escape/Return; hold either for Control.\n' >&2
+fi

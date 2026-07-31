@@ -2,6 +2,8 @@
 *.swp
 node_modules/
 target/
+.build/
+.swiftpm/
 .env
 gt/.env
 karabiner/.config/karabiner/automatic_backups/

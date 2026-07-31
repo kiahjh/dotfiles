@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+app_dir="$HOME/Applications/CapsLock.app"
+launch_agent="$HOME/Library/LaunchAgents/com.miciah.capslock.plist"
+label="com.miciah.capslock"
+domain="gui/$(id -u)"
+
+if launchctl print "$domain/$label" >/dev/null 2>&1; then
+  launchctl bootout "$domain/$label"
+fi
+
+if [[ -x "$app_dir/Contents/MacOS/CapsLock" ]]; then
+  "$app_dir/Contents/MacOS/CapsLock" --remove-mapping
+fi
+
+rm -rf "$app_dir"
+rm -f "$HOME/Library/Application Support/CapsLock/status.json"
+printf 'Removed CapsLock.app and stopped %s.\n' "$label" >&2
+
+if [[ -L "$launch_agent" ]]; then
+  printf 'The LaunchAgent symlink remains managed by Stow; run `stow -D capslock` to remove it.\n' >&2
+fi
