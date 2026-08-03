@@ -121,5 +121,5 @@ if [[ $status -ne 0 ]]; then
     '  2. Choose “Restart Agent After Granting”.' \
     'Repeat once if macOS reveals the Accessibility request after the first restart.' >&2
 else
-  printf 'Ready: tap Caps Lock/Return for Escape/Return; hold either for Control.\n' >&2
+  printf 'Ready: Caps Lock/Return are dual-role, and hold-; enables H/J/K/L arrows.\n' >&2
 fi

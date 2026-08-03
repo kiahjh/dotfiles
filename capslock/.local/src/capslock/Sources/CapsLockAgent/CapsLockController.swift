@@ -8,12 +8,30 @@ private let leftControlKeyCode = CGKeyCode(59)
 private let rightControlKeyCode = CGKeyCode(62)
 private let escapeKeyCode = CGKeyCode(53)
 private let returnKeyCode = CGKeyCode(36)
+private let semicolonKeyCode = CGKeyCode(41)
+private let semicolonLayerKeyCode = CGKeyCode(79)  // F18
+private let navigationKeyCodes: [CGKeyCode: CGKeyCode] = [
+  4: 123,  // H → Left
+  38: 125,  // J → Down
+  40: 126,  // K → Up
+  37: 124,  // L → Right
+]
+private let preservedTapModifiers: CGEventFlags = [
+  .maskShift,
+  .maskControl,
+  .maskAlternate,
+  .maskCommand,
+  .maskSecondaryFn,
+  .maskAlphaShift,
+]
 private let syntheticEventMarker: Int64 = 0x4341_5053_4553_43
 
 private struct DualRoleKey {
   var tapState: TapHoldState
+  var tapFlags: CGEventFlags = []
   let tapKeyCode: CGKeyCode
   let tapKeyName: String
+  let preservesTapModifiers: Bool
 }
 
 private struct PermissionState: Equatable {
@@ -39,8 +57,9 @@ private func dualRoleEventCallback(
 ) -> Unmanaged<CGEvent>? {
   guard let userInfo else { return Unmanaged.passUnretained(event) }
   let controller = Unmanaged<CapsLockController>.fromOpaque(userInfo).takeUnretainedValue()
-  controller.handleEvent(type: type, event: event)
-  return Unmanaged.passUnretained(event)
+  return controller.handleEvent(type: type, event: event)
+    ? nil
+    : Unmanaged.passUnretained(event)
 }
 
 private func keyboardDeviceChangedCallback(
@@ -57,6 +76,9 @@ private func keyboardDeviceChangedCallback(
 final class CapsLockController: NSObject {
   private let mappingManager = HIDMappingManager()
   private var dualRoleKeys: [CGKeyCode: DualRoleKey]
+  private var semicolonLayerState: TapHoldState
+  private var semicolonTapFlags: CGEventFlags = []
+  private var activeNavigationKeys: [CGKeyCode: CGKeyCode] = [:]
 
   private var eventTap: CFMachPort?
   private var eventTapSource: CFRunLoopSource?
@@ -76,14 +98,19 @@ final class CapsLockController: NSObject {
       leftControlKeyCode: DualRoleKey(
         tapState: TapHoldState(tapTimeoutMilliseconds: tapTimeoutMilliseconds),
         tapKeyCode: escapeKeyCode,
-        tapKeyName: "Escape"
+        tapKeyName: "Escape",
+        preservesTapModifiers: false
       ),
       rightControlKeyCode: DualRoleKey(
         tapState: TapHoldState(tapTimeoutMilliseconds: tapTimeoutMilliseconds),
         tapKeyCode: returnKeyCode,
-        tapKeyName: "Return"
+        tapKeyName: "Return",
+        preservesTapModifiers: true
       ),
     ]
+    self.semicolonLayerState = TapHoldState(
+      tapTimeoutMilliseconds: tapTimeoutMilliseconds
+    )
     super.init()
   }
 
@@ -125,29 +152,49 @@ final class CapsLockController: NSObject {
     AgentStatusStore.remove()
   }
 
-  func handleEvent(type: CGEventType, event: CGEvent) {
+  func handleEvent(type: CGEventType, event: CGEvent) -> Bool {
     if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-      resetAllDualRoleKeys()
+      resetAllInteractionState()
       if let eventTap {
         CGEvent.tapEnable(tap: eventTap, enable: true)
       }
-      return
+      return false
+    }
+
+    if event.getIntegerValueField(.eventSourceUserData) == syntheticEventMarker {
+      return false
     }
 
     switch type {
     case .flagsChanged:
+      semicolonLayerState.interfere()
       handleFlagsChanged(event)
 
-    case .keyDown, .keyUp,
-      .leftMouseDown, .leftMouseUp,
+    case .keyDown, .keyUp:
+      let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
+
+      if keyCode == semicolonLayerKeyCode {
+        interfereWithAllDualRoleKeys()
+        handleSemicolonLayerKey(type: type, event: event)
+        return true
+      }
+
+      semicolonLayerState.interfere()
+      remapNavigationKeyIfNeeded(type: type, event: event, keyCode: keyCode)
+      interfereWithAllDualRoleKeys()
+
+    case .leftMouseDown, .leftMouseUp,
       .rightMouseDown, .rightMouseUp,
       .otherMouseDown, .otherMouseUp,
       .scrollWheel:
+      semicolonLayerState.interfere()
       interfereWithAllDualRoleKeys()
 
     default:
       break
     }
+
+    return false
   }
 
   func scheduleMappingRefresh() {
@@ -158,6 +205,59 @@ final class CapsLockController: NSObject {
     ) { [weak self] _ in
       self?.applyMapping(reason: "keyboard change")
     }
+  }
+
+  private func handleSemicolonLayerKey(type: CGEventType, event: CGEvent) {
+    if type == .keyDown {
+      guard !semicolonLayerState.isTriggerDown else { return }
+
+      semicolonTapFlags = event.flags.intersection(preservedTapModifiers)
+      semicolonLayerState.triggerDown(
+        at: event.timestamp,
+        eligibleForTap: hasNoMouseButtonsDown()
+      )
+      return
+    }
+
+    guard type == .keyUp else { return }
+
+    let output = semicolonLayerState.triggerUp(at: event.timestamp)
+    let tapFlags = semicolonTapFlags
+    semicolonTapFlags = []
+
+    if output == .tap {
+      postKey(semicolonKeyCode, named: "Semicolon", flags: tapFlags)
+    }
+  }
+
+  private func remapNavigationKeyIfNeeded(
+    type: CGEventType,
+    event: CGEvent,
+    keyCode: CGKeyCode
+  ) {
+    var navigationKeyCode = activeNavigationKeys[keyCode]
+
+    if navigationKeyCode == nil,
+      type == .keyDown,
+      semicolonLayerState.isTriggerDown
+    {
+      navigationKeyCode = navigationKeyCodes[keyCode]
+      if let navigationKeyCode {
+        activeNavigationKeys[keyCode] = navigationKeyCode
+      }
+    }
+
+    guard let navigationKeyCode else { return }
+
+    if type == .keyUp {
+      activeNavigationKeys.removeValue(forKey: keyCode)
+    }
+
+    event.setIntegerValueField(
+      .keyboardEventKeycode,
+      value: Int64(navigationKeyCode)
+    )
+    event.flags = event.flags.union(.maskNumericPad)
   }
 
   private func handleFlagsChanged(_ event: CGEvent) {
@@ -175,10 +275,16 @@ final class CapsLockController: NSObject {
 
     if dualRoleKey.tapState.isTriggerDown {
       let output = dualRoleKey.tapState.triggerUp(at: event.timestamp)
+      let tapFlags = dualRoleKey.tapFlags
+      dualRoleKey.tapFlags = []
       dualRoleKeys[keyCode] = dualRoleKey
 
       if output == .tap {
-        postKey(dualRoleKey.tapKeyCode, named: dualRoleKey.tapKeyName)
+        postKey(
+          dualRoleKey.tapKeyCode,
+          named: dualRoleKey.tapKeyName,
+          flags: tapFlags
+        )
       }
       return
     }
@@ -187,9 +293,22 @@ final class CapsLockController: NSObject {
     // recreated. Only a Control-down event may begin a tap candidate.
     guard event.flags.contains(.maskControl) else { return }
 
+    let eligibleForTap: Bool
+    if dualRoleKey.preservesTapModifiers {
+      dualRoleKey.tapFlags = event.flags.intersection(preservedTapModifiers)
+      if !anotherDualRoleKeyIsDown {
+        dualRoleKey.tapFlags.remove(.maskControl)
+      }
+      eligibleForTap = hasNoMouseButtonsDown()
+    } else {
+      dualRoleKey.tapFlags = []
+      eligibleForTap =
+        !anotherDualRoleKeyIsDown && hasNoOtherActiveInput(event: event)
+    }
+
     dualRoleKey.tapState.triggerDown(
       at: event.timestamp,
-      eligibleForTap: !anotherDualRoleKeyIsDown && hasNoOtherActiveInput(event: event)
+      eligibleForTap: eligibleForTap
     )
     dualRoleKeys[keyCode] = dualRoleKey
   }
@@ -200,10 +319,14 @@ final class CapsLockController: NSObject {
     }
   }
 
-  private func resetAllDualRoleKeys() {
+  private func resetAllInteractionState() {
     for keyCode in Array(dualRoleKeys.keys) {
       dualRoleKeys[keyCode]?.tapState.reset()
+      dualRoleKeys[keyCode]?.tapFlags = []
     }
+    semicolonLayerState.reset()
+    semicolonTapFlags = []
+    activeNavigationKeys.removeAll()
   }
 
   private func hasNoOtherActiveInput(event: CGEvent) -> Bool {
@@ -220,12 +343,20 @@ final class CapsLockController: NSObject {
       return false
     }
 
-    return !CGEventSource.buttonState(.combinedSessionState, button: .left)
+    return hasNoMouseButtonsDown()
+  }
+
+  private func hasNoMouseButtonsDown() -> Bool {
+    !CGEventSource.buttonState(.combinedSessionState, button: .left)
       && !CGEventSource.buttonState(.combinedSessionState, button: .right)
       && !CGEventSource.buttonState(.combinedSessionState, button: .center)
   }
 
-  private func postKey(_ keyCode: CGKeyCode, named keyName: String) {
+  private func postKey(
+    _ keyCode: CGKeyCode,
+    named keyName: String,
+    flags: CGEventFlags = []
+  ) {
     guard CGPreflightPostEventAccess() else {
       log("could not emit \(keyName) because Accessibility permission is missing")
       return
@@ -249,7 +380,7 @@ final class CapsLockController: NSObject {
     }
 
     for event in [keyDown, keyUp] {
-      event.flags = []
+      event.flags = flags
       event.setIntegerValueField(.eventSourceUserData, value: syntheticEventMarker)
       event.post(tap: .cghidEventTap)
     }
@@ -336,7 +467,7 @@ final class CapsLockController: NSObject {
       let eventTap = CGEvent.tapCreate(
         tap: .cgSessionEventTap,
         place: .headInsertEventTap,
-        options: .listenOnly,
+        options: .defaultTap,
         eventsOfInterest: eventMask(for: observedEvents),
         callback: dualRoleEventCallback,
         userInfo: context
@@ -356,11 +487,11 @@ final class CapsLockController: NSObject {
     self.eventTapSource = source
     CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
     CGEvent.tapEnable(tap: eventTap, enable: true)
-    log("event tap started; Caps Lock and Return are ready")
+    log("event tap started; dual-role keys and navigation layer are ready")
   }
 
   private func stopEventTap() {
-    resetAllDualRoleKeys()
+    resetAllInteractionState()
 
     if let eventTapSource {
       CFRunLoopRemoveSource(CFRunLoopGetMain(), eventTapSource, .commonModes)
@@ -378,7 +509,7 @@ final class CapsLockController: NSObject {
     let change = mappingManager.apply()
     if change.changed > 0 || change.status.failed > 0 {
       log(
-        "applied Caps Lock/Return → Control after \(reason): "
+        "applied dual-role/layer HID mappings after \(reason): "
           + "\(change.status.applied)/\(change.status.total) keyboards ready, "
           + "\(change.status.failed) failed"
       )
@@ -470,21 +601,21 @@ final class CapsLockController: NSObject {
   }
 
   @objc private func workspaceWillSleep() {
-    resetAllDualRoleKeys()
+    resetAllInteractionState()
   }
 
   @objc private func workspaceDidWake() {
-    resetAllDualRoleKeys()
+    resetAllInteractionState()
     scheduleMappingRefresh()
     refreshPermissions(requestIfNeeded: false)
   }
 
   @objc private func sessionDidResignActive() {
-    resetAllDualRoleKeys()
+    resetAllInteractionState()
   }
 
   @objc private func sessionDidBecomeActive() {
-    resetAllDualRoleKeys()
+    resetAllInteractionState()
     scheduleMappingRefresh()
     refreshPermissions(requestIfNeeded: false)
   }

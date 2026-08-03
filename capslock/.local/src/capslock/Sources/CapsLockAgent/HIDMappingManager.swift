@@ -42,6 +42,10 @@ struct HIDMappingManager {
       source: keyboardUsagePage | 0x28,  // Return
       destination: keyboardUsagePage | 0xE4  // Right Control
     ),
+    ManagedMapping(
+      source: keyboardUsagePage | 0x33,  // Semicolon
+      destination: keyboardUsagePage | 0x6D  // F18
+    ),
   ]
   private static let managedSourceUsages = Set(desiredMappings.map(\.source))
 

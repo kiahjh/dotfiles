@@ -2,7 +2,7 @@ import AppKit
 import CoreGraphics
 import Foundation
 
-private let capsLockVersion = "1.0.0"
+private let capsLockVersion = "1.1.0"
 
 private final class AppDelegate: NSObject, NSApplicationDelegate {
   private var controller: CapsLockController?
@@ -29,7 +29,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
 
 private func printStatus() -> Int32 {
   let mapping = HIDMappingManager().status()
-  print("Caps Lock/Return → Control: \(mapping.applied)/\(mapping.total) keyboards")
+  print("Dual-role HID mappings: \(mapping.applied)/\(mapping.total) keyboards")
 
   guard let runtime = AgentStatusStore.read() else {
     print("Agent: not running")
@@ -56,8 +56,8 @@ private func printUsage() {
 
       (no argument)       Run the Caps Lock agent
       --status            Show mapping and privacy-permission status
-      --apply-mapping     Map Caps Lock/Return to left/right Control and exit
-      --remove-mapping    Remove the managed Caps Lock mapping and exit
+      --apply-mapping     Apply the managed dual-role/layer HID mappings
+      --remove-mapping    Remove the managed HID mappings and exit
       --version           Print the version
     """
   )
@@ -74,7 +74,7 @@ if let command = arguments.first {
   case "--apply-mapping":
     let change = HIDMappingManager().apply()
     print(
-      "Caps Lock/Return → Control: \(change.status.applied)/\(change.status.total) keyboards "
+      "Dual-role HID mappings: \(change.status.applied)/\(change.status.total) keyboards "
         + "(\(change.changed) changed, \(change.status.failed) failed)"
     )
     exitCode = change.status.isFullyApplied ? 0 : 1
@@ -82,7 +82,7 @@ if let command = arguments.first {
   case "--remove-mapping":
     let change = HIDMappingManager().remove()
     print(
-      "Removed Caps Lock/Return mappings from \(change.changed) keyboards "
+      "Removed managed HID mappings from \(change.changed) keyboards "
         + "(\(change.status.failed) failed)"
     )
     exitCode = change.status.failed == 0 ? 0 : 1
