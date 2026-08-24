@@ -1,7 +1,30 @@
+local chickadee_grammar = vim.env.CHICKADEE_GRAMMAR
+  or vim.fn.expand("~/active-projects/language/tree-sitter-chickadee")
+
 return {
   'nvim-treesitter/nvim-treesitter',
   build = ':TSUpdate',
   main = 'nvim-treesitter.configs',
+  config = function(_, opts)
+    vim.filetype.add({
+      extension = {
+        dee = "chickadee",
+      },
+    })
+    vim.opt.runtimepath:append(chickadee_grammar)
+
+    local parser_config = require("nvim-treesitter.parsers").get_parser_configs()
+    parser_config.chickadee = {
+      install_info = {
+        url = chickadee_grammar,
+        files = { "src/parser.c" },
+        generate_requires_npm = false,
+        requires_generate_from_grammar = false,
+      },
+    }
+
+    require("nvim-treesitter.configs").setup(opts)
+  end,
   opts = {
     ensure_installed = {
       "json",
@@ -25,7 +48,8 @@ return {
       "swift",
       "rust",
       "ocaml",
-      "zig"
+      "zig",
+      "chickadee",
     },
     auto_install = true,
     highlight = {
