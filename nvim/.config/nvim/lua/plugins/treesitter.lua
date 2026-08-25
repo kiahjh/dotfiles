@@ -1,5 +1,5 @@
-local chickadee_grammar = vim.env.CHICKADEE_GRAMMAR
-  or vim.fn.expand("~/active-projects/language/tree-sitter-chickadee")
+local snug_grammar = vim.env.SNUG_GRAMMAR
+  or vim.fn.expand("~/active-projects/language/tree-sitter-snug")
 
 return {
   'nvim-treesitter/nvim-treesitter',
@@ -8,15 +8,15 @@ return {
   config = function(_, opts)
     vim.filetype.add({
       extension = {
-        dee = "chickadee",
+        snug = "snug",
       },
     })
-    vim.opt.runtimepath:append(chickadee_grammar)
+    vim.opt.runtimepath:append(snug_grammar)
 
     local parser_config = require("nvim-treesitter.parsers").get_parser_configs()
-    parser_config.chickadee = {
+    parser_config.snug = {
       install_info = {
-        url = chickadee_grammar,
+        url = snug_grammar,
         files = { "src/parser.c" },
         generate_requires_npm = false,
         requires_generate_from_grammar = false,
@@ -49,7 +49,7 @@ return {
       "rust",
       "ocaml",
       "zig",
-      "chickadee",
+      "snug",
     },
     auto_install = true,
     highlight = {
