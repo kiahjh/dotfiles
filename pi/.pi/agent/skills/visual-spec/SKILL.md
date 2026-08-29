@@ -1,17 +1,24 @@
 ---
 name: visual-spec
-description: Create compact, dark-mode, browser-viewable HTML artifacts for specs, plans, PRDs, RFCs, roadmaps, implementation plans, architecture proposals, decision docs, and strategy briefs. Use when the user asks to spec something out, make a plan, draft a proposal, compare options, or produce substantial planning content; save a scannable artifact and return its path instead of dumping a long Markdown answer in chat. Prefer simple disposable docs with visual sketches or UI examples when helpful.
+description: Create compact, dark-mode, browser-viewable HTML artifacts for specs and plans. Use only when the user explicitly asks for a visual spec or plan, an HTML spec or plan, a browser-viewable planning artifact, or directly invokes this skill. Never use it merely because the user requests an ordinary spec, plan, proposal, comparison, or other substantial planning content.
 ---
 
 # Visual Spec
 
 Create a small, self-contained HTML planning artifact instead of a long chat response.
 
-## Use when
+## Activation requirement
 
-Use this for substantial planning/specification work: specs, PRDs, RFCs, design docs, proposals, strategy briefs, roadmaps, implementation/migration/refactor plans, architecture notes, task breakdowns, decision matrices, and tradeoff analyses.
+Use this skill only when the user explicitly asks for one of the following:
 
-Default to creating an artifact. Only paste the full plan in chat if the user asks for an inline answer.
+- a visual spec or visual plan
+- an HTML spec or HTML plan
+- a browser-viewable planning/specification artifact
+- this skill by name or command
+
+Do not infer activation from the size or type of the task. A request for a spec, plan, PRD, RFC, proposal, roadmap, architecture note, task breakdown, comparison, or other planning content does not qualify unless the user explicitly asks for visual or HTML output.
+
+Once explicitly activated, default to creating an artifact. Only paste the full plan in chat if the user asks for an inline answer.
 
 ## Output
 
