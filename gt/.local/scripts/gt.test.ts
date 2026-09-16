@@ -1,4 +1,8 @@
 import { expect, test } from "bun:test";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { writeTaskMetadata } from "./gt-src/task.ts";
 import {
   commandUsage,
   defaultTabTemplateFromLayout,
@@ -138,6 +142,17 @@ test("derives fork titles and path-safe task identifiers", () => {
     directoryName,
   })).toContain("GTASK_TITLE=dashboard-redesign/sidebar-spike");
   expect(taskMetadataPath("/tmp/demo")).toBe("/tmp/demo/scratch/.gtask");
+});
+
+test("initializes empty prompt and todo files in scratch for new tasks", () => {
+  const worktreeDir = mkdtempSync(join(tmpdir(), "gt-task-test-"));
+  try {
+    writeTaskMetadata(worktreeDir, "demo");
+    expect(readFileSync(join(worktreeDir, "scratch", "prompt.md"), "utf8")).toBe("");
+    expect(readFileSync(join(worktreeDir, "scratch", "todo.md"), "utf8")).toBe("");
+  } finally {
+    rmSync(worktreeDir, { recursive: true, force: true });
+  }
 });
 
 test("renders a task list with fork relationships", () => {

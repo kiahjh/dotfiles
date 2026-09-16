@@ -97,6 +97,7 @@ export function writeTaskMetadata(worktreeDir: string, title: string): TaskInfo 
   mkdirSync(join(worktreeDir, TASK_METADATA_DIRNAME), { recursive: true });
   writeFileSync(taskMetadataPath(worktreeDir), renderTaskMetadata(info), "utf8");
   writeFileSync(join(worktreeDir, TASK_METADATA_DIRNAME, "prompt.md"), "", "utf8");
+  writeFileSync(join(worktreeDir, TASK_METADATA_DIRNAME, "todo.md"), "", "utf8");
   removeGeneratedLegacyMetadata(worktreeDir);
   return info;
 }
