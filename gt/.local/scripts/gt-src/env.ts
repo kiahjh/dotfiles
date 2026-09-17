@@ -40,7 +40,11 @@ export function renderTaskEnv(template: string, values: TaskEnvValues, overrides
   };
   const unknownChangemeKeys = new Set<string>();
 
-  const rendered = template
+  const templateWithDefaults = /^\s*(?:export\s+)?SIGNUP_NOTIFICATION_EMAIL\s*=/m.test(template)
+    ? template
+    : `${template}\nSIGNUP_NOTIFICATION_EMAIL=signup@not-real`;
+
+  const rendered = templateWithDefaults
     .split(/\r?\n/)
     .map((line) => {
       const match = line.match(/^(\s*(?:export\s+)?)([A-Za-z_][A-Za-z0-9_]*)(\s*=\s*)(.*)$/);

@@ -265,6 +265,24 @@ test("derives and renders per-task local ports", () => {
   expect(rendered).toContain("VITE_TURNSTILE_SITEKEY=not-real");
 });
 
+test.each([
+  ["", {}, "signup@not-real"],
+  ["", { SIGNUP_NOTIFICATION_EMAIL: "override@example.com" }, "override@example.com"],
+  ["SIGNUP_NOTIFICATION_EMAIL=custom@example.com", {}, "custom@example.com"],
+  ["export SIGNUP_NOTIFICATION_EMAIL = custom@example.com", {}, "custom@example.com"],
+] as const)("renders signup notification recipient from template %j and overrides %j", (template, overrides, expected) => {
+  const rendered = renderTaskEnv(template, {
+    databaseUsername: "miciah",
+    databasePassword: "",
+    databaseName: "gt_demo",
+    testDatabaseName: "gt_demo_test",
+    accountDashboardUrl: "http://localhost:18077",
+  }, overrides);
+
+  expect(parseSimpleDotenv(rendered).SIGNUP_NOTIFICATION_EMAIL).toBe(expected);
+  expect(rendered.match(/SIGNUP_NOTIFICATION_EMAIL\s*=/g)).toHaveLength(1);
+});
+
 test("renders swift api env from template with generated values and local overrides", () => {
   const rendered = renderTaskEnv(
     `DATABASE_USERNAME=changeme
@@ -503,7 +521,7 @@ test("renders env replacements with quoting and reports unknown changeme keys", 
   };
 
   expect(renderTaskEnv("export DATABASE_USERNAME=changeme\nDATABASE_PASSWORD=changeme\n", values)).toBe(
-    'export DATABASE_USERNAME="local user"\nDATABASE_PASSWORD="secret value"\n',
+    'export DATABASE_USERNAME="local user"\nDATABASE_PASSWORD="secret value"\n\nSIGNUP_NOTIFICATION_EMAIL=signup@not-real\n',
   );
 
   expect(() => renderTaskEnv("THIRD_PARTY_API_KEY=changeme\n", values)).toThrow(

@@ -1,7 +1,7 @@
 {
   "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-5.6-sol",
-  "defaultThinkingLevel": "xhigh",
+  "defaultModel": "gpt-6-astra",
+  "defaultThinkingLevel": "high",
   "editorPaddingX": 1,
   "theme": "dark",
   "packages": [
@@ -14,9 +14,10 @@
       "skills": [],
       "prompts": [],
       "themes": []
-    }
+    },
+    "npm:@injaneity/pi-computer-use"
   ],
-  "lastChangelogVersion": "0.84.3",
+  "lastChangelogVersion": "0.85.1",
   "hideThinkingBlock": true,
   "terminal": {
     "showImages": false
