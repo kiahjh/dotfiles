@@ -5,8 +5,11 @@
       "auth": "oauth"
     },
     "xcode": {
-      "command": "/Users/miciah/.local/bin/xcbridge",
-      "args": ["connect", "--socket", "/Users/miciah/.xcode-bridge.sock"]
+      "command": "/usr/bin/xcrun",
+      "args": ["mcpbridge"],
+      "env": {
+        "DEVELOPER_DIR": "/Applications/Xcode 27 RC.app/Contents/Developer"
+      }
     }
   }
 }
