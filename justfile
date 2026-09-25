@@ -2,7 +2,7 @@ _default:
   @just --choose
 
 test:
-  @bun test ./gt/.local/scripts/gt.test.ts ./pi/.pi/agent/skills/multi-character-code-council/mcc.test.ts
+  @bun test ./gt/.local/scripts/gt.test.ts ./gt/.local/scripts/gt-support.test.ts ./pi/.pi/agent/skills/multi-character-code-council/mcc.test.ts
   @./capslock/.local/scripts/capslock-test
 
 capslock-install:

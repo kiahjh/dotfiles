@@ -1,0 +1,16 @@
+#!/usr/bin/env bun
+import { setupTaskDatabases, taskDatabaseNames } from "./gt-src/databases.ts";
+
+const slug = "support";
+const [command] = process.argv.slice(2);
+
+if (command === "--name") {
+  console.log(taskDatabaseNames(slug).databaseName);
+} else if (command === "--test-name") {
+  console.log(taskDatabaseNames(slug).testDatabaseName);
+} else if (command === undefined || command === "refresh") {
+  await setupTaskDatabases(slug);
+} else {
+  console.error("Usage: gt-support-db [refresh|--name|--test-name]");
+  process.exitCode = 2;
+}

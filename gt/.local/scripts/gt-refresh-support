@@ -1,0 +1,65 @@
+#!/bin/bash
+set -euo pipefail
+
+export PATH="${HOME}/.bun/bin:${HOME}/.local/bin:${HOME}/.local/scripts:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+support_dir="${SUPPORT_DIR:-${HOME}/active-projects/support}"
+code_dir="${SUPPORT_CODE_DIR:-${support_dir}/gertrude}"
+repo_url="https://github.com/gertrude-app/gertrude.git"
+branch="master"
+lock_dir="${SUPPORT_LOCK_DIR:-${HOME}/Library/Caches}"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+log() {
+  printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
+}
+
+if [[ $# -ne 1 || ( "$1" != "code" && "$1" != "db" ) ]]; then
+  echo "Usage: gt-refresh-support {code|db}" >&2
+  exit 2
+fi
+mode="$1"
+
+if [[ ! -d "${support_dir}/.git" ]]; then
+  log "Support repo not found at ${support_dir}." >&2
+  exit 1
+fi
+
+mkdir -p "${lock_dir}"
+exec 9>"${lock_dir}/com.miciah.gt-refresh-support-${mode}.lock"
+if ! /usr/bin/lockf -st 0 9; then
+  log "Support ${mode} refresh is already running; skipping."
+  exit 0
+fi
+
+trap 'status=$?; if [[ ${status} -ne 0 ]]; then log "Support ${mode} refresh failed (exit ${status})." >&2; fi' EXIT
+
+if [[ "${mode}" == "db" ]]; then
+  log "Refreshing local scrubbed support database."
+  "${script_dir}/gt-support-db" refresh
+  log "Local scrubbed support database refreshed."
+  exit 0
+fi
+
+if [[ ! -e "${code_dir}" ]]; then
+  log "Cloning Gertrude into ${code_dir}."
+  git clone --branch "${branch}" --single-branch "${repo_url}" "${code_dir}"
+else
+  if [[ ! -d "${code_dir}/.git" || "$(git -C "${code_dir}" rev-parse --show-toplevel)" != "$(cd "${code_dir}" && pwd -P)" ]]; then
+    log "Refusing to refresh: ${code_dir} is not a standalone Git checkout." >&2
+    exit 1
+  fi
+  origin="$(git -C "${code_dir}" remote get-url origin)"
+  if [[ "${origin}" != "${repo_url}" && "${origin}" != "git@github.com:gertrude-app/gertrude.git" ]]; then
+    log "Refusing to refresh: unexpected Gertrude origin ${origin}." >&2
+    exit 1
+  fi
+  if ! git -C "${code_dir}" diff --quiet || ! git -C "${code_dir}" diff --cached --quiet; then
+    log "Refusing to reset modified tracked files in ${code_dir}." >&2
+    exit 1
+  fi
+  log "Refreshing Gertrude source checkout."
+  git -C "${code_dir}" fetch --prune origin "+refs/heads/${branch}:refs/remotes/origin/${branch}"
+  git -C "${code_dir}" reset --hard "origin/${branch}"
+fi
+log "Gertrude code is at $(git -C "${code_dir}" rev-parse --short HEAD)."

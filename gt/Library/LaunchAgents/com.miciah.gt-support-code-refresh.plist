@@ -3,31 +3,24 @@
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.miciah.gt-reference-refresh</string>
-
+  <string>com.miciah.gt-support-code-refresh</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/Users/miciah/.local/scripts/gt-refresh-reference</string>
+    <string>/Users/miciah/.local/scripts/gt-refresh-support</string>
+    <string>code</string>
   </array>
-
   <key>RunAtLoad</key>
   <true/>
-
   <key>StartInterval</key>
   <integer>1800</integer>
-
   <key>EnvironmentVariables</key>
   <dict>
     <key>HOME</key>
     <string>/Users/miciah</string>
-    <key>PATH</key>
-    <string>/Users/miciah/.bun/bin:/Users/miciah/.local/bin:/Users/miciah/.local/scripts:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
   </dict>
-
   <key>StandardOutPath</key>
-  <string>/Users/miciah/Library/Logs/gt-reference-refresh.log</string>
-
+  <string>/Users/miciah/Library/Logs/gt-support-code-refresh.log</string>
   <key>StandardErrorPath</key>
-  <string>/Users/miciah/Library/Logs/gt-reference-refresh.err.log</string>
+  <string>/Users/miciah/Library/Logs/gt-support-code-refresh.err.log</string>
 </dict>
 </plist>
