@@ -9,13 +9,8 @@
     <string>/Users/miciah/.local/scripts/gt-refresh-support</string>
     <string>db</string>
   </array>
-  <key>StartCalendarInterval</key>
-  <dict>
-    <key>Hour</key>
-    <integer>3</integer>
-    <key>Minute</key>
-    <integer>30</integer>
-  </dict>
+  <key>StartInterval</key>
+  <integer>1800</integer>
   <key>EnvironmentVariables</key>
   <dict>
     <key>HOME</key>

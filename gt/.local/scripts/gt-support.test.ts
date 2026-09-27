@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { taskDatabaseNames } from "./gt-src/databases.ts";
@@ -10,6 +10,17 @@ const scripts = import.meta.dir;
 test("support DB entry point uses its own stable database name", () => {
   const name = execFileSync(join(scripts, "gt-support-db"), ["--name"], { encoding: "utf8" }).trim();
   expect(name).toBe(taskDatabaseNames("support").databaseName);
+});
+
+test("support DB refresh runs every 30 minutes without an immediate reload run", () => {
+  const plist = join(scripts, "..", "..", "Library", "LaunchAgents", "com.miciah.gt-support-db-refresh.plist");
+  const interval = execFileSync("plutil", ["-extract", "StartInterval", "raw", "-o", "-", plist], {
+    encoding: "utf8",
+  }).trim();
+  expect(interval).toBe("1800");
+  const xml = readFileSync(plist, "utf8");
+  expect(xml).not.toContain("<key>StartCalendarInterval</key>");
+  expect(xml).not.toContain("<key>RunAtLoad</key>");
 });
 
 test("support code refresh refuses to overwrite modified tracked files", () => {
