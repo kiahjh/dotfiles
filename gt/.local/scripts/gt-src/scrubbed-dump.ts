@@ -1,5 +1,5 @@
 import { createHash, createHmac } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import {
   GT_SECRETS_PATH,
   SCRUBBED_DUMP_BUCKET,
@@ -102,14 +102,23 @@ export async function downloadScrubbedDump(destination: string): Promise<void> {
     return;
   }
 
-  const response = await fetch(scrubbedDumpUrl(), {
-    headers: signedScrubbedDumpHeaders(scrubbedDumpCredentials()),
-  });
-
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    fail(`scrubbed dump download failed: HTTP ${response.status}${detail ? ` ${detail.slice(0, 160)}` : ""}`);
-  }
-
-  writeFileSync(destination, Buffer.from(await response.arrayBuffer()));
+  // Stream the large dump with curl, which also supports bounded retries for
+  // connection resets. Keep signed headers out of process arguments and logs.
+  const headers = signedScrubbedDumpHeaders(scrubbedDumpCredentials());
+  const config = [...headers]
+    .map(([name, value]) => `header = ${JSON.stringify(`${name}: ${value}`)}`)
+    .join("\n");
+  run(
+    "curl",
+    [
+      "--disable", // Ignore .curlrc; do not enable verbose logging or redirects.
+      "--config", "-",
+      "--fail", "--silent", "--show-error",
+      "--retry", "2", "--retry-all-errors", "--retry-max-time", "600",
+      "--connect-timeout", "20", "--max-time", "180",
+      "--output", destination,
+      scrubbedDumpUrl().toString(),
+    ],
+    { input: `${config}\n` },
+  );
 }

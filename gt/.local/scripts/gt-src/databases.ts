@@ -74,12 +74,16 @@ export async function setupTaskDatabases(slug: string): Promise<TaskDatabaseName
   const names = taskDatabaseNames(slug);
   const dir = mkdtempSync(join(tmpdir(), "gt-scrubbed-db-"));
   const dumpPath = join(dir, "latest.sql.gz");
+  let replacingDatabases = false;
 
   try {
     console.log("Downloading scrubbed production database dump...");
     await downloadScrubbedDump(dumpPath);
+    // Never replace a working snapshot with a failed or truncated download.
+    run("gzip", ["--test", dumpPath]);
 
     console.log(`Creating local Postgres database ${names.databaseName}`);
+    replacingDatabases = true;
     dropDatabaseIfExists(names.testDatabaseName);
     dropDatabaseIfExists(names.databaseName);
     createEmptyDatabase(names.databaseName);
@@ -90,8 +94,12 @@ export async function setupTaskDatabases(slug: string): Promise<TaskDatabaseName
 
     return names;
   } catch (error) {
-    dropDatabaseIfExists(names.testDatabaseName);
-    dropDatabaseIfExists(names.databaseName);
+    // Before replacement begins, these may be existing, usable databases.
+    // Only clean up partial databases created during this restore attempt.
+    if (replacingDatabases) {
+      dropDatabaseIfExists(names.testDatabaseName);
+      dropDatabaseIfExists(names.databaseName);
+    }
     throw error;
   } finally {
     rmSync(dir, { recursive: true, force: true });
