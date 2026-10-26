@@ -1,0 +1,4 @@
+#!/bin/bash
+set -euo pipefail
+export PATH="$PATH:$HOME/.bun/bin:$HOME/Library/pnpm:/opt/homebrew/bin:/usr/local/bin"
+exec "$HOME/.bun/bin/bun" "$(dirname "$0")/gt-src/codex-task.ts" setup "$@"

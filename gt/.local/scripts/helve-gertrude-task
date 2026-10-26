@@ -1,0 +1,4 @@
+#!/bin/bash
+set -euo pipefail
+export PATH="$HOME/.bun/bin:$PATH:/opt/homebrew/bin:/usr/local/bin"
+exec "$HOME/.bun/bin/bun" "$(dirname "$0")/gt-src/helve-task.ts" "$@"

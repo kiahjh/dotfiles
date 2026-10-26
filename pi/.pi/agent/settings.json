@@ -1,7 +1,7 @@
 {
   "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-5.6-luna",
-  "defaultThinkingLevel": "off",
+  "defaultModel": "gpt-6.1-sol",
+  "defaultThinkingLevel": "xhigh",
   "editorPaddingX": 1,
   "theme": "dark",
   "packages": [
@@ -17,10 +17,14 @@
     },
     "npm:@injaneity/pi-computer-use"
   ],
-  "lastChangelogVersion": "0.85.1",
+  "lastChangelogVersion": "1.4.0",
   "hideThinkingBlock": true,
   "terminal": {
     "showImages": false
   },
-  "fullscreenScrollbar": "auto"
+  "fullscreenScrollbar": "auto",
+  "extensions": [
+    "-builtin:mcp"
+  ],
+  "deviceId": "ce874919-ddd9-4128-848a-5e30fb15a9e3"
 }

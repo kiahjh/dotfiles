@@ -28,6 +28,11 @@ PATH=""
 
 path+=$PNPM_HOME
 
+# Keep the Rex CLI available when running inside Rex.
+if [[ -n "$REX_BIN_DIR" ]]; then
+  path+=("$REX_BIN_DIR")
+fi
+
 # path+=/opt/homebrew/opt/openjdk@11/bin # java 11, react native (old: 1.8)
 # path+=~/.rbenv/shims # ruby version manager, for react native
 # export PATH="$HOME/.jenv/bin:$PATH"

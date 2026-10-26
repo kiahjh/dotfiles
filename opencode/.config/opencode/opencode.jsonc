@@ -1,51 +1,27 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "lsp": {
-    "rust_analyzer": {
-      "command": ["rust-analyzer"],
-      "extensions": [".rs"]
-    }
+  "experimental": {
+    "background_compaction": true
   },
+  "permissions": [
+    {
+      "action": "xcode_call_tool",
+      "resource": "*",
+      "effect": "ask"
+    }
+  ],
   "mcp": {
-    "context7": {
-      "type": "remote",
-      "url": "https://mcp.context7.com/mcp",
-      "headers": {
-        "CONTEXT7_API_KEY": "{file:~/.secrets/context7-key}"
-      },
-      "enabled": true
-    },
-    "supabase": {
-      "type": "remote",
-      "url": "https://mcp.supabase.com/mcp",
-      "enabled": true
-    },
-    "xcode": {
-      "type": "local",
-      "command": ["xcrun", "mcpbridge"],
-      "enabled": true
-    },
-    "paper": {
-      "type": "remote",
-      "url": "http://127.0.0.1:29979/mcp",
-      "enabled": true
-    },
-    "google-calendar": {
-      "type": "local",
-      "command": ["npx", "@cocal/google-calendar-mcp"],
-      "environment": {
-        "GOOGLE_OAUTH_CREDENTIALS": "/Users/miciah/.secrets/gcp-oauth.keys.json"
-      },
-      "enabled": true
-    },
-    "shadcn": {
-      "type": "local",
-      "command": [
-        "npx",
-        "shadcn@latest",
-        "mcp"
-      ],
-      "enabled": true
+    "servers": {
+      "xcode": {
+        "type": "local",
+        "command": [
+          "/Users/miciah/.local/bin/uv",
+          "run",
+          "--quiet",
+          "--script",
+          "/Users/miciah/.local/scripts/xcode-mcp-router.py"
+        ]
+      }
     }
   }
 }

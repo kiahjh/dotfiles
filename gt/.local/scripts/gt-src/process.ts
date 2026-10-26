@@ -3,9 +3,11 @@ import { fail } from "./errors.ts";
 
 export type RunOptions = {
   cwd?: string;
+  env?: NodeJS.ProcessEnv;
   input?: string;
   inherit?: boolean;
   allowFailure?: boolean;
+  maxBuffer?: number;
 };
 
 export type RunResult = {
@@ -17,8 +19,10 @@ export type RunResult = {
 export function run(command: string, args: string[], options: RunOptions = {}): RunResult {
   const result = spawnSync(command, args, {
     cwd: options.cwd,
+    env: { ...process.env, ...options.env },
     input: options.input,
     encoding: "utf8",
+    maxBuffer: options.maxBuffer ?? 64 * 1024 * 1024,
     stdio: options.inherit
       ? options.input === undefined
         ? "inherit"

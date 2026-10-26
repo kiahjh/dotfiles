@@ -1,0 +1,24 @@
+# Kiahgawa — generated from palette/kiahgawa.json.
+# See the Kiahgawa repository for sources and MIT notices.
+background = #141313
+foreground = #d5d8d0
+cursor-color = #d3be8e
+cursor-text = #141313
+selection-background = #393836
+selection-foreground = #e6e9e0
+palette = 0=#0d0c0c
+palette = 1=#d88d85
+palette = 2=#a3b88c
+palette = 3=#d3be8e
+palette = 4=#9bb8c8
+palette = 5=#b6a1b6
+palette = 6=#a4bbb4
+palette = 7=#d5d8d0
+palette = 8=#9da69f
+palette = 9=#e58d8f
+palette = 10=#b5c9a0
+palette = 11=#e5cd9f
+palette = 12=#b1cbd7
+palette = 13=#c5b5c8
+palette = 14=#bbd1c6
+palette = 15=#e6e9e0

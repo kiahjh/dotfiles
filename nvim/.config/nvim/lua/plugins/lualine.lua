@@ -1,13 +1,14 @@
 return {
 	"nvim-lualine/lualine.nvim",
-	dependencies = { "nvim-tree/nvim-web-devicons" },
+	dependencies = { "nvim-tree/nvim-web-devicons", "rebelot/kanagawa.nvim" },
 	config = function()
 		local lualine = require("lualine")
 		local lazy_status = require("lazy.status")
+		local palette = require("kiahgawa").palette()
 
 		lualine.setup({
 			options = {
-				theme = "rose-pine",
+				theme = "kiahgawa",
 				globalstatus = true,
 				component_separators = { left = "", right = "" },
 				section_separators = { left = "", right = "" },
@@ -28,7 +29,7 @@ return {
 					{ "filename", path = 0, symbols = { modified = " ●", readonly = " 󰌾", unnamed = "[No Name]", newfile = " 󰎔" } },
 				},
 				lualine_x = {
-					{ lazy_status.updates, cond = lazy_status.has_updates, color = { fg = "#f6c177" } },
+					{ lazy_status.updates, cond = lazy_status.has_updates, color = { fg = palette.yellow } },
 					{ "'󰙨 ' .. vim.g.xcodebuild_test_plan" },
 					{ "vim.g.xcodebuild_platform == 'macOS' and '  macOS' or ' ' .. vim.g.xcodebuild_device_name" },
 					{ "' ' .. vim.g.xcodebuild_os" },

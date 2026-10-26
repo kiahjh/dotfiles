@@ -1,10 +1,14 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { BASE_DIR, TASK_PORT_BASE, TASK_PORT_BLOCK_SIZE, TASK_PORT_SLOT_COUNT } from "./constants.ts";
+import { codexPortReservations, taskPortsLockPath } from "./codex-state.ts";
 import { dotenvValue, parseSimpleDotenv } from "./dotenv.ts";
 import { fail } from "./errors.ts";
 import { run } from "./process.ts";
+import { withResourceLockSync } from "./resource-lock.ts";
+import { workspaces } from "./workspace-state.ts";
 
 export type TaskPorts = {
   slot: number;
@@ -131,14 +135,28 @@ function portInUse(port: number): boolean {
 }
 
 function existingTaskPortFiles(exceptWorktreeDir: string): string[] {
-  if (!existsSync(BASE_DIR)) {
-    return [];
-  }
+  const helveWorktrees = join(
+    process.env.HELVE_HOME || join(homedir(), "Library", "Application Support", "Helve"),
+    "worktrees",
+  );
+  const gtTasks = existsSync(BASE_DIR)
+    ? readdirSync(BASE_DIR, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => join(BASE_DIR, entry.name))
+    : [];
+  const helveTasks = existsSync(helveWorktrees)
+    ? readdirSync(helveWorktrees, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .flatMap((project) => {
+          const projectDir = join(helveWorktrees, project.name);
+          return readdirSync(projectDir, { withFileTypes: true })
+            .filter((entry) => entry.isDirectory())
+            .map((entry) => join(projectDir, entry.name));
+        })
+    : [];
 
-  return readdirSync(BASE_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => resolve(BASE_DIR, entry.name))
-    .filter((worktreeDir) => worktreeDir !== resolve(exceptWorktreeDir))
+  return [...gtTasks, ...helveTasks]
+    .filter((worktreeDir) => resolve(worktreeDir) !== resolve(exceptWorktreeDir))
     .map(taskPortsPath)
     .filter(existsSync);
 }
@@ -159,6 +177,18 @@ function usedTaskPortFacts(exceptWorktreeDir: string): { slots: Set<number>; por
     }
   }
 
+  for (const task of codexPortReservations()) {
+    if (!task.ports || resolve(task.worktree) === resolve(exceptWorktreeDir)) continue;
+    slots.add(task.ports.slot);
+    for (const port of portNumbers(task.ports)) ports.add(port);
+  }
+
+  for (const task of workspaces()) {
+    if (!task.ports || resolve(task.directory) === resolve(exceptWorktreeDir)) continue;
+    slots.add(task.ports.slot);
+    for (const port of portNumbers(task.ports)) ports.add(port);
+  }
+
   return { slots, ports };
 }
 
@@ -176,9 +206,9 @@ function portsAreAvailable(ports: TaskPorts, usedSlots: Set<number>, usedPorts: 
   return true;
 }
 
-export function allocateTaskPorts(slug: string, worktreeDir: string): TaskPorts {
+export function allocateTaskPorts(slug: string, worktreeDir: string, reuseExisting = true): TaskPorts {
   const existingPath = taskPortsPath(worktreeDir);
-  if (existsSync(existingPath)) {
+  if (reuseExisting && existsSync(existingPath)) {
     const existing = taskPortsFromEnv(parseSimpleDotenv(readFileSync(existingPath, "utf8")));
     if (existing) {
       return existing;
@@ -199,7 +229,9 @@ export function allocateTaskPorts(slug: string, worktreeDir: string): TaskPorts 
 }
 
 export function setupTaskPorts(worktreeDir: string, slug: string): TaskPorts {
-  const ports = allocateTaskPorts(slug, worktreeDir);
-  writeFileSync(taskPortsPath(worktreeDir), renderTaskPorts(slug, ports), "utf8");
-  return ports;
+  return withResourceLockSync(taskPortsLockPath(), () => {
+    const ports = allocateTaskPorts(slug, worktreeDir);
+    writeFileSync(taskPortsPath(worktreeDir), renderTaskPorts(slug, ports), "utf8");
+    return ports;
+  });
 }

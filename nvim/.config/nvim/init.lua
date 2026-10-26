@@ -140,6 +140,3 @@ require("lazy").setup({
 
 require("keymaps")
 require("gitsigns").setup()
-
--- Force visual selection to be purple accent
-vim.api.nvim_set_hl(0, "Visual", { bg = "#3e3859" })

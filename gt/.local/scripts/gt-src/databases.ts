@@ -26,12 +26,12 @@ export function taskDatabaseNames(slug: string): TaskDatabaseNames {
   };
 }
 
-export function dropDatabaseIfExists(databaseName: string): void {
-  run("dropdb", ["--if-exists", databaseName], { allowFailure: true });
+export function dropDatabaseIfExists(databaseName: string, env?: NodeJS.ProcessEnv): void {
+  run("dropdb", ["--if-exists", databaseName], { allowFailure: true, env });
 }
 
-function createEmptyDatabase(databaseName: string): void {
-  run("createdb", [databaseName]);
+function createEmptyDatabase(databaseName: string, env?: NodeJS.ProcessEnv): void {
+  run("createdb", [databaseName], { env });
 }
 
 export const LOCAL_RESTORE_SQL_FILTER = [
@@ -52,25 +52,25 @@ export const LOCAL_RESTORE_SQL_FILTER = [
   "/^ALTER EVENT TRIGGER /d",
 ].join(";");
 
-function restoreDumpIntoDatabase(dumpPath: string, databaseName: string): void {
+function restoreDumpIntoDatabase(dumpPath: string, databaseName: string, env?: NodeJS.ProcessEnv): void {
   run(
-    "/bin/sh",
+    "/bin/bash",
     [
       "-c",
-      `gunzip -c "$1" | sed '${LOCAL_RESTORE_SQL_FILTER}' | psql --quiet --set ON_ERROR_STOP=1 "$2"`,
+      `set -o pipefail; gunzip -c "$1" | sed '${LOCAL_RESTORE_SQL_FILTER}' | psql --quiet --set ON_ERROR_STOP=1 "$2"`,
       "sh",
       dumpPath,
       databaseName,
     ],
-    { inherit: true },
+    { inherit: true, env },
   );
 }
 
-function createDatabaseFromTemplate(templateDatabaseName: string, databaseName: string): void {
-  run("createdb", ["--template", templateDatabaseName, databaseName]);
+function createDatabaseFromTemplate(templateDatabaseName: string, databaseName: string, env?: NodeJS.ProcessEnv): void {
+  run("createdb", ["--template", templateDatabaseName, databaseName], { env });
 }
 
-export async function setupTaskDatabases(slug: string): Promise<TaskDatabaseNames> {
+export async function setupTaskDatabases(slug: string, env?: NodeJS.ProcessEnv): Promise<TaskDatabaseNames> {
   const names = taskDatabaseNames(slug);
   const dir = mkdtempSync(join(tmpdir(), "gt-scrubbed-db-"));
   const dumpPath = join(dir, "latest.sql.gz");
@@ -84,21 +84,21 @@ export async function setupTaskDatabases(slug: string): Promise<TaskDatabaseName
 
     console.log(`Creating local Postgres database ${names.databaseName}`);
     replacingDatabases = true;
-    dropDatabaseIfExists(names.testDatabaseName);
-    dropDatabaseIfExists(names.databaseName);
-    createEmptyDatabase(names.databaseName);
-    restoreDumpIntoDatabase(dumpPath, names.databaseName);
+    dropDatabaseIfExists(names.testDatabaseName, env);
+    dropDatabaseIfExists(names.databaseName, env);
+    createEmptyDatabase(names.databaseName, env);
+    restoreDumpIntoDatabase(dumpPath, names.databaseName, env);
 
     console.log(`Creating local Postgres test database ${names.testDatabaseName}`);
-    createDatabaseFromTemplate(names.databaseName, names.testDatabaseName);
+    createDatabaseFromTemplate(names.databaseName, names.testDatabaseName, env);
 
     return names;
   } catch (error) {
     // Before replacement begins, these may be existing, usable databases.
     // Only clean up partial databases created during this restore attempt.
     if (replacingDatabases) {
-      dropDatabaseIfExists(names.testDatabaseName);
-      dropDatabaseIfExists(names.databaseName);
+      dropDatabaseIfExists(names.testDatabaseName, env);
+      dropDatabaseIfExists(names.databaseName, env);
     }
     throw error;
   } finally {

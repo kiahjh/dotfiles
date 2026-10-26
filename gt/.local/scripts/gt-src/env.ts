@@ -79,7 +79,7 @@ export function renderTaskEnv(template: string, values: TaskEnvValues, overrides
   return rendered.endsWith("\n") ? rendered : `${rendered}\n`;
 }
 
-export function writeSwiftApiEnv(worktreeDir: string, slug: string, ports: TaskPorts): TaskDatabaseNames {
+export function writeSwiftApiEnv(worktreeDir: string, slug: string, ports: TaskPorts, overrides: TaskEnvOverrides = {}): TaskDatabaseNames {
   const swiftApiDir = join(worktreeDir, "swift", "api");
   if (!existsSync(swiftApiDir)) {
     fail(`expected swift api directory to exist: ${swiftApiDir}`);
@@ -90,15 +90,19 @@ export function writeSwiftApiEnv(worktreeDir: string, slug: string, ports: TaskP
   }
 
   const names = taskDatabaseNames(slug);
+  let template = readFileSync(ENV_TEMPLATE_PATH, "utf8");
+  for (const key of Object.keys(overrides)) {
+    if (!new RegExp(`^\\s*(?:export\\s+)?${key}\\s*=`, "m").test(template)) template += `\n${key}=changeme\n`;
+  }
   const contents = renderTaskEnv(
-    readFileSync(ENV_TEMPLATE_PATH, "utf8"),
+    template,
     {
       ...names,
       databaseUsername: currentSystemUser(),
       databasePassword: "",
       accountDashboardUrl: `http://localhost:${ports.accountPort}`,
     },
-    taskEnvOverridesFromGtSecrets(loadGtSecrets()),
+    { ...taskEnvOverridesFromGtSecrets(loadGtSecrets()), ...overrides },
   );
   const envPath = join(swiftApiDir, ".env");
   writeFileSync(envPath, contents, "utf8");

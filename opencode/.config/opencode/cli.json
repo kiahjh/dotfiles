@@ -1,0 +1,23 @@
+{
+  "$schema": "https://opencode.ai/v2/cli.json",
+  "theme": {
+    "name": "kiahgawa",
+    "mode": "dark"
+  },
+  "keybinds": {
+    "command.palette.show": "ctrl+l",
+    "variant.cycle": "ctrl+o"
+  },
+  "diffs": {
+    "wrap": "word"
+  },
+  "session": {
+    "sidebar": "auto",
+    "scrollbar": false,
+    "thinking": "show"
+  },
+  "animations": true,
+  "mini": {
+    "work_spinner": "block-soft-slide"
+  }
+}

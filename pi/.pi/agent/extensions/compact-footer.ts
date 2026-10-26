@@ -4,7 +4,7 @@
  * Keeps the default footer shape (cwd line, status line, optional extension
  * statuses), but makes the status line much denser:
  *
- *   [#####-----] 51.9%/272k                         ⚡ 5.5 xhigh
+ *   [#####-----] 51.9%/272k · week 81% left          ⚡ 5.5 xhigh
  *
  * GPT model IDs are displayed without the `gpt-` prefix. The lightning icon is
  * shown only when the @benvargas/pi-openai-fast config says fast mode is active
@@ -20,6 +20,8 @@ import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 const FAST_CONFIG_BASENAME = "pi-openai-fast.json";
 const FAST_ICON = "⚡︎";
 const PROGRESS_WIDTH = 20;
+const WEEKLY_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
+const WEEKLY_REFRESH_MS = 5 * 60 * 1000;
 const DEFAULT_SUPPORTED_MODEL_KEYS = [
 	"openai/gpt-5.4",
 	"openai/gpt-5.5",
@@ -177,12 +179,58 @@ function progressBar(percent: number | null | undefined): string {
 	return `[${"#".repeat(filled)}${"-".repeat(PROGRESS_WIDTH - filled)}]`;
 }
 
-function formatContext(ctx: ExtensionContext): string {
+// The Codex usage endpoint can report the weekly window as either primary or secondary.
+function weeklyRemaining(data: unknown): number | undefined {
+	if (!isRecord(data) || !isRecord(data.rate_limit)) return undefined;
+	const windows = [data.rate_limit.primary_window, data.rate_limit.secondary_window];
+	for (const window of windows) {
+		if (!isRecord(window)) continue;
+		const seconds = window.limit_window_seconds;
+		const used = window.used_percent;
+		if (
+			typeof seconds === "number" && seconds >= 5 * 86400 && seconds <= 8 * 86400 &&
+			typeof used === "number" && Number.isFinite(used)
+		) {
+			return Math.round(100 - Math.max(0, Math.min(100, used)));
+		}
+	}
+	return undefined;
+}
+
+// Resolve through Pi so an expired OAuth token is refreshed without reading auth.json ourselves.
+async function fetchWeeklyRemaining(ctx: ExtensionContext, signal: AbortSignal): Promise<number | undefined> {
+	const token = await ctx.modelRegistry.getApiKeyForProvider("openai-codex");
+	if (!token || signal.aborted) return undefined;
+
+	let accountId: string | undefined;
+	try {
+		const claims = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8")) as unknown;
+		if (isRecord(claims) && isRecord(claims["https://api.openai.com/auth"])) {
+			const id = claims["https://api.openai.com/auth"].chatgpt_account_id;
+			if (typeof id === "string") accountId = id;
+		}
+	} catch {
+		return undefined;
+	}
+	if (!accountId) return undefined;
+
+	const response = await fetch(WEEKLY_USAGE_URL, {
+		headers: { Authorization: `Bearer ${token}`, "ChatGPT-Account-Id": accountId, Accept: "application/json" },
+		signal: AbortSignal.any([signal, AbortSignal.timeout(8000)]),
+	});
+	if (!response.ok) return undefined;
+	return weeklyRemaining(await response.json() as unknown);
+}
+
+function formatContext(ctx: ExtensionContext, weeklyRemainingPercent?: number): string {
 	const usage = ctx.getContextUsage();
 	const percent = usage?.percent;
 	const percentText = typeof percent === "number" && Number.isFinite(percent) ? `${percent.toFixed(1)}%` : "?%";
 	const contextWindow = usage?.contextWindow ?? ctx.model?.contextWindow ?? 0;
-	return `${progressBar(percent)} ${percentText}/${formatTokens(contextWindow)}`;
+	const weekly = ctx.model?.provider === "openai-codex" && ctx.modelRegistry.isUsingOAuth(ctx.model)
+		? ` · week ${weeklyRemainingPercent === undefined ? "?" : `${weeklyRemainingPercent}% left`}`
+		: "";
+	return `${progressBar(percent)} ${percentText}/${formatTokens(contextWindow)}${weekly}`;
 }
 
 function formatRightSide(ctx: ExtensionContext, pi: ExtensionAPI): string {
@@ -243,10 +291,38 @@ function twoColumnLine(left: string, right: string, width: number, ellipsis: str
 }
 
 export default function compactFooter(pi: ExtensionAPI): void {
+	let cleanup: (() => void) | undefined;
 	pi.on("session_start", (_event, ctx) => {
 		if (!ctx.hasUI) return;
 
+		const abort = new AbortController();
+		let weeklyRemainingPercent: number | undefined;
+		let refreshing = false;
+		let requestRender = () => {};
+		const refreshWeekly = async () => {
+			if (abort.signal.aborted || refreshing || ctx.model?.provider !== "openai-codex" || !ctx.modelRegistry.isUsingOAuth(ctx.model)) return;
+			refreshing = true;
+			try {
+				weeklyRemainingPercent = await fetchWeeklyRemaining(ctx, abort.signal);
+			} catch {
+				weeklyRemainingPercent = undefined;
+			} finally {
+				refreshing = false;
+				if (!abort.signal.aborted) requestRender();
+			}
+		};
+		const timer = setInterval(() => void refreshWeekly(), WEEKLY_REFRESH_MS);
+		const unsubscribeModel = pi.on("model_select", () => {
+			requestRender();
+			void refreshWeekly();
+		});
+		cleanup = () => {
+			abort.abort();
+			clearInterval(timer);
+			unsubscribeModel();
+		};
 		ctx.ui.setFooter((tui, theme, footerData) => {
+			requestRender = () => tui.requestRender();
 			const unsubscribe = footerData.onBranchChange(() => tui.requestRender());
 
 			return {
@@ -264,7 +340,7 @@ export default function compactFooter(pi: ExtensionAPI): void {
 
 					const topLeft = theme.fg("dim", formatRightSide(ctx, pi));
 					const topRight = theme.fg("dim", formatPwd(ctx, footerData.getGitBranch()));
-					const bottomLeft = theme.fg("dim", formatContext(ctx));
+					const bottomLeft = theme.fg("dim", formatContext(ctx, weeklyRemainingPercent));
 					const bottomRight = statusLine ? theme.fg("dim", statusLine) : "";
 					const ellipsis = theme.fg("dim", "...");
 
@@ -272,5 +348,10 @@ export default function compactFooter(pi: ExtensionAPI): void {
 				},
 			};
 		});
+		void refreshWeekly();
+	});
+	pi.on("session_shutdown", () => {
+		cleanup?.();
+		cleanup = undefined;
 	});
 }
