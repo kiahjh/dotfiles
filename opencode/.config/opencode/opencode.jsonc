@@ -5,9 +5,9 @@
   },
   "permissions": [
     {
-      "action": "xcode_call_tool",
+      "action": "*",
       "resource": "*",
-      "effect": "ask"
+      "effect": "allow"
     }
   ],
   "mcp": {
