@@ -14,10 +14,19 @@
   "session": {
     "sidebar": "auto",
     "scrollbar": false,
-    "thinking": "show"
+    "thinking": "hide"
   },
   "animations": true,
   "mini": {
     "work_spinner": "block-soft-slide"
+  },
+  "tabs": {
+    "layout": "horizontal",
+    "scope": "cwd",
+    "mode": "off",
+    "indicators": "status"
+  },
+  "prompt": {
+    "image_preview": true
   }
 }

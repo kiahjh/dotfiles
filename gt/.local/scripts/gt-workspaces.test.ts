@@ -58,7 +58,7 @@ const git=(dir,args)=>{const r=spawnSync('/usr/bin/git',['-C',dir,...args],{enco
 const [api,method,path]=args;const body=args.includes('--data')?JSON.parse(args[args.indexOf('--data')+1]):{};
 const repo=join(root,'repository');
 if(path==='/api/session/active')console.log(JSON.stringify({data:process.env.ACTIVE_DIRECTORY?{ses_fixture:{type:'running'}}:{}}));
-else if(path==='/api/session/ses_fixture')console.log(JSON.stringify({location:{directory:process.env.ACTIVE_DIRECTORY}}));
+else if(path==='/api/session/ses_fixture')console.log(JSON.stringify({data:process.env.BAD_ACTIVE_SESSION==='1'?{}:{location:{directory:process.env.ACTIVE_DIRECTORY}}}));
 else if(path==='/api/location')console.log(JSON.stringify({project:{id:'fixture-project',canonical:repo}}));
 else if(path==='/api/project')console.log(JSON.stringify([{id:'fixture-project'}]));
 else if(method==='post'&&path==='/api/worktree'){
@@ -352,6 +352,34 @@ test("discard cannot delete a task with a still-running OpenCode agent", () => {
   });
 });
 
+test("finish reads the current OpenCode session envelope and permits unrelated active agents", () => {
+  fixture((f) => {
+    succeeded(f.invoke(["new", "demo", "--no-open"]));
+    const task = f.tasks()[0];
+    succeeded(f.invoke(["finish", "demo", "--discard"], undefined, { ACTIVE_DIRECTORY: task.directory + "-unrelated" }));
+    expect(existsSync(task.directory)).toBe(false);
+    expect(f.tasks()).toHaveLength(0);
+  });
+});
+
+test("finish fails closed when an active agent's directory cannot be verified", () => {
+  fixture((f) => {
+    succeeded(f.invoke(["new", "demo", "--no-open"]));
+    const task = f.tasks()[0];
+    for (const extra of [
+      { ACTIVE_DIRECTORY: task.directory, BAD_ACTIVE_SESSION: "1" },
+      { ACTIVE_DIRECTORY: "relative-directory" },
+    ]) {
+      const result = f.invoke(["finish", "demo", "--discard"], undefined, extra);
+      expect(result.status).toBe(1);
+      expect(result.stderr?.toString()).toContain("could not verify an active OpenCode agent's directory");
+      expect(existsSync(task.directory)).toBe(true);
+      expect(f.tasks()[0].phase).toBe("ready");
+      expect(existsSync(join(f.root, "db", taskDatabaseNames(task.slug).databaseName))).toBe(true);
+    }
+  });
+});
+
 test("squash/rebase merged PR verification requires the exact local head", () => {
   fixture((f) => {
     succeeded(f.invoke(["new", "squashed", "--no-open"]));
@@ -462,6 +490,28 @@ test("Rex destructive actions cancel on wrong confirmation or EOF, including dis
     }
     succeeded(f.invoke(["rex-action", "discard", context], undefined, {}, "discard demo\n"));
     expect(existsSync(task.directory)).toBe(false);
+  });
+});
+
+test("Rex reopen always offers a choice, including repeated opens from a registered task", () => {
+  fixture((f) => {
+    succeeded(f.invoke(["new", "current"]));
+    succeeded(f.invoke(["new", "other", "--no-open"]));
+    const current = f.tasks().find((task) => task.name === "current")!;
+    const context = JSON.stringify({ sourceSession: current.rexSession, args: {} });
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const result = f.invoke(["rex-action", "open", context], f.root, {}, "2\n");
+      succeeded(result);
+      expect(result.stdout?.toString()).toContain("Choose a development task");
+      expect(result.stdout?.toString()).toContain("Task: other");
+    }
+    const cancelled = f.invoke(["rex-action", "open", context], f.root, {}, "\n");
+    succeeded(cancelled);
+    expect(cancelled.stdout?.toString()).toContain("Cancelled");
+    const explicit = f.invoke(["rex-action", "open", JSON.stringify({ sourceSession: current.rexSession, args: { task: "other" } })]);
+    succeeded(explicit);
+    expect(explicit.stdout?.toString()).not.toContain("Choose a development task");
+    expect(JSON.parse(readFileSync(join(f.root, "rex.json"), "utf8"))).toHaveLength(2);
   });
 });
 

@@ -5,6 +5,8 @@ local queued = {}
 local commands = {}
 local watchers = {}
 local command_result = {ok = true, stdout = "", stderr = ""}
+local rex_path = "/fixture/Rex Server.app/Contents/MacOS/rex"
+local lookup_result = {ok = true, stdout = rex_path .. "\n", stderr = ""}
 
 rex = {
   action = function(definition) registered[definition.name] = definition end,
@@ -19,6 +21,12 @@ rex = {
     table.insert(watchers, {argv = argv, options = options})
     return {}
   end}, {__call = function(_, argv, options)
+    if argv[1] == "/bin/zsh" then
+      assert(argv[2] == "-lc" and argv[3]:find("command -v rex", 1, true), "resolve the CLI in a login shell, not the server PATH")
+      assert(argv[4] == "gt-rex-cli" and argv[5]:find("/Versions/Current/", 1, true), "fall back to the app's stable installation, passed as one argument")
+      assert(options.timeout < 30)
+      return lookup_result
+    end
     table.insert(commands, {argv = argv, options = options})
     return command_result
   end}),
@@ -56,7 +64,7 @@ for _, definition in pairs(registered) do
     assert(watcher.options.detach == true, "cleanup must outlive the action")
     assert(watcher.options.env.REX_SESSION == false and watcher.options.env.REX_BLOCK == false
       and watcher.options.env.REX_CLIENT == false, "do not inherit the source terminal's context")
-    assert(watcher.argv[1] == "rex" and watcher.argv[2] == "do")
+    assert(watcher.argv[1] == rex_path and watcher.argv[2] == "do", "use the resolved absolute CLI path, including spaces")
     assert(watcher.argv[3] == "-s" and watcher.argv[4] == result.session_id, "watch only the job we created")
     assert(watcher.argv[5] == "--fail-fast")
     assert(watcher.argv[6] == os.getenv("HOME") .. "/.config/rex/gertrude_job_cleanup.lua")
@@ -83,6 +91,18 @@ assert(real.json.decode(command[4]).args.name == "no-shell; $(injection)")
 command_result = {ok = false, stdout = "", stderr = "support fixture error"}
 local ok, err = pcall(registered.gt_support.run, {origin = "palette"}, {})
 assert(not ok and tostring(err):find("support fixture error", 1, true), "support failures must reach the UI")
+
+for _, result in ipairs({
+  {ok = false, stdout = "", stderr = "missing rex"},
+  {ok = true, stdout = "rex\n", stderr = ""},
+  {ok = true, stdout = "/unexpected/output\n/cli/rex\n", stderr = ""},
+}) do
+  lookup_result.ok, lookup_result.stdout, lookup_result.stderr = result.ok, result.stdout, result.stderr
+  local before_jobs = #calls
+  local ran, failure = pcall(registered.gt_open.run, {origin = "palette"}, {})
+  assert(not ran and tostring(failure):find("Could not locate the Rex CLI", 1, true), tostring(failure))
+  assert(#calls == before_jobs, "failed CLI lookup must not leave a job session behind")
+end
 
 local cleanup_file = assert(real.args.config:match("^(.*)/")) .. "/gertrude_job_cleanup.lua"
 local function test_cleanup(windows, blocks, label, expected, view_error, list_error, destroy_error, event, payload)

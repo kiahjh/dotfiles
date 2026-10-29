@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, join } from "node:path";
 import { REPO_URL } from "./constants.ts";
 import { fail } from "./errors.ts";
 import { commandExists, run } from "./process.ts";
@@ -58,8 +58,11 @@ export function verifyWorkspace(task: Workspace): void {
 export function assertNoActiveAgent(directory: string): void {
   const active = oc<{ data: Record<string, unknown> }>("get", "/api/session/active");
   for (const id of Object.keys(active.data)) {
-    const session = oc<{ location: { directory: string } }>("get", `/api/session/${encodeURIComponent(id)}`);
-    const location = session.location.directory;
+    const session = oc<{ data: { location: { directory: string } } }>("get", `/api/session/${encodeURIComponent(id)}`);
+    const location = session?.data?.location?.directory;
+    if (typeof location !== "string" || !isAbsolute(location)) {
+      fail("could not verify an active OpenCode agent's directory; refusing to finish the task");
+    }
     if (location === directory || location.startsWith(directory + "/")) {
       fail("an OpenCode agent is still working in this task; stop it before finishing (even with --discard)");
     }

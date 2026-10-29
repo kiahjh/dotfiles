@@ -76,7 +76,8 @@ export type RexActionIO = {
 
 async function chooseTask(request: RexRequest, io: RexActionIO): Promise<Workspace> {
   if (request.args.task) return findWorkspace(request.args.task);
-  const current = currentRexWorkspace(request.sourceSession);
+  // Reopen is a picker, not an operation on the task we're already viewing.
+  const current = request.operation === "open" ? undefined : currentRexWorkspace(request.sourceSession);
   if (current) return current;
   const tasks = workspaces().sort((a, b) => a.name.localeCompare(b.name));
   if (!tasks.length) fail("no registered tasks; use New Task in the Gertrude category first (support is permanent)");

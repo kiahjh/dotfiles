@@ -9,8 +9,8 @@ Go through the existing findings one at a time.
 
 For each finding:
 
-1. Explain it.
+1. Explain it simply and clearly.
 2. Propose what you think should be done about it.
 3. Wait for the user's judgment.
 4. Address it accordingly.
-5. Only then move to the next finding.
+5. Only then move o the next finding.

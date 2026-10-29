@@ -21,16 +21,19 @@ therefore take no required arguments. **Open Support** runs directly, without a
 temporary terminal. The other actions open an independent job session with a
 readable session/tab name, such as **New Task** or **Refresh Task Databases**, for
 input, confirmation, progress, and errors. Setup is not subject to the Lua action's
-30-second deadline. A scoped watcher removes the empty job session when its
+30-second deadline. The watcher CLI is resolved through your login shell with a
+fallback to the macOS app's stable installation, because Rex.app's background PATH
+may not include Rex itself. A scoped watcher removes the empty job session when its
 terminal closes; it leaves renamed jobs or jobs with added tabs/panes alone.
 Errors wait for Return so their output can be read. Blank input or Ctrl+C cancels
 a prompt without executing its requested operation. Action titles omit the
 redundant Gertrude prefix; they remain grouped in the **Gertrude** category.
 
 The originating Rex session ID is captured before the job opens. Its registered
-task is preselected, even though the job runs in another directory/session. If
-there is no registered source task, the job asks which task to use; it never
-guesses from a pane's cwd. Support is not included in disposable task choices.
+task is preselected, even though the job runs in another directory/session, except
+**Reopen Task**, which always offers the task picker unless an explicit task was
+passed. If there is no registered source task, the job asks which task to use; it
+never guesses from a pane's cwd. Support is not included in disposable task choices.
 
 Finish requires typing `finish <task>`, discard requires `discard <task>`, and DB
 refresh requires `refresh <task>`. All underlying checks still apply. Palette

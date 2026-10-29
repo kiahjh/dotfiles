@@ -15,7 +15,7 @@ For example:
 
 | Package    | What it configures             |
 |------------|--------------------------------|
-| `agents`   | Global Codex/agent skills      |
+| `agents`   | Shared global agent skills    |
 | `bin`      | Scripts in `~/.local/scripts/` |
 | `capslock` | Native dual-role key app       |
 | `ghostty`  | Ghostty terminal               |
@@ -44,3 +44,12 @@ pi/.pi/agent/extensions/foo.ts
 ```
 
 Then run `just stow` (or `stow pi`) to create the symlink.
+
+## Shared skills
+
+Add reusable skills at `agents/.agents/skills/<skill-id>/SKILL.md`, with any
+supporting files beside them. `stow agents` exposes the collection at
+`~/.agents/skills/` for OpenCode and other compatible agents, and at
+`~/.claude/skills/` through a compatibility symlink. Keep one authoritative
+copy rather than separate per-tool installations. Existing Pi skills remain
+in the `pi` package.

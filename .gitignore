@@ -9,6 +9,7 @@ gt/.env
 karabiner/.config/karabiner/automatic_backups/
 nvim/.config/nvim/plugin/packer_compiled.lua
 .claude/
+!agents/.claude/
 gt/.env.template
 scratch/
 

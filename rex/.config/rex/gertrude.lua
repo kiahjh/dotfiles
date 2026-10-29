@@ -1,6 +1,21 @@
 local home = assert(os.getenv("HOME"), "HOME is not set")
 local gt = home .. "/.local/scripts/gt"
 
+local function rex_executable()
+  -- Rex.app's server PATH need not include its versioned CLI installation.
+  -- A terminal gets REX_BIN_DIR injected; background actions do not. Fall back
+  -- to the macOS app's stable Current installation, never a pinned version.
+  local installed = home .. "/Library/Application Support/com.superlogical.rex/RexServer/Versions/Current/Rex Server.app/Contents/MacOS/rex"
+  local result, err = rex.exec({"/bin/zsh", "-lc",
+    'command -v rex || { [[ -x "$1" ]] && print -r -- "$1"; }', "gt-rex-cli", installed}, {cwd = home, timeout = 5})
+  if result == nil then error(err, 0) end
+  local path = result.stdout:gsub("%s+$", "")
+  if not result.ok or path:sub(1, 1) ~= "/" or path:find("[\r\n]") then
+    error("Could not locate the Rex CLI; no job session was opened.", 0)
+  end
+  return path
+end
+
 local function launch(operation, title, ctx, args)
   local interactive = ctx.origin == "palette" or ctx.origin == "key"
   local payload, encode_error = rex.json.encode({
@@ -18,6 +33,7 @@ local function launch(operation, title, ctx, args)
     return
   end
 
+  local rex_cli = rex_executable()
   local job_title = title:gsub("…$", "")
   local created, create_error = rex.call("session.create", {
     label = job_title,
@@ -38,7 +54,7 @@ local function launch(operation, title, ctx, args)
   -- job and removes the empty parent session after its terminal closes.
   local window = created.initial_windows[1]
   local watcher, watch_error = rex.exec.start({
-    "rex", "do", "-s", created.session_id, "--fail-fast", home .. "/.config/rex/gertrude_job_cleanup.lua",
+    rex_cli, "do", "-s", created.session_id, "--fail-fast", home .. "/.config/rex/gertrude_job_cleanup.lua",
     "label=" .. job_title, "window=" .. window.window_id, "block=" .. window.block_ids[1],
   }, {detach = true, env = {REX_SESSION = false, REX_BLOCK = false, REX_CLIENT = false}})
   if watcher == nil then rex.log("warn", "Job-session cleanup could not start: " .. tostring(watch_error)) end
