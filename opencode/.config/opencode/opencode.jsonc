@@ -1,7 +1,9 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "experimental": {
-    "background_compaction": true
+    "background_compaction": true,
+    "schedules": true,
+    "image_generate": true
   },
   "permissions": [
     {
