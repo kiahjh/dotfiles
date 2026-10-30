@@ -78,12 +78,12 @@ h1, h2, h3, p { margin: 0; }
 .review-details dd code { font-size: 10px; }
 
 .chapter { --chapter-padding: 9px; --review-code-bg: var(--surface-chapter); margin-bottom: 12px; padding: var(--chapter-padding); border: 1px solid color-mix(in srgb, var(--border) 14%, transparent); border-radius: 12px; background: var(--surface-chapter); scroll-margin-top: 58px; }
-.chapter-heading { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; margin: calc(-1 * var(--chapter-padding)) calc(-1 * var(--chapter-padding)) 8px; padding: 8px var(--chapter-padding) 8px calc(var(--chapter-padding) + var(--review-rail)); border-bottom: 1px solid var(--rule); border-radius: 11px 11px 0 0; background: var(--surface-panel); }
+.chapter-heading { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; margin: calc(-1 * var(--chapter-padding)) calc(-1 * var(--chapter-padding)) var(--chapter-padding); padding: 8px var(--chapter-padding) 8px calc(var(--chapter-padding) + var(--review-rail)); border-bottom: 1px solid var(--rule); border-radius: 11px 11px 0 0; background: var(--surface-panel); }
 .chapter-heading h2 { color: var(--yellow); font-size: 14px; font-weight: 600; }
 .chapter-heading p { font-size: 13px; color: var(--foreground); }
 .review-card { border: 0; background: transparent; margin-bottom: 12px; scroll-margin-top: 58px; min-width: 0; }
 .review-card:last-child { margin-bottom: 0; }
-.card-heading { position: relative; display: flex; align-items: center; gap: 4px; padding: 2px 2px 2px var(--review-rail); min-height: 34px; background: transparent; border-radius: 12px; }
+.card-heading { position: sticky; top: var(--bar-height); z-index: 10; display: flex; align-items: center; gap: 4px; padding: 2px 2px 2px var(--review-rail); min-height: 34px; background: var(--surface-chapter); border-radius: 12px; }
 .is-collapsed .card-heading { background: var(--panel); }
 .collapse-toggle { position: absolute; left: 2px; top: 2px; width: 30px; height: 30px; min-height: 30px; padding: 7px; border-radius: 10px; }
 .chevron { display: flex; transform: rotate(-90deg); }

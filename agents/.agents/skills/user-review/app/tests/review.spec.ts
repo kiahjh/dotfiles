@@ -45,6 +45,10 @@ test.beforeAll(async () => {
   await capture({ repo, id: 'ranges' });
   await writeFile(join(repo, 'ranges.ts'), text.replace('number155 = 155', 'number155 = 15500'));
   await capture({ repo, id: 'hundreds' });
+  await writeFile(join(repo, 'ranges.ts'), text);
+  await writeFile(join(repo, 'long.ts'), Array.from({ length: 180 }, (_, i) => `export const line${i + 1} = ${i + 1};`).join('\n') + '\n');
+  await writeFile(join(repo, 'tail.ts'), Array.from({ length: 80 }, (_, i) => `export const tail${i + 1} = ${i + 1};`).join('\n') + '\n');
+  await capture({ repo, id: 'long' });
 });
 
 test('renders every captured unit with highlighted code and no runtime errors', async ({ page }) => {
@@ -71,7 +75,7 @@ test('renders every captured unit with highlighted code and no runtime errors', 
   expect(descriptionBox.y).toBeGreaterThanOrEqual(titleBox.y + titleBox.height);
   expect(descriptionBox.x).toBe(titleBox.x);
   await expect(page.locator('.review-card').first()).toHaveCSS('border-top-width', '0px');
-  await expect(page.locator('.card-heading').first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(page.locator('.card-heading').first()).toHaveCSS('background-color', await page.locator('.chapter').first().evaluate(element => getComputedStyle(element).backgroundColor));
   const radii = await page.locator('.review-toggle').first().evaluate(button => {
     const outer = getComputedStyle(button);
     const inner = getComputedStyle(button.querySelector('.checkbox')!);
@@ -108,8 +112,65 @@ test('collapsed items have a subtle background while expanded diffs stay flat', 
   expect(geometry.inner).toBe(geometry.outer - geometry.inset);
   await card.getByRole('button', { name: 'Expand src/session.ts', exact: true }).click();
   await expect(card).not.toHaveClass(/is-collapsed/);
-  await expect(card.locator('.card-heading')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(card.locator('.card-heading')).toHaveCSS('background-color', await page.locator('.chapter').first().evaluate(element => getComputedStyle(element).backgroundColor));
   await expect(card.locator('diffs-container [data-line]').first()).toBeVisible();
+});
+
+test('the first chunk has equal top and side insets below its section header', async ({ page }) => {
+  await page.goto('/reviews/demo');
+  const chapter = page.locator('.chapter').first();
+  await chapter.getByRole('button', { name: 'Collapse src/session.ts', exact: true }).click();
+  for (const width of [1550, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    const section = (await chapter.boundingBox())!;
+    const header = (await chapter.locator('.chapter-heading').boundingBox())!;
+    const first = (await chapter.locator('.card-heading').first().boundingBox())!;
+    const top = first.y - header.y - header.height;
+    const left = first.x - section.x - 1;
+    const right = section.x + section.width - 1 - first.x - first.width;
+    expect(top).toBe(left);
+    expect(top).toBe(right);
+  }
+});
+
+test('long chunks keep their header reachable through the last line on desktop and mobile', async ({ page }) => {
+  for (const width of [1550, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto('/reviews/long');
+    const card = page.locator('[data-unit-id]').first();
+    const heading = card.locator('.card-heading');
+    await expect(card.locator('diffs-container [data-line="180"]').first()).toBeAttached();
+    const bar = (await page.locator('.topbar').boundingBox())!;
+    const cardBox = (await card.boundingBox())!;
+    expect(cardBox.height).toBeGreaterThan(2000);
+    for (const scrollY of [cardBox.y + cardBox.height / 2, cardBox.y + cardBox.height - 700]) {
+      await page.evaluate(y => window.scrollTo(0, y), scrollY);
+      await expect.poll(async () => (await heading.boundingBox())!.y).toBe(bar.height);
+      const button = card.getByRole('button', { name: 'Mark reviewed', exact: true });
+      expect(await button.evaluate(element => {
+        const box = element.getBoundingClientRect();
+        return element.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
+      })).toBe(true);
+    }
+    await page.screenshot({ path: `test-results/sticky-header-${width}.png` });
+    // A real pointer click avoids Playwright scrolling the button into view for us.
+    const buttonBox = (await card.getByRole('button', { name: 'Mark reviewed', exact: true }).boundingBox())!;
+    await page.mouse.click(buttonBox.x + buttonBox.width / 2, buttonBox.y + buttonBox.height / 2);
+    await expect(card).toHaveClass(/is-reviewed.*is-collapsed/);
+    await card.getByRole('button', { name: 'Expand long.ts', exact: true }).click();
+    await expect(card.locator('.card-body')).toBeVisible();
+    const next = page.locator('[data-unit-id]').nth(1);
+    await next.evaluate(element => window.scrollTo(0, window.scrollY + element.getBoundingClientRect().top - 44));
+    await expect.poll(async () => {
+      const box = (await heading.boundingBox())!;
+      return box.y + box.height;
+    }).toBeLessThanOrEqual(bar.height);
+    await page.reload();
+    await expect(card).toHaveClass(/is-reviewed.*is-collapsed/);
+    await expect(card.locator('.card-body')).toHaveCount(0);
+    await card.getByRole('button', { name: 'Reviewed', exact: true }).click();
+    await expect(card).not.toHaveClass(/is-reviewed/);
+  }
 });
 
 test('headings, chrome, and renderers share the Kiahgawa palette', async ({ page }) => {
@@ -435,6 +496,7 @@ test('marks progress, saves notes, exports only notes with context, and survives
   expect(copied).not.toMatch(/My notes|Please answer/);
   await page.reload();
   await expect(card.getByRole('button', { name: 'Reviewed', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(card.locator('.card-body')).toHaveCount(0);
   await page.getByRole('button', { name: 'Toggle notes' }).click();
   await expect(page.locator('.saved-note')).toContainText('Why use the current timestamp');
   const note = page.locator('.saved-note').first();

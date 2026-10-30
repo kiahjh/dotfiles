@@ -65,8 +65,9 @@ Data stays in `~/Library/Application Support/User Review`, overridable with
 
 Snapshots are immutable. Unique unchanged chunks retain progress across captures;
 changed or ambiguous chunks need re-review. Outdated notes keep their original
-context. Layout and wrapping preferences persist. Marking reviewed collapses the
-chunk; expanding it does not clear its status. Copy notes exports only notes,
+context. Layout and wrapping preferences persist. Reviewed chunks start collapsed;
+expanding one does not clear its status. Chunk headers stay visible while scrolling
+their diff, keeping the review checkbox within reach. Copy notes exports only notes,
 locations, and numbered original context, with a manual fallback if clipboard access fails.
 
 Writes are serialized and atomic; stale tabs cannot overwrite a newer snapshot.

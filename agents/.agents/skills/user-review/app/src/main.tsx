@@ -226,7 +226,7 @@ function App() {
     {error && <div className="error-banner" role="alert">{error}<button onClick={() => setError('')} aria-label="Dismiss error"><Icon name="close" /></button></div>}
     {newSnapshot && <div className="update-banner"><span>New snapshot available.</span><button onClick={() => {
       if (draft?.text && !confirm('Load the new snapshot and discard this unsaved draft?')) return;
-      setData(newSnapshot); setNewSnapshot(undefined); setFullFile(undefined); setDraft(undefined); setError('');
+      setData(newSnapshot); setExpanded({}); setNewSnapshot(undefined); setFullFile(undefined); setDraft(undefined); setError('');
     }}>Load new snapshot <Icon name="arrow" /></button></div>}
     {filesOpen && <button className="files-backdrop" aria-label="Dismiss files" onClick={closeFiles} />}
     <div className={`workspace ${filesOpen ? 'with-files' : ''} ${notesOpen ? 'with-notes' : ''}`}>
@@ -263,10 +263,11 @@ function App() {
           {chapter.items.map(item => {
             const unit = units.get(item.unitId)!;
             const file = files.get(unit.fileId)!;
+            const defaultExpanded = !state.reviewed[unit.id] && (state.flags[unit.id] === 'changed' || item.expanded !== false);
             return <ReviewCard key={unit.id} unit={unit} file={file} item={item} layout={layout} wrapLines={wrapLines} reviewed={!!state.reviewed[unit.id]}
-              flag={state.flags[unit.id]} expanded={expanded[unit.id] ?? (state.flags[unit.id] === 'changed' ? true : item.expanded !== false)}
+              flag={state.flags[unit.id]} expanded={expanded[unit.id] ?? defaultExpanded}
               notes={state.notes.filter(note => note.unitId === unit.id)}
-              onToggle={() => setExpanded(current => ({ ...current, [unit.id]: !(current[unit.id] ?? (state.flags[unit.id] === 'changed' ? true : item.expanded !== false)) }))}
+              onToggle={() => setExpanded(current => ({ ...current, [unit.id]: !(current[unit.id] ?? defaultExpanded) }))}
               onReview={async () => {
                 const reviewed = !state.reviewed[unit.id];
                 if (await act({ type: 'review', ids: [unit.id], reviewed }) && reviewed)
