@@ -6,7 +6,10 @@ in the global config. Install the package and config together with
 and OpenCode 2.2.4.
 
 The agent's `opener.offer_open({ target, label? })` queues an item without opening
-anything or waiting for the user. A passive **Ready to open** card appears above
+anything or waiting for the user. The tool description and a per-request
+instruction limit it to finished artifacts the agent made for the user to look
+at (reports, images, PDFs, Markdown, or a preview server it started), not files
+it edited or links it cites. A passive **Ready to open** card appears above
 that session's composer, with **Open**, **Dismiss**, and paging for multiple items.
 The card uses the prompt's themed surface, an accent rail, and filled/hoverable
 buttons. A compact filename or URL replaces noisy absolute paths; **Details**
@@ -18,8 +21,15 @@ a modal, notification, or launch an app.
 - HTTP(S) links open in the default browser.
 - HTML and SVG files open in the default HTTP browser, even if their file
   association points to an editor.
-- Images and PDFs open in Preview. Text/Markdown/JSON/CSV/log/RTF files use their
-  default app; folders use Finder.
+- Images and PDFs open in Preview. RTF files use their default app; folders use
+  Finder.
+- Text, Markdown, config, and common code files open in Neovim. When OpenCode
+  runs in a Rex pane (`REX_SESSION` and `REX_BLOCK` are set in the TUI), Open
+  runs `rex split` to add a pane to the right of OpenCode in the same tab, with
+  `nvim -- FILE` in the file's folder. Rex passes each argument as-is, without a
+  shell string. Outside Rex, these files use `open -t` (the default text editor)
+  rather than the file association, which might run code. Shell scripts are
+  still rejected.
 - Relative paths resolve from the session directory; `~/` and local `file://`
   paths work too. The destination is always shown before opening.
 - Scripts, executable files, apps, bundles, installers, and unknown file types
@@ -33,7 +43,8 @@ a modal, notification, or launch an app.
   local path. Remote files must first be downloaded locally.
 
 There is deliberately no RPC or agent tool for launching. The server only queues
-and dismisses items; only the user-facing TUI click/chooser calls macOS `open`.
+and dismisses items; only the user-facing TUI click/chooser calls macOS `open` or
+`rex split`.
 A failed launch keeps the item available. The TUI refreshes on events and every
 30 seconds to recover after reconnects.
 

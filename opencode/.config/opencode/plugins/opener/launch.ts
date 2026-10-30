@@ -1,8 +1,8 @@
 import { execFile } from "node:child_process";
 import { hostname } from "node:os";
-import { isAbsolute } from "node:path";
+import { basename, dirname, isAbsolute, join } from "node:path";
 import { promisify } from "node:util";
-import { resolveTarget, type Offer } from "./model";
+import { inRex, resolveTarget, type Offer } from "./model";
 
 const exec = promisify(execFile);
 export type Runner = (file: string, args: string[]) => Promise<string>;
@@ -12,7 +12,16 @@ const run: Runner = async (file, args) => (await exec(file, args, { timeout: 15_
 // discovers the default HTTP browser without activating it or visiting a URL.
 export const browserQuery = 'ObjC.import("AppKit"); $.NSWorkspace.sharedWorkspace.URLForApplicationToOpenURL($.NSURL.URLWithString("https://example.com")).path.js';
 
-export async function openOffer(item: Offer, options: { run?: Runner; platform?: string; hostname?: string } = {}) {
+// Rex passes each argument to the program as-is; it does not build a shell string.
+function rexSplit(path: string, env: NodeJS.ProcessEnv): [string, string[]] {
+  const rex = env.REX_BIN_DIR && isAbsolute(env.REX_BIN_DIR) ? join(env.REX_BIN_DIR, "rex") : "rex";
+  return [rex, [
+    "split", "-s", env.REX_SESSION!, "-b", env.REX_BLOCK!, "--split=right",
+    "-c", dirname(path), "--label", basename(path), "--", "nvim", "--", path,
+  ]];
+}
+
+export async function openOffer(item: Offer, options: { run?: Runner; platform?: string; hostname?: string; env?: NodeJS.ProcessEnv } = {}) {
   if ((options.platform ?? process.platform) !== "darwin") throw new Error("This opener currently supports macOS only.");
   const localHost = options.hostname ?? hostname();
   if (item.kind !== "url" && item.hostname !== localHost) throw new Error("This file belongs to another machine. Download it locally before opening it.");
@@ -29,6 +38,12 @@ export async function openOffer(item: Offer, options: { run?: Runner; platform?:
     await execute("/usr/bin/open", ["-a", browser, "--", resolved.target]);
   } else if (resolved.destination === "preview") {
     await execute("/usr/bin/open", ["-a", "Preview", "--", resolved.target]);
+  } else if (resolved.destination === "editor") {
+    const env = options.env ?? process.env;
+    // Outside Rex, `-t` picks the default text editor instead of the file's
+    // association, which could be an app that runs code (e.g. Python Launcher).
+    if (inRex(env)) await execute(...rexSplit(resolved.target, env));
+    else await execute("/usr/bin/open", ["-t", "--", resolved.target]);
   } else {
     await execute("/usr/bin/open", ["--", resolved.target]);
   }

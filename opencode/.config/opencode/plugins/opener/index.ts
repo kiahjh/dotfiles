@@ -19,10 +19,10 @@ export default Plugin.define({
       },
     });
     await ctx.tool.transform((editor) => {
-      editor.namespace({ name: "opener", description: "Offer files or links for the user to open when ready. Never launches anything automatically." });
+      editor.namespace({ name: "opener", description: "Offer a finished artifact you made so the user can open it with one click. Never launches anything automatically." });
       editor.add({
         name: "offer_open",
-        description: "Put a passive Open/Dismiss card above this session's composer. Use for a useful generated artifact, HTML page, image, PDF, folder, text document, or HTTP(S) link. Nothing opens until the user clicks; returns immediately without blocking the agent. Relative paths resolve from the session's directory. Not for scripts, apps, installers, or shell commands.",
+        description: "Put an Open/Dismiss card above this session's composer for a finished artifact you created for the user to look at, such as an HTML report, image, PDF, or Markdown document, or a local preview server you started. Use it instead of launching an app yourself. Don't use it for files you only edited or read, or for links you're citing. Nothing opens until the user clicks; returns immediately. Relative paths resolve from the session's directory.",
         input: {
           type: "object",
           properties: { target: { type: "string", minLength: 1 }, label: { type: "string", maxLength: 120 } },
@@ -43,7 +43,7 @@ export default Plugin.define({
       });
     });
     await ctx.session.hook("context", (event) => {
-      event.system.push({ type: "text", text: "When presenting a useful generated artifact or a link the user may want to view, use opener.offer_open to offer it in the passive card above their composer. Do not launch a browser, Preview, Finder, or another foreground app automatically unless the user explicitly requests an immediate launch. Offer only relevant finished items, not every file you touch." });
+      event.system.push({ type: "text", text: "Use opener.offer_open only for a finished artifact you created for the user to look at, such as an HTML report, image, PDF, or Markdown document, or a local preview server you started. Offer it once, when it's ready. Don't offer source files you edited, files you only read, or web links you're citing in your reply. Never launch a browser, Preview, Finder, or another app yourself unless the user explicitly asks for an immediate launch." });
     });
   },
 });

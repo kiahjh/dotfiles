@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { basename, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export type Destination = "browser" | "preview" | "default";
+export type Destination = "browser" | "preview" | "editor" | "default";
 export type Offer = {
   id: string;
   sessionID: string;
@@ -19,7 +19,7 @@ export const offerSchema = {
   properties: {
     id: { type: "string" }, sessionID: { type: "string" }, label: { type: "string" },
     target: { type: "string" }, kind: { type: "string", enum: ["url", "file", "directory"] },
-    destination: { type: "string", enum: ["browser", "preview", "default"] }, hostname: { type: "string" },
+    destination: { type: "string", enum: ["browser", "preview", "editor", "default"] }, hostname: { type: "string" },
   },
   required: ["id", "sessionID", "label", "target", "kind", "destination", "hostname"],
   additionalProperties: false,
@@ -28,7 +28,14 @@ export const offerSchema = {
 const unsafeText = /[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/;
 const browser = new Set([".html", ".htm", ".svg"]);
 const preview = new Set([".pdf", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".heic", ".heif", ".tif", ".tiff", ".bmp", ".avif", ".ico"]);
-const documents = new Set([".txt", ".md", ".markdown", ".json", ".csv", ".tsv", ".log", ".rtf"]);
+// Plain text and code open in Neovim. Shell scripts are left out because outside
+// Rex these files go to macOS `open`, and some script types run when opened.
+const editor = new Set([
+  ".md", ".markdown", ".txt", ".text", ".log", ".json", ".jsonc", ".csv", ".tsv", ".yaml", ".yml", ".toml", ".xml",
+  ".ini", ".conf", ".diff", ".patch", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py", ".rs", ".go", ".swift",
+  ".rb", ".lua", ".c", ".h", ".cpp", ".hpp", ".java", ".kt", ".sql", ".css", ".scss",
+]);
+const documents = new Set([".rtf"]);
 const applications = /\.(app|bundle|workflow|scptd|plugin|prefpane)$/i;
 
 export function displayLabel(value: string): string {
@@ -39,7 +46,7 @@ export function isOffer(value: unknown): value is Offer {
   if (!value || typeof value !== "object") return false;
   const item = value as Offer;
   return [item.id, item.sessionID, item.label, item.target, item.hostname].every((part) => typeof part === "string") &&
-    ["url", "file", "directory"].includes(item.kind) && ["browser", "preview", "default"].includes(item.destination);
+    ["url", "file", "directory"].includes(item.kind) && ["browser", "preview", "editor", "default"].includes(item.destination);
 }
 
 // Used both when offering and immediately before opening. Never trust a saved
@@ -62,11 +69,17 @@ export async function resolveTarget(target: string, directory: string) {
   if (info.isDirectory()) return { target: path, kind: "directory" as const, destination: "default" as const, label: basename(path) };
   if (!info.isFile() || (info.mode & 0o111) !== 0) throw new Error("Only ordinary, non-executable files and folders can be offered.");
   const extension = extname(path).toLowerCase();
-  const destination: Destination = browser.has(extension) ? "browser" : preview.has(extension) ? "preview" : "default";
-  if (destination === "default" && !documents.has(extension)) throw new Error("Unsupported file type. Offer HTML, an image, PDF, text document, or folder—not a script, app, or installer.");
+  const destination: Destination = browser.has(extension) ? "browser" : preview.has(extension) ? "preview" : editor.has(extension) ? "editor" : "default";
+  if (destination === "default" && !documents.has(extension)) throw new Error("Unsupported file type. Offer HTML, an image, PDF, a text or code file, or a folder—not a script, app, or installer.");
   return { target: path, kind: "file" as const, destination, label: basename(path) };
 }
 
-export function openLabel(item: Offer): string {
+// Text files open in Neovim only when OpenCode runs inside a Rex pane.
+export function inRex(env: NodeJS.ProcessEnv = process.env): boolean {
+  return Boolean(env.REX_SESSION && env.REX_BLOCK);
+}
+
+export function openLabel(item: Offer, env: NodeJS.ProcessEnv = process.env): string {
+  if (item.destination === "editor") return inRex(env) ? "Open in Neovim" : "Open in text editor";
   return item.destination === "browser" ? "Open in browser" : item.destination === "preview" ? "Open in Preview" : item.kind === "directory" ? "Open in Finder" : "Open";
 }

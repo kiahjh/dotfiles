@@ -4,14 +4,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { browserQuery, openOffer, type Runner } from "./launch";
-import { displayLabel, resolveTarget, type Offer } from "./model";
+import { displayLabel, openLabel, resolveTarget, type Offer } from "./model";
 import { createQueue } from "./queue";
 import { targetSummary } from "./presentation";
 
 let directory: string;
 beforeAll(async () => {
   directory = await realpath(await mkdtemp(join(tmpdir(), "opencode-opener-test-")));
-  await Promise.all(["report.html", "photo.png", "paper.pdf", "notes.md", "data.json", "run.command", "archive.dmg", "execute.txt", "space ' quote; $(touch nope).html"].map((name) => writeFile(join(directory, name), "test", { mode: 0o644 })));
+  await Promise.all(["report.html", "photo.png", "paper.pdf", "notes.md", "data.json", "tool.py", "letter.rtf", "install.sh", "run.command", "archive.dmg", "execute.txt", "space ' quote; $(touch nope).html", "space ' quote; $(touch nope).md"].map((name) => writeFile(join(directory, name), "test", { mode: 0o644 })));
   await chmod(join(directory, "execute.txt"), 0o755);
   await mkdir(join(directory, "folder"));
   await mkdir(join(directory, "Unsafe.app"));
@@ -28,8 +28,10 @@ async function file(name: string): Promise<Offer> {
 function runner() {
   const calls: { file: string; args: string[] }[] = [];
   const run: Runner = async (file, args) => { calls.push({ file, args }); return file === "/usr/bin/osascript" ? "/Applications/My Browser.app" : ""; };
-  return { calls, run, platform: "darwin", hostname: "test-mac" };
+  // An empty environment keeps tests independent of whether they run inside Rex.
+  return { calls, run, platform: "darwin", hostname: "test-mac", env: {} as NodeJS.ProcessEnv };
 }
+const rexEnv = { REX_SESSION: "session:test", REX_BLOCK: "block:opencode", REX_BIN_DIR: "/Applications/Rex Server.app/Contents/MacOS" };
 
 describe("target validation", () => {
   test("card metadata shows a filename instead of a noisy absolute path", () => {
@@ -51,14 +53,14 @@ describe("target validation", () => {
   test.each(["javascript:alert(1)", "data:text/html,hi", "ftp://example.com", "mailto:hi@example.com", "https://user:password@example.com", "https://example.com\n", "\u001b[31m", ""])("rejects unsafe target %s", async (target) => {
     await expect(resolveTarget(target, directory)).rejects.toThrow();
   });
-  test.each([["report.html", "browser"], ["photo.png", "preview"], ["paper.pdf", "preview"], ["notes.md", "default"], ["folder", "default"]])("routes %s to %s", async (name, destination) => {
+  test.each([["report.html", "browser"], ["photo.png", "preview"], ["paper.pdf", "preview"], ["notes.md", "editor"], ["data.json", "editor"], ["tool.py", "editor"], ["letter.rtf", "default"], ["folder", "default"]])("routes %s to %s", async (name, destination) => {
     expect(await resolveTarget(name, directory)).toMatchObject({ target: join(directory, name), destination });
   });
   test("supports local file URLs and spaces without treating them as commands", async () => {
     const path = join(directory, "space ' quote; $(touch nope).html");
     expect((await resolveTarget(pathToFileURL(path).href, directory)).target).toBe(path);
   });
-  test.each(["run.command", "archive.dmg", "execute.txt", "Unsafe.app", "disguised.html", "missing.pdf"])("rejects unsafe or missing file %s", async (name) => {
+  test.each(["run.command", "install.sh", "archive.dmg", "execute.txt", "Unsafe.app", "disguised.html", "missing.pdf"])("rejects unsafe or missing file %s", async (name) => {
     await expect(resolveTarget(name, directory)).rejects.toThrow();
   });
   test("rejects non-local file URLs", async () => {
@@ -94,13 +96,41 @@ describe("local launch (no real applications are launched)", () => {
     await openOffer(item, local);
     expect(local.calls).toEqual([{ file: "/usr/bin/open", args: ["-a", "Preview", "--", item.target] }]);
   });
-  test("folders and text use their default app", async () => {
-    for (const name of ["folder", "notes.md"]) {
+  test("folders and rich text use their default app", async () => {
+    for (const name of ["folder", "letter.rtf"]) {
       const local = runner();
       const item = await file(name);
       await openOffer(item, local);
       expect(local.calls).toEqual([{ file: "/usr/bin/open", args: ["--", item.target] }]);
     }
+  });
+  test("in Rex, text opens in Neovim in a new pane beside OpenCode", async () => {
+    const local = runner();
+    const item = await file("space ' quote; $(touch nope).md");
+    await openOffer(item, { ...local, env: rexEnv });
+    expect(local.calls).toEqual([{
+      file: "/Applications/Rex Server.app/Contents/MacOS/rex",
+      args: ["split", "-s", "session:test", "-b", "block:opencode", "--split=right", "-c", directory,
+        "--label", "space ' quote; $(touch nope).md", "--", "nvim", "--", item.target],
+    }]);
+  });
+  test("in Rex without a known binary folder, rex is found on PATH", async () => {
+    const local = runner();
+    await openOffer(await file("tool.py"), { ...local, env: { REX_SESSION: "s", REX_BLOCK: "b", REX_BIN_DIR: "relative/dir" } });
+    expect(local.calls[0]!.file).toBe("rex");
+  });
+  test("outside Rex, text uses the default text editor, not the file's association", async () => {
+    for (const name of ["notes.md", "tool.py"]) {
+      const local = runner();
+      const item = await file(name);
+      await openOffer(item, local);
+      expect(local.calls).toEqual([{ file: "/usr/bin/open", args: ["-t", "--", item.target] }]);
+    }
+  });
+  test("the button names the app that will open text", async () => {
+    const item = await file("notes.md");
+    expect(openLabel(item, rexEnv)).toBe("Open in Neovim");
+    expect(openLabel(item, {})).toBe("Open in text editor");
   });
   test("refuses files from a remote machine", async () => {
     const local = runner();
