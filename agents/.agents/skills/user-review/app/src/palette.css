@@ -1,0 +1,2 @@
+/* Fallback before the generated palette is installed by theme.ts. */
+:root { --background: #181616; --foreground: #d5d8d0; --muted: #9da69f; --yellow: #d3be8e; --panel: #252420; --raised: #302e2b; }

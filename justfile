@@ -20,6 +20,15 @@ capslock-uninstall:
 themes-update:
   @python3 -B scripts/themes-update.py
 
+user-review-build:
+  @cd agents/.agents/skills/user-review/app && bun install --frozen-lockfile && node scripts/sync-theme.ts && bun run build
+
+user-review-test:
+  @cd agents/.agents/skills/user-review/app && bun run test && bun run test:browser
+
+user-review-demo:
+  @node agents/.agents/skills/user-review/app/bin/user-review.mjs demo
+
 stow:
   @stow agents
   @stow git
