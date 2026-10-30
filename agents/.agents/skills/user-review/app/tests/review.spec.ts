@@ -89,7 +89,7 @@ test('renders every captured unit with highlighted code and no runtime errors', 
   await page.screenshot({ path: 'test-results/desktop.png', fullPage: true });
 });
 
-test('collapsed items have a subtle background while expanded diffs stay flat', async ({ page }) => {
+test('collapsed items have a subtle border and background while expanded diffs stay flat', async ({ page }) => {
   await page.goto('/reviews/demo');
   const card = page.locator('[data-unit-id]').first();
   const filename = card.locator('.card-file code');
@@ -99,6 +99,7 @@ test('collapsed items have a subtle background while expanded diffs stay flat', 
   await expect(card.locator('.card-body')).toHaveCount(0);
   await expect(card.locator('.card-heading')).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(card.locator('.card-heading')).toHaveCSS('border-radius', '12px');
+  await expect(card.locator('.card-heading')).toHaveCSS('box-shadow', /inset/);
   await expect(card).toHaveCSS('border-top-width', '0px');
   const collapsed = (await filename.boundingBox())!;
   expect(collapsed.x).toBe(before.x);
@@ -112,6 +113,9 @@ test('collapsed items have a subtle background while expanded diffs stay flat', 
   expect(geometry.inner).toBe(geometry.outer - geometry.inset);
   await card.getByRole('button', { name: 'Expand src/session.ts', exact: true }).click();
   await expect(card).not.toHaveClass(/is-collapsed/);
+  await expect(card.locator('.card-heading')).toHaveCSS('box-shadow', 'none');
+  await expect(card.locator('.card-heading')).toHaveCSS('border-top-left-radius', '0px');
+  await expect(card.locator('.card-heading')).toHaveCSS('border-top-right-radius', '0px');
   await expect(card.locator('.card-heading')).toHaveCSS('background-color', await page.locator('.chapter').first().evaluate(element => getComputedStyle(element).backgroundColor));
   await expect(card.locator('diffs-container [data-line]').first()).toBeVisible();
 });
@@ -146,6 +150,8 @@ test('long chunks keep their header reachable through the last line on desktop a
     for (const scrollY of [cardBox.y + cardBox.height / 2, cardBox.y + cardBox.height - 700]) {
       await page.evaluate(y => window.scrollTo(0, y), scrollY);
       await expect.poll(async () => (await heading.boundingBox())!.y).toBe(bar.height);
+      await expect(heading).toHaveCSS('border-top-left-radius', '0px');
+      await expect(heading).toHaveCSS('border-top-right-radius', '0px');
       const button = card.getByRole('button', { name: 'Mark reviewed', exact: true });
       expect(await button.evaluate(element => {
         const box = element.getBoundingClientRect();
@@ -514,7 +520,7 @@ test('marks progress, saves notes, exports only notes with context, and survives
   expect((await note.locator('p').boundingBox())!.x).toBe(icon.x);
   const noteBox = (await note.boundingBox())!;
   const deleteBox = (await note.getByRole('button', { name: 'Delete', exact: true }).boundingBox())!;
-  expect(deleteBox.x + deleteBox.width).toBe(noteBox.x + noteBox.width - 8);
+  expect(deleteBox.x + deleteBox.width).toBe(noteBox.x + noteBox.width - 9);
   await expect(note.locator('.note-location .file-type-icon')).toHaveAttribute('data-file-type', 'typescript');
   await page.screenshot({ path: 'test-results/notes.png', fullPage: false });
 });
@@ -529,6 +535,17 @@ test('selects an exact line range using Pierre and adds a note', async ({ page }
   await page.getByRole('textbox', { name: 'Add note', exact: true }).fill('Should this timestamp be optional?');
   await page.getByRole('button', { name: 'Save note', exact: true }).click();
   await expect(page.locator('.saved-note').filter({ hasText: 'Should this timestamp' })).toBeVisible();
+  const inline = card.locator('.inline-note').filter({ hasText: 'Should this timestamp' });
+  const saved = page.locator('.saved-note').filter({ hasText: 'Should this timestamp' });
+  for (const note of [inline, saved]) {
+    await expect(note).toBeVisible();
+    await expect(note).toHaveCSS('border-top-width', '1px');
+    await expect(note).toHaveCSS('border-top-style', 'solid');
+    await expect(note).not.toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)');
+    await expect(note).not.toHaveCSS('box-shadow', 'none');
+  }
+  await expect(inline).toHaveCSS('box-shadow', await saved.evaluate(element => getComputedStyle(element).boxShadow));
+  await page.screenshot({ path: 'test-results/note-depth.png' });
 });
 
 test('deletes notes immediately without a confirmation dialog', async ({ page }) => {

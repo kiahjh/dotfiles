@@ -13,6 +13,7 @@
   --code-font: 'Maple Mono NF CN', 'Maple Mono NF', 'Maple Mono', 'SFMono-Regular', Consolas, monospace;
   --code-font-size: 12px;
   --code-font-features: 'liga' 1, 'calt' 1;
+  --shadow-note: 0 2px 7px color-mix(in srgb, var(--black) 22%, transparent), 0 1px 2px color-mix(in srgb, var(--black) 18%, transparent);
   --shadow-popup: 0 14px 40px color-mix(in srgb, var(--black) 40%, transparent), 0 3px 9px color-mix(in srgb, var(--black) 27%, transparent);
 }
 * { box-sizing: border-box; }
@@ -83,8 +84,9 @@ h1, h2, h3, p { margin: 0; }
 .chapter-heading p { font-size: 13px; color: var(--foreground); }
 .review-card { border: 0; background: transparent; margin-bottom: 12px; scroll-margin-top: 58px; min-width: 0; }
 .review-card:last-child { margin-bottom: 0; }
-.card-heading { position: sticky; top: var(--bar-height); z-index: 10; display: flex; align-items: center; gap: 4px; padding: 2px 2px 2px var(--review-rail); min-height: 34px; background: var(--surface-chapter); border-radius: 12px; }
-.is-collapsed .card-heading { background: var(--panel); }
+.card-heading { position: sticky; top: var(--bar-height); z-index: 10; display: flex; align-items: center; gap: 4px; padding: 2px 2px 2px var(--review-rail); min-height: 34px; background: var(--surface-chapter); border-radius: 0 0 12px 12px; }
+/* An inset border keeps file names and controls stationary on collapse. */
+.is-collapsed .card-heading { background: var(--panel); border-radius: 12px; box-shadow: inset 0 0 0 1px var(--rule); }
 .collapse-toggle { position: absolute; left: 2px; top: 2px; width: 30px; height: 30px; min-height: 30px; padding: 7px; border-radius: 10px; }
 .chevron { display: flex; transform: rotate(-90deg); }
 .chevron.open { transform: rotate(0); }
@@ -143,6 +145,7 @@ diffs-container {
 .metadata-view p + p { margin-top: 4px; }
 .raw-assets { display: flex; gap: 14px; margin-top: 5px; font-size: 11px; color: var(--blue); }
 .raw-assets a:hover { text-decoration: underline; }
+.inline-note, .saved-note { border: 1px solid var(--rule); box-shadow: var(--shadow-note); }
 .inline-note { margin: 4px 8px; padding: 5px 8px; background: var(--panel); border-radius: 8px; color: var(--foreground); font: 12px/1.5 -apple-system, sans-serif; white-space: pre-wrap; overflow-wrap: anywhere; display: flex; gap: 6px; align-items: flex-start; }
 .inline-note svg { color: var(--muted); flex-shrink: 0; margin-top: 2px; }
 
