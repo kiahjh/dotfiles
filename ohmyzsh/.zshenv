@@ -5,6 +5,10 @@ COLORTERM="truecolor"
 export GIT_EDITOR=nvim
 export EDITOR=nvim
 
+# keep opencode from loading Claude desktop's skills in ~/.claude/skills
+# (read by the opencode background service when it starts)
+export OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1
+
 # prevent homebrew from running all updates on every upgrade
 export HOMEBREW_NO_AUTO_UPDATE=1
 

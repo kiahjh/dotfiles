@@ -24,6 +24,10 @@
           "--script",
           "/Users/miciah/.local/scripts/xcode-mcp-router.py"
         ]
+      },
+      "open-computer-use": {
+        "type": "local",
+        "command": ["/opt/homebrew/bin/open-computer-use", "mcp"]
       }
     }
   }
