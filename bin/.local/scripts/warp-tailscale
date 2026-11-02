@@ -1,0 +1,85 @@
+#!/bin/sh
+# Keep Cloudflare WARP from blocking Tailscale by excluding Tailscale's
+# servers from WARP's tunnel.
+#
+#   warp-tailscale sync    add current Tailscale server IPs, drop stale ones
+#   warp-tailscale remove  remove every exclusion this script added
+#   warp-tailscale list    show the exclusions this script manages
+#
+# Relay (DERP) server IPs come from Tailscale's public DERP map and change
+# occasionally, so re-run `sync` if Tailscale stops connecting while WARP is on.
+set -eu
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/warp-tailscale"
+state_file="$state_dir/ranges.txt"
+mkdir -p "$state_dir"
+touch "$state_file"
+
+# Control plane, login, and log servers.
+static_ranges="192.200.0.0/24
+2606:b740:49::/48
+199.165.136.0/24
+2606:b740:1::/48"
+
+current_ranges() {
+  derpmap=$(curl -fsS -m 15 https://login.tailscale.com/derpmap/default)
+  {
+    printf '%s\n' "$static_ranges"
+    printf '%s' "$derpmap" | python3 -I -c '
+import json, sys
+for region in json.load(sys.stdin)["Regions"].values():
+    for node in region["Nodes"]:
+        if node.get("IPv4"): print(node["IPv4"] + "/32")
+        if node.get("IPv6"): print(node["IPv6"] + "/128")
+'
+  } | sort -u
+}
+
+# Let's Encrypt, for Tailscale's HTTPS certificates (serve/funnel). Its IPs
+# vary, so it's excluded by hostname instead.
+acme_host="acme-v02.api.letsencrypt.org"
+
+case "${1:-}" in
+  sync)
+    if ! warp-cli tunnel host list 2>/dev/null | grep -q "$acme_host"; then
+      warp-cli tunnel host add "$acme_host" >/dev/null
+    fi
+    wanted=$(mktemp)
+    current_ranges > "$wanted"
+    added=0
+    removed=0
+    # Remove ranges we added before that Tailscale no longer uses.
+    for r in $(comm -23 "$state_file" "$wanted"); do
+      warp-cli tunnel ip remove-range "$r" >/dev/null 2>&1 || true
+      removed=$((removed + 1))
+    done
+    # Add new ranges.
+    for r in $(comm -13 "$state_file" "$wanted"); do
+      if warp-cli tunnel ip add-range "$r" >/dev/null 2>&1; then
+        added=$((added + 1))
+      else
+        echo "failed to add $r" >&2
+      fi
+    done
+    mv "$wanted" "$state_file"
+    echo "warp-tailscale: $(wc -l < "$state_file" | tr -d ' ') ranges excluded ($added added, $removed removed)"
+    ;;
+  remove)
+    count=0
+    while read -r r; do
+      [ -n "$r" ] || continue
+      warp-cli tunnel ip remove-range "$r" >/dev/null 2>&1 || true
+      count=$((count + 1))
+    done < "$state_file"
+    : > "$state_file"
+    warp-cli tunnel host remove "$acme_host" >/dev/null 2>&1 || true
+    echo "warp-tailscale: removed $count ranges and $acme_host"
+    ;;
+  list)
+    cat "$state_file"
+    ;;
+  *)
+    sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
+    exit 1
+    ;;
+esac
