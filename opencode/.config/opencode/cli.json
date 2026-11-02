@@ -9,12 +9,17 @@
     "variant.cycle": "ctrl+o"
   },
   "diffs": {
-    "wrap": "word"
+    "wrap": "word",
+    "view": "auto"
   },
   "session": {
     "sidebar": "auto",
     "scrollbar": false,
-    "thinking": "hide"
+    "thinking": "hide",
+    "verbosity": "medium",
+    "image_preview": true,
+    "tps": false,
+    "permissions": "prompt"
   },
   "animations": true,
   "mini": {
@@ -22,11 +27,17 @@
   },
   "tabs": {
     "layout": "horizontal",
-    "scope": "cwd",
+    "scope": "global",
     "mode": "off",
     "indicators": "status"
   },
   "prompt": {
     "image_preview": true
+  },
+  "terminal": {
+    "title": true
+  },
+  "debug": {
+    "devtools": false
   }
 }
