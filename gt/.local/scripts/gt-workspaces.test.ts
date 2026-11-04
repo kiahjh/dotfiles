@@ -37,7 +37,7 @@ function fixture(check: (f: {
     writeFileSync(join(source, "web", "package.json"), "{}\n");
     writeFileSync(join(source, "swift", "api", "Package.swift"), "// fixture\n");
     writeFileSync(join(source, "source.txt"), "base\n");
-    writeFileSync(join(source, ".gitignore"), ".gtask-ports\n.env\n.env.*\nnode_modules/\n.build/\n");
+    writeFileSync(join(source, ".gitignore"), "scratch/\n.gtask-ports\n.env\n.env.*\nnode_modules/\n.build/\n");
     git(source, "init", "-b", "master");
     git(source, "config", "user.email", "test@example.invalid");
     git(source, "config", "user.name", "Fixture");
@@ -142,12 +142,16 @@ test("new provisions a real linked checkout, and open/setup preserve both databa
     expect(task.branch).toBe("gt/demo");
     expect(git(task.directory, "rev-parse", "--git-common-dir")).toContain("repository/.git");
     expect(existsSync(join(task.directory, "swift", "api", ".env"))).toBe(true);
+    expect(readFileSync(join(task.directory, "scratch", "prompt.md"), "utf8")).toBe("");
+    expect(readFileSync(join(task.directory, "scratch", "todo.md"), "utf8")).toBe("");
+    writeFileSync(join(task.directory, "scratch", "todo.md"), "keep me\n");
     const names = taskDatabaseNames(task.slug);
     writeFileSync(join(f.root, "db", names.databaseName), "local development changes");
     writeFileSync(join(f.root, "db", names.testDatabaseName), "local test changes");
     succeeded(f.invoke(["open", "demo"]));
     succeeded(f.invoke(["open", "demo"]));
     succeeded(f.invoke(["setup", "demo"]));
+    expect(readFileSync(join(task.directory, "scratch", "todo.md"), "utf8")).toBe("keep me\n");
     expect(JSON.parse(readFileSync(join(f.root, "rex.json"), "utf8"))).toHaveLength(1);
     expect(readFileSync(join(f.root, "db", names.databaseName), "utf8")).toBe("local development changes");
     expect(readFileSync(join(f.root, "db", names.testDatabaseName), "utf8")).toBe("local test changes");

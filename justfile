@@ -4,7 +4,7 @@ _default:
 test:
   @python3 -B -m unittest discover -s scripts/tests -v
   @just test-xcode-mcp-router
-  @bun test ./gt/.local/scripts/gt.test.ts ./gt/.local/scripts/gt-support.test.ts ./gt/.local/scripts/codex-gertrude-task.test.ts ./pi/.pi/agent/skills/multi-character-code-council/mcc.test.ts
+  @bun test ./gt/.local/scripts/ ./pi/.pi/agent/skills/multi-character-code-council/mcc.test.ts
   @./capslock/.local/scripts/capslock-test
 
 test-xcode-mcp-router:

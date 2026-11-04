@@ -26,8 +26,11 @@ local function launch(operation, title, ctx, args)
   if payload == nil then error(encode_error, 0) end
 
   -- Support never needs input or provisioning output. Keep it out of the sidebar.
+  -- It runs in the background, where Rex.app's PATH has neither bun nor rex.
   if operation == "support" then
-    local result, exec_error = rex.exec({gt, "rex-action", operation, payload}, {cwd = home, timeout = 25})
+    local rex_dir = rex_executable():match("^(.*)/[^/]+$")
+    local path = rex_dir .. ":" .. home .. "/.bun/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    local result, exec_error = rex.exec({gt, "rex-action", operation, payload}, {cwd = home, timeout = 25, env = {PATH = path}})
     if result == nil then error(exec_error, 0) end
     if not result.ok then error(result.stderr ~= "" and result.stderr or "Could not open support; try again.", 0) end
     return

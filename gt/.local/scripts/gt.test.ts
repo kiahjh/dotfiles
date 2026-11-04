@@ -1,56 +1,17 @@
 import { expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { writeTaskMetadata } from "./gt-src/task.ts";
-import {
-  commandUsage,
-  defaultTabTemplateFromLayout,
-  dotenvValue,
-  evaluateKillSafety,
-  forkTitleForCurrentTask,
-  isValidSlug,
-  isValidTaskTitle,
-  kdlString,
-  killConfirmationPhrase,
-  LOCAL_RESTORE_SQL_FILTER,
-  parseCli,
-  parseKdlConfigStringValue,
-  parsePullRequestNumber,
-  parseSimpleDotenv,
-  renderTaskEnv,
-  renderTaskList,
-  renderTaskMetadata,
-  renderTaskPorts,
-  reviewTaskTitleForPullRequest,
-  run,
-  sessionNameForSlug,
-  signedScrubbedDumpHeaders,
-  taskBranchNameForTitle,
-  taskDatabaseNames,
-  taskDirectoryNameForTitle,
-  taskEnvOverridesFromGtSecrets,
-  taskMetadataPath,
-  taskPortsForSlot,
-  taskPortsFromEnv,
-  taskPortSlotForSlug,
-  zellijLayout,
-  zellijSessionNameMaxLength,
-  zellijSessionStateFromList,
-  type KillSafetyFacts,
-} from "./gt";
-
-const safeFacts: KillSafetyFacts = {
-  workingTreeClean: true,
-  currentBranch: "dashboard-redesign",
-  expectedBranch: "dashboard-redesign",
-  expectedSessionName: "gertrude__dashboard-redesign",
-  actualZellijSessionName: "gertrude__dashboard-redesign",
-  originMasterAvailable: true,
-  remoteBranchExists: true,
-  localMatchesRemote: true,
-  remoteBranchMergedIntoMaster: true,
-};
+import { parseCli, commandUsage } from "./gt-src/cli.ts";
+import { LOCAL_RESTORE_SQL_FILTER, taskDatabaseNames } from "./gt-src/databases.ts";
+import { dotenvValue, parseSimpleDotenv } from "./gt-src/dotenv.ts";
+import { renderTaskEnv, taskEnvOverridesFromGtSecrets } from "./gt-src/env.ts";
+import { renderTaskPorts, taskPortsForSlot, taskPortsFromEnv, taskPortSlotForSlug } from "./gt-src/ports.ts";
+import { run } from "./gt-src/process.ts";
+import { signedScrubbedDumpHeaders } from "./gt-src/scrubbed-dump.ts";
+import { isValidSlug, parsePullRequestNumber } from "./gt-src/slug.ts";
+import { taskDirectoryNameForTitle } from "./gt-src/task.ts";
+import { newWorkspace, readWorkspace, workspacePath, writeWorkspace } from "./gt-src/workspace-state.ts";
 
 test("validates task slugs", () => {
   expect(isValidSlug("dashboard-redesign")).toBe(true);
@@ -59,22 +20,6 @@ test("validates task slugs", () => {
   expect(isValidSlug("has/slash")).toBe(false);
   expect(isValidSlug("-starts-with-dash")).toBe(false);
   expect(isValidSlug("")).toBe(false);
-});
-
-test("derives zellij session names", () => {
-  expect(sessionNameForSlug("dashboard-redesign", 36)).toBe("gertrude__dashboard-redesign");
-
-  const forkSessionName = sessionNameForSlug("dashboard-redesign/sidebar-spike", 36);
-  expect(forkSessionName).toMatch(/^gertrude__[A-Za-z0-9._-]+-[a-f0-9]{8}$/);
-  expect(forkSessionName.length).toBeLessThanOrEqual(36);
-
-  expect(sessionNameForSlug("gertrude-fm/app-design", 36)).toBe("gertrude__gertrude-fm__app-888e6e40");
-
-  expect(sessionNameForSlug("dashboard-redesign", 22)).toBe("gt__dashboard-redesign");
-  expect(sessionNameForSlug("music-rejection-exploration", 22)).toBe("gt__music-rej-6b9ace0e");
-  expect(sessionNameForSlug("music-rejection-exploration").length).toBeLessThanOrEqual(
-    zellijSessionNameMaxLength(),
-  );
 });
 
 test("parses the subcommand-oriented cli", () => {
@@ -115,88 +60,17 @@ test("parses the subcommand-oriented cli", () => {
   expect(() => parseCli(["dashboard-redesign"])).toThrow("Use `gt spawn dashboard-redesign` to create a task");
 });
 
-test("derives review task names from pull requests", () => {
+test("parses pull request numbers", () => {
   expect(parsePullRequestNumber("891")).toBe(891);
   expect(parsePullRequestNumber("#891")).toBe(891);
-  expect(reviewTaskTitleForPullRequest(891)).toBe("review-891");
-  expect(taskBranchNameForTitle(reviewTaskTitleForPullRequest(891))).toBe("review-891");
+  expect(() => parsePullRequestNumber("0")).toThrow("invalid pull request number: 0");
 });
 
-test("derives fork titles and path-safe task identifiers", () => {
-  expect(isValidTaskTitle("dashboard-redesign/sidebar-spike")).toBe(true);
-  expect(isValidTaskTitle("dashboard-redesign//sidebar-spike")).toBe(false);
-  expect(isValidTaskTitle("dashboard-redesign/../oops")).toBe(false);
-  expect(forkTitleForCurrentTask("dashboard-redesign", "sidebar-spike")).toBe(
-    "dashboard-redesign/sidebar-spike",
-  );
-
+test("derives path-safe directory names for fork titles", () => {
   const directoryName = taskDirectoryNameForTitle("dashboard-redesign/sidebar-spike");
   expect(directoryName).toMatch(/^dashboard-redesign--sidebar-spike-[a-f0-9]{8}$/);
   expect(directoryName).not.toContain("/");
-  expect(taskBranchNameForTitle("dashboard-redesign/sidebar-spike")).toBe(directoryName);
   expect(taskDirectoryNameForTitle("plain-task")).toBe("plain-task");
-
-  expect(renderTaskMetadata({
-    title: "dashboard-redesign/sidebar-spike",
-    branchName: directoryName,
-    directoryName,
-  })).toContain("GTASK_TITLE=dashboard-redesign/sidebar-spike");
-  expect(taskMetadataPath("/tmp/demo")).toBe("/tmp/demo/scratch/.gtask");
-});
-
-test("initializes empty prompt and todo files in scratch for new tasks", () => {
-  const worktreeDir = mkdtempSync(join(tmpdir(), "gt-task-test-"));
-  try {
-    writeTaskMetadata(worktreeDir, "demo");
-    expect(readFileSync(join(worktreeDir, "scratch", "prompt.md"), "utf8")).toBe("");
-    expect(readFileSync(join(worktreeDir, "scratch", "todo.md"), "utf8")).toBe("");
-  } finally {
-    rmSync(worktreeDir, { recursive: true, force: true });
-  }
-});
-
-test("renders a task list with fork relationships", () => {
-  const rendered = renderTaskList(
-    [
-      {
-        title: "dashboard-redesign",
-        branchName: "dashboard-redesign",
-        directoryName: "dashboard-redesign",
-        worktreeDir: "/tasks/dashboard-redesign",
-        forkOf: null,
-        forkMissingParent: false,
-      },
-      {
-        title: "dashboard-redesign/sidebar-spike",
-        branchName: "dashboard-redesign--sidebar-spike-755f2331",
-        directoryName: "dashboard-redesign--sidebar-spike-755f2331",
-        worktreeDir: "/tasks/dashboard-redesign--sidebar-spike-755f2331",
-        forkOf: "dashboard-redesign",
-        forkMissingParent: false,
-      },
-      {
-        title: "missing-base/tangent",
-        branchName: "missing-base--tangent-deadbeef",
-        directoryName: "missing-base--tangent-deadbeef",
-        worktreeDir: "/tasks/missing-base--tangent-deadbeef",
-        forkOf: "missing-base",
-        forkMissingParent: true,
-      },
-    ],
-    "/tasks",
-  );
-
-  expect(rendered).toContain("Gertrude tasks (3)\nRoot: /tasks");
-  expect(rendered).not.toContain("Task  ");
-  expect(rendered).not.toContain("Fork of");
-  expect(rendered).toContain("• dashboard-redesign");
-  expect(rendered).toContain("  ↳ sidebar-spike");
-  expect(rendered).toContain("    title: dashboard-redesign/sidebar-spike");
-  expect(rendered).toContain("    checkout: dashboard-redesign--sidebar-spike-755f2331");
-  expect(rendered).toContain("• missing-base/tangent");
-  expect(rendered).toContain("  fork of: missing-base (missing)");
-
-  expect(renderTaskList([], "/tasks")).toBe("No Gertrude tasks found in /tasks.\n");
 });
 
 test("derives safe per-task postgres database names", () => {
@@ -252,6 +126,7 @@ test("derives and renders per-task local ports", () => {
     ciApiPort: 18075,
     ciDashPort: 18076,
     accountPort: 18077,
+    storybookV2Port: 18078,
   });
 
   const rendered = renderTaskPorts("demo", taskPortsForSlot(7));
@@ -261,6 +136,7 @@ test("derives and renders per-task local ports", () => {
   expect(rendered).toContain("ADMIN_PORT=18073");
   expect(rendered).toContain("STORYBOOK_PORT=18074");
   expect(rendered).toContain("ACCOUNT_PORT=18077");
+  expect(rendered).toContain("STORYBOOK_V2_PORT=18078");
   expect(rendered).toContain("VITE_API_ENDPOINT=http://127.0.0.1:18070");
   expect(rendered).toContain("VITE_TURNSTILE_SITEKEY=not-real");
 });
@@ -332,120 +208,6 @@ test("uses non-gt secrets as env overrides without replacing generated database 
   });
 });
 
-test("escapes KDL strings", () => {
-  expect(kdlString('a "quoted" path \\ with newline\n')).toBe('"a \\"quoted\\" path \\\\ with newline\\n"');
-});
-
-test("zellij layout starts pi left and nvim right without bars by default", () => {
-  const layout = zellijLayout("dashboard-redesign", "/tmp/dashboard-redesign");
-
-  expect(layout).toContain('tab name="dashboard-redesign" cwd="/tmp/dashboard-redesign"');
-  expect(layout).toContain('pane split_direction="vertical"');
-  expect(layout).toContain('pane name="pi" command="pi" focus=true');
-  expect(layout).toContain('pane name="nvim" command="nvim"');
-  expect(layout).not.toContain("tab-bar");
-  expect(layout).not.toContain("status-bar");
-});
-
-test("zellij layout uses a supplied default tab template", () => {
-  const layout = zellijLayout(
-    "dashboard-redesign",
-    "/tmp/dashboard-redesign",
-    `default_tab_template {
-    children
-    pane size=1 borderless=true {
-        plugin location="zellij:compact-bar"
-    }
-}`,
-  );
-
-  expect(layout).toContain("default_tab_template");
-  expect(layout).toContain("children");
-  expect(layout).toContain('plugin location="zellij:compact-bar"');
-  expect(layout).toContain('pane name="pi" command="pi" focus=true');
-  expect(layout).toContain('pane name="nvim" command="nvim"');
-});
-
-test("derives a tab template from a zellij default layout", () => {
-  const template = defaultTabTemplateFromLayout(`layout {
-    pane size=1 borderless=true {
-        plugin location="zellij:tab-bar"
-    }
-    pane
-    pane size=1 borderless=true {
-        plugin location="zellij:status-bar"
-    }
-}`);
-
-  expect(template).toContain("default_tab_template");
-  expect(template).toContain("children");
-  expect(template).toContain('plugin location="zellij:tab-bar"');
-  expect(template).toContain('plugin location="zellij:status-bar"');
-  expect(template).not.toContain("\n    pane\n");
-});
-
-test("parses kdl config string values", () => {
-  expect(parseKdlConfigStringValue('// default_layout "default"\ndefault_layout "no-bars"', "default_layout")).toBe(
-    "no-bars",
-  );
-  expect(parseKdlConfigStringValue('layout_dir "~/zellij layouts"', "layout_dir")).toBe("~/zellij layouts");
-});
-
-test("detects active and resurrectable zellij sessions", () => {
-  const listSessionsOutput = `gertrude__design-system [Created 1h ago] (EXITED - attach to resurrect)
-gertrude__dashboard-redesign [Created 2m ago]
-_dotfiles [Created 30m ago] (current)`;
-
-  expect(zellijSessionStateFromList(listSessionsOutput, "gertrude__design-system")).toBe("exited");
-  expect(zellijSessionStateFromList(listSessionsOutput, "gertrude__dashboard-redesign")).toBe("active");
-  expect(zellijSessionStateFromList(listSessionsOutput, "_dotfiles")).toBe("active");
-  expect(zellijSessionStateFromList(listSessionsOutput, "gertrude__missing")).toBe("missing");
-});
-
-test("kill safety is safe only when clean, pushed, and merged", () => {
-  expect(evaluateKillSafety(safeFacts).safeToSkipConfirmation).toBe(true);
-
-  expect(
-    evaluateKillSafety({
-      ...safeFacts,
-      localMatchesRemote: false,
-    }),
-  ).toEqual({
-    safeToSkipConfirmation: false,
-    reasons: ["local HEAD does not match the corresponding origin branch"],
-  });
-
-  expect(
-    evaluateKillSafety({
-      ...safeFacts,
-      remoteBranchMergedIntoMaster: false,
-    }).reasons,
-  ).toContain("corresponding origin branch has not been merged into origin/master");
-
-  expect(
-    evaluateKillSafety({
-      ...safeFacts,
-      workingTreeClean: false,
-    }).reasons,
-  ).toContain("working tree has uncommitted or untracked changes");
-});
-
-test("kill safety prompts on wrong zellij session or branch", () => {
-  const evaluation = evaluateKillSafety({
-    ...safeFacts,
-    currentBranch: "other-branch",
-    actualZellijSessionName: "gertrude__other-branch",
-  });
-
-  expect(evaluation.safeToSkipConfirmation).toBe(false);
-  expect(evaluation.reasons).toContain("current branch is other-branch, expected dashboard-redesign");
-  expect(evaluation.reasons).toContain(
-    "current zellij session is gertrude__other-branch, expected gertrude__dashboard-redesign",
-  );
-  expect(killConfirmationPhrase("dashboard-redesign")).toBe("yes, kill dashboard-redesign");
-  expect(killConfirmationPhrase("gertrude-fm/app-design")).toBe("yes, kill gertrude-fm/app-design");
-});
-
 test("parses and quotes simple dotenv values", () => {
   expect(
     parseSimpleDotenv(`
@@ -482,6 +244,15 @@ test("round-trips rendered task ports through dotenv parsing", () => {
     CI_API_PORT: "18005",
     CI_DASH_PORT: "18006",
   })?.accountPort).toBe(18007);
+  // Port files written before Storybook V2 had a port derive it from the same block.
+  expect(taskPortsFromEnv({
+    API_PORT: "18000", DASH_PORT: "18001", SITE_PORT: "18002", ADMIN_PORT: "18003",
+    STORYBOOK_PORT: "18004", CI_API_PORT: "18005", CI_DASH_PORT: "18006", ACCOUNT_PORT: "18007",
+  })?.storybookV2Port).toBe(18008);
+  expect(taskPortsFromEnv({
+    API_PORT: "18000", DASH_PORT: "18001", SITE_PORT: "18002", ADMIN_PORT: "18003",
+    STORYBOOK_PORT: "18004", CI_API_PORT: "18005", CI_DASH_PORT: "18006", STORYBOOK_V2_PORT: "nope",
+  })).toBeNull();
 });
 
 test("rejects incomplete or malformed task port env files", () => {
@@ -529,53 +300,6 @@ test("renders env replacements with quoting and reports unknown changeme keys", 
   );
 });
 
-test("derives tab templates from new_tab_template and falls back for explicit tabs", () => {
-  expect(
-    defaultTabTemplateFromLayout(`layout {
-    new_tab_template {
-        pane size=1 borderless=true
-        children
-    }
-}`).startsWith("default_tab_template {"),
-  ).toBe(true);
-
-  expect(
-    defaultTabTemplateFromLayout(`layout {
-    tab name="already structured" {
-        pane
-    }
-}`),
-  ).toBe(`default_tab_template {
-    children
-}`);
-});
-
-test("kdl config parser unescapes strings and ignores session-name prefixes", () => {
-  expect(parseKdlConfigStringValue('default_layout "line\\nwith\\ttab and \\\"quote\\\""', "default_layout")).toBe(
-    'line\nwith\ttab and "quote"',
-  );
-
-  const listSessionsOutput = `gertrude__foo-extra [Created 1m ago]
-gertrude__foo [Created 2m ago] (EXITED - attach to resurrect)`;
-  expect(zellijSessionStateFromList(listSessionsOutput, "gertrude__foo")).toBe("exited");
-  expect(zellijSessionStateFromList("gertrude__foo-extra [Created 1m ago]", "gertrude__foo")).toBe("missing");
-});
-
-test("kill safety reports detached and remote availability problems", () => {
-  const evaluation = evaluateKillSafety({
-    ...safeFacts,
-    currentBranch: null,
-    actualZellijSessionName: null,
-    originMasterAvailable: false,
-    remoteBranchExists: false,
-  });
-
-  expect(evaluation.safeToSkipConfirmation).toBe(false);
-  expect(evaluation.reasons).toContain("checkout is in detached HEAD state");
-  expect(evaluation.reasons).toContain("origin/master could not be fetched");
-  expect(evaluation.reasons).toContain("origin/dashboard-redesign does not exist or could not be fetched");
-});
-
 test("signs scrubbed dump requests deterministically", () => {
   const headers = signedScrubbedDumpHeaders(
     {
@@ -592,4 +316,24 @@ test("signs scrubbed dump requests deterministically", () => {
   expect(headers.get("authorization")).toBe(
     "AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/s3/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=ee59e322ac1a9593c606713f26265f30c617826a49811d5d5b44665edab86217",
   );
+});
+
+test("task records from before Storybook V2 had a port still load, with its reserved port", () => {
+  const root = mkdtempSync(join(tmpdir(), "gt-old-ports-"));
+  const previous = process.env.GT_STATE_DIR;
+  process.env.GT_STATE_DIR = root;
+  try {
+    const task = newWorkspace("old-ports", join(root, "old-ports"), "fixture");
+    const { storybookV2Port: _, ...oldPorts } = taskPortsForSlot(7);
+    task.ports = oldPorts as typeof task.ports;
+    writeWorkspace(task);
+    expect(readWorkspace(workspacePath(task.id)).ports).toEqual(taskPortsForSlot(7));
+
+    task.ports = { ...taskPortsForSlot(7), storybookV2Port: 6007 };
+    writeWorkspace(task);
+    expect(() => readWorkspace(workspacePath(task.id))).toThrow("task record does not match its resources");
+  } finally {
+    if (previous === undefined) delete process.env.GT_STATE_DIR; else process.env.GT_STATE_DIR = previous;
+    rmSync(root, { recursive: true, force: true });
+  }
 });

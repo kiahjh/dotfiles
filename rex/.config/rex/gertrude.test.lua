@@ -53,6 +53,9 @@ for _, definition in pairs(registered) do
     command = commands[#commands].argv
     assert(commands[#commands].options.cwd == os.getenv("HOME"))
     assert(commands[#commands].options.timeout < 30, "support must respect the config action deadline")
+    local support_path = commands[#commands].options.env.PATH
+    assert(support_path:find("/fixture/Rex Server.app/Contents/MacOS:", 1, true) == 1, "support runs rex, which is not on the app server PATH")
+    assert(support_path:find(os.getenv("HOME") .. "/.bun/bin", 1, true), "gt needs bun, which is not on the app server PATH")
   else
     assert(result.session_id == "session:test-job")
     local job = calls[#calls]

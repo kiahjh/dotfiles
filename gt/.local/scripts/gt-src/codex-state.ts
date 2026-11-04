@@ -65,9 +65,12 @@ function readStateFile(path: string): CodexTaskState {
 function validPorts(ports: TaskPorts): boolean {
   if (!ports || !Number.isInteger(ports.slot) || ports.slot < 0 || ports.slot >= TASK_PORT_SLOT_COUNT) return false;
   const base = TASK_PORT_BASE + ports.slot * TASK_PORT_BLOCK_SIZE;
+  // Records written before Storybook V2 had a port get the one reserved for it.
+  ports.storybookV2Port ??= base + 8;
   return ports.apiPort === base && ports.dashPort === base + 1 && ports.sitePort === base + 2
     && ports.adminPort === base + 3 && ports.storybookPort === base + 4
-    && ports.ciApiPort === base + 5 && ports.ciDashPort === base + 6 && ports.accountPort === base + 7;
+    && ports.ciApiPort === base + 5 && ports.ciDashPort === base + 6 && ports.accountPort === base + 7
+    && ports.storybookV2Port === base + 8;
 }
 
 export function readCodexTask(worktree: string): CodexTaskState | null {

@@ -65,6 +65,10 @@ export function readWorkspace(path: string): Workspace {
   } catch {
     fail(`invalid task record: ${path}; refusing to touch resources`);
   }
+  // Records written before Storybook V2 had a port get the one reserved for it.
+  if (task?.ports && Number.isInteger(task.ports.slot)) {
+    task.ports.storybookV2Port ??= TASK_PORT_BASE + task.ports.slot * TASK_PORT_BLOCK_SIZE + 8;
+  }
   if (!task || task.version !== 1 || typeof task.id !== "string" || !uuid.test(task.id)
     || workspacePath(task.id) !== path || typeof task.name !== "string" || !task.name
     || typeof task.directory !== "string" || !isAbsolute(task.directory)
@@ -80,7 +84,7 @@ export function readWorkspace(path: string): Workspace {
     || task.postgres.port < 1 || task.postgres.port > 65535
     || typeof task.postgres.username !== "string" || !task.postgres.username
     || (task.ports !== null && (!Number.isInteger(task.ports?.slot) || task.ports.slot < 0 || task.ports.slot >= TASK_PORT_SLOT_COUNT
-      || !["apiPort", "dashPort", "sitePort", "adminPort", "storybookPort", "ciApiPort", "ciDashPort", "accountPort"]
+      || !["apiPort", "dashPort", "sitePort", "adminPort", "storybookPort", "ciApiPort", "ciDashPort", "accountPort", "storybookV2Port"]
         .every((key, index) => task.ports![key as keyof TaskPorts] === TASK_PORT_BASE + task.ports!.slot * TASK_PORT_BLOCK_SIZE + index)))) {
     fail(`task record does not match its resources: ${path}`);
   }

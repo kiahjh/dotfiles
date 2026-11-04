@@ -1,5 +1,5 @@
 import { GtError } from "./errors.ts";
-import { parsePullRequestNumber } from "./review-task.ts";
+import { parsePullRequestNumber } from "./slug.ts";
 import {
   adoptHelveWorkspace, createWorkspace, finishWorkspace, forkWorkspace, listWorkspaces,
   openSupport, openWorkspace, prepareWorkspace, refreshWorkspaceDatabases,
@@ -16,8 +16,8 @@ type CliAction =
   | { command: "open" | "setup"; taskArg?: string }
   | { command: "adopt"; taskArg: string; agent: boolean }
   | { command: "setup-env-db"; taskArg?: string }
-  | { command: "setup-ports"; taskArg?: string }
-  | { command: "rex-action"; operation: string; context: string };
+  | { command: "rex-action"; operation: string; context: string }
+  | { command: "rex-todo" | "rex-task"; session: string };
 
 const HELP_FLAGS = new Set(["--help", "-h"]);
 
@@ -141,9 +141,6 @@ a task never refreshes an already initialized database.
 Options:
   -h, --help                   Show this help`;
 
-    case "setup-ports":
-      return "Use gt setup [task] to recreate environment/ports while preserving initialized databases.";
-
     case "open":
     case "setup":
       return `Usage: gt ${command} [task]\nUse a task name, ID, or checkout path; defaults to the task containing the current directory.`;
@@ -209,7 +206,7 @@ function parseReviewCommand(args: string[]): CliAction {
   return { command: "review", pullRequestNumber: parsePullRequestNumber(positional[0]), agent };
 }
 
-function parseOptionalTaskCommand(command: "setup-env-db" | "setup-ports", args: string[]): CliAction {
+function parseOptionalTaskCommand(command: "setup-env-db", args: string[]): CliAction {
   if (args.some((arg) => HELP_FLAGS.has(arg))) {
     return { command: "help", topic: command };
   }
@@ -263,12 +260,7 @@ export function parseCli(argv: string[]): CliAction {
       return { command };
 
     case "setup-env-db":
-    case "--setup-env-db":
       return parseOptionalTaskCommand("setup-env-db", args);
-
-    case "setup-ports":
-    case "--setup-ports":
-      return parseOptionalTaskCommand("setup-ports", args);
 
     case "open":
     case "setup":
@@ -287,11 +279,10 @@ export function parseCli(argv: string[]): CliAction {
       if (args.length !== 2) throw new GtError("rex-action is an internal Rex UI command", 2);
       return { command: "rex-action", operation: args[0], context: args[1] };
 
-    case "--kill":
-      if (args.length > 0) {
-        throw new GtError("gt --kill does not accept arguments; use gt kill", 2);
-      }
-      return { command: "kill" };
+    case "rex-todo":
+    case "rex-task":
+      if (args.length !== 1) throw new GtError(`${command} is an internal Rex UI command`, 2);
+      return { command, session: args[0] };
 
     default:
       if (!command.startsWith("-")) {
@@ -339,9 +330,6 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
     case "setup-env-db":
       await refreshWorkspaceDatabases(action.taskArg);
       return;
-    case "setup-ports":
-      await prepareWorkspace(action.taskArg);
-      return;
     case "setup":
       await prepareWorkspace(action.taskArg);
       return;
@@ -357,6 +345,12 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
     case "rex-action": {
       const { runRexAction } = await import("./rex-actions.ts");
       await runRexAction(action.operation, action.context);
+      return;
+    }
+    case "rex-todo":
+    case "rex-task": {
+      const { rexTask, rexTodo } = await import("./rex-actions.ts");
+      console.log(JSON.stringify(action.command === "rex-todo" ? rexTodo(action.session) : rexTask(action.session)));
       return;
     }
   }

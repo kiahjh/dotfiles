@@ -10,7 +10,7 @@ import { commandExists, currentSystemUser, requireCommands, run } from "./proces
 import { withResourceLock, withResourceLockSync } from "./resource-lock.ts";
 import { taskPortsLockPath } from "./codex-state.ts";
 import { validateGitBranchName, validateSlug } from "./slug.ts";
-import { taskDirectoryNameForTitle } from "./task.ts";
+import { ensureTaskScratch, taskDirectoryNameForTitle } from "./task.ts";
 import { copyUncommittedWork } from "./workspace-copy.ts";
 import { databaseCopyTools, dropWorkspaceDatabases, existingWorkspaceDatabases, postgresEnvironment, provisionWorkspaceDatabases } from "./workspace-db.ts";
 import { newWorkspace, workspaceLock, workspacePath, workspaceRoot, workspaceStateDir, workspaces, writeWorkspace, type Workspace } from "./workspace-state.ts";
@@ -53,6 +53,7 @@ async function setupWorkspace(task: Workspace): Promise<void> {
   verifyWorkspace(task);
   if (task.origin !== "opencode") fail("adopted Helve tasks already have their own environment; use gt refresh-db only for an intentional database reset");
   if (task.phase !== "setup" && task.phase !== "ready") fail(`task is ${task.phase}; inspect it before finishing with --discard`);
+  ensureTaskScratch(task.directory);
   requireCommands(["pnpm", "psql", "createdb", "dropdb", "gzip", "gunzip", "sed", "nc"]);
   withResourceLockSync(taskPortsLockPath(), () => {
     task.ports ??= allocateTaskPorts(task.slug, task.directory, false);

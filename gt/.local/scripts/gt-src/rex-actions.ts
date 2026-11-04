@@ -1,10 +1,10 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { fail, GtError } from "./errors.ts";
 import { run } from "./process.ts";
-import { parsePullRequestNumber } from "./review-task.ts";
-import { validateSlug } from "./slug.ts";
+import { parsePullRequestNumber, validateSlug } from "./slug.ts";
+import { ensureTaskScratch } from "./task.ts";
 import { workspaceStateDir, workspaces, type Workspace } from "./workspace-state.ts";
 import { rexSessions } from "./workspace-tools.ts";
 import {
@@ -57,6 +57,22 @@ export function currentRexWorkspace(sourceSession?: string): Workspace | undefin
   const matches = workspaces().filter((task) => task.rexSession === sourceSession);
   if (matches.length > 1) fail("multiple tasks claim this Rex session; inspect their resource records");
   return matches[0];
+}
+
+/** The task shown in a Rex session. Never guesses from a cwd. */
+export function rexTask(sourceSession: string): { directory: string; apiPort: number | null } {
+  if (!/^session:[a-zA-Z0-9_-]+$/.test(sourceSession)) fail("invalid Rex session");
+  const task = currentRexWorkspace(sourceSession);
+  if (!task) fail("this Rex session isn't a Gertrude task; open a task first");
+  if (!existsSync(task.directory)) fail(`task checkout is missing: ${task.directory}`);
+  return { directory: task.directory, apiPort: task.ports?.apiPort ?? null };
+}
+
+/** The session's task, with its scratch/todo.md created if missing. */
+export function rexTodo(sourceSession: string): { directory: string; todo: string } {
+  const { directory } = rexTask(sourceSession);
+  ensureTaskScratch(directory);
+  return { directory, todo: join(directory, "scratch", "todo.md") };
 }
 
 export function rexConfirmation(operation: "finish" | "discard" | "refresh-db", task: Workspace): string {

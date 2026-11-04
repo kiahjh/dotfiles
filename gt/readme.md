@@ -10,8 +10,32 @@ Search **Gertrude** in Rex's command palette:
 - New Task… / Review PR… / Fork Task…
 - Finish Task… / Discard Task… / Refresh Task Databases…
 - Open Support / Reopen Task… / Resume Task Setup…
+- Toggle Todo / Fire It Up
 
-These are thin Lua actions in `rex/.config/rex/gertrude.lua`; gt still owns all
+**Toggle Todo** opens the current task's `scratch/todo.md` in Neovim in a floating
+pane. Run it again while that pane is focused to minimize it. If it's minimized,
+unfocused, or in another tab, it comes back and takes focus. Quitting Neovim
+closes the pane, and the next toggle opens a fresh one. The task is found from the
+Rex session (`gt rex-todo`), never from a pane's cwd; the file is created if
+missing and never overwritten.
+The pane is labeled **Todos (N)**, where N counts lines starting with `- [ ]`
+(indented ones included). The count updates while typing and when another
+program edits the file, even while minimized. `gertrude_todo.nvim.lua` does this
+and is loaded only into that pane's Neovim, not your normal config.
+
+**Fire It Up** opens a full-height floating panel on the right half of the tab with
+five equal rows: `just watch-api`, `just web account`, `just web dash`,
+`just web storybook-v2`, and an ngrok tunnel to the task's API port, each run in
+the task checkout. The tunnel lets a phone on a different network reach the local
+API; its row shows the public URL first (`gertrude_ngrok.sh`), because ngrok's own
+screen puts it below what a short pane can show. It toggles the same way as
+Toggle Todo; minimized servers keep running. Ctrl+C stops one server and leaves a
+shell in the task where it can be rerun. Closing the panel stops its servers.
+
+Both live in `rex/.config/rex/gertrude_panels.lua` and find the task with
+`gt rex-task`/`gt rex-todo`.
+
+The task lifecycle actions are thin Lua actions in `rex/.config/rex/gertrude.lua`; gt still owns all
 provisioning and safety checks. `stow rex gt`, then `rex config reload` installs
 them without restarting Rex. No keyboard bindings are changed.
 
@@ -52,6 +76,7 @@ Lua adapter test (all Rex calls mocked, no sessions or commands created):
 
 ```sh
 rex do rex/.config/rex/gertrude.test.lua config="$PWD/rex/.config/rex/gertrude.lua"
+rex do rex/.config/rex/gertrude_panels.test.lua config="$PWD/rex/.config/rex/gertrude_panels.lua"
 ```
 
 ## Commands
@@ -68,7 +93,9 @@ gt support
 `new` starts from freshly fetched `origin/master`. `pr` starts from the GitHub PR
 head. Both restore isolated development/test databases from the scrubbed snapshot,
 allocate ports, generate `swift/api/.env`, install web dependencies, and create one
-Rex session with one OpenCode pane. They do not start application servers.
+Rex session with one OpenCode pane. They do not start application servers. Every
+task also gets a gitignored `scratch/` with empty `prompt.md` and `todo.md`; existing
+files are never overwritten.
 
 Run `fork` inside a registered task. It creates a worktree at the parent's HEAD,
 preserves staged and unstaged changes, copies untracked source, and copies **both

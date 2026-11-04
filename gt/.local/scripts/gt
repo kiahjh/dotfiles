@@ -1,5 +1,4 @@
 #!/usr/bin/env bun
-export * from "./gt-src/index.ts";
 
 import { main } from "./gt-src/cli.ts";
 import { GtError } from "./gt-src/errors.ts";
