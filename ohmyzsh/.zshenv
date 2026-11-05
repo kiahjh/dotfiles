@@ -24,9 +24,6 @@ export PUPPETEER_PRODUCT=firefox
 # pnpm
 export PNPM_HOME="$HOME/Library/pnpm"
 
-# android (react-native)
-export ANDROID_HOME=$HOME/Library/Android/sdk
-
 # clear out the path, start brand new
 PATH=""
 
@@ -57,10 +54,6 @@ path+=/opt/homebrew/sbin
 path+=/opt/homebrew/opt/postgresql@12/bin
 path+=~/.npm-global/bin
 path+=/Applications/kitty.app/Contents/MacOS
-path+=$ANDROID_HOME/emulator
-path+=$ANDROID_HOME/platform-tools
-path+=~/.local/kotlinc/bin
-path+=~/.local/kotlin-native-macos-aarch64-1.9.20/bin
 path+=~/.deno/bin
 path+=~/.opam/latest/bin
 path+=~/.spicetify
