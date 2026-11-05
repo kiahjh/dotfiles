@@ -25,6 +25,7 @@ examples. Choose whatever makes the most sense for the scenario.
 - Keep scratch work outside the repo, remove any temporary stories or pages afterward,
   and deliver to ~/Desktop.
 - Use sound effects and pleasant, not-distracting music.
+- This is a video, not a slideshow. Tell a story, don't merely present findings.
 
 ## Improving this skill
 
