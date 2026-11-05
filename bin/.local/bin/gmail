@@ -1,0 +1,1037 @@
+#!/usr/bin/env python3
+"""Read, draft and label mail in Kiah's Gmail.
+
+Deliberately has no send, delete or trash commands. Drafts are left in Gmail
+for Kiah to review and send himself. OAuth secrets live in macOS Keychain.
+Run `gmail --help` or see ~/.agents/skills/gmail/SKILL.md.
+"""
+
+from __future__ import annotations
+
+import argparse
+import base64
+import concurrent.futures
+import datetime as dt
+import email
+import email.policy
+import email.utils
+import hashlib
+import html
+import html.parser
+import http.server
+import json
+import os
+import re
+import secrets
+import subprocess
+import sys
+import threading
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from email.message import EmailMessage
+from pathlib import Path
+
+SCOPE = "https://www.googleapis.com/auth/gmail.modify"
+API = "https://gmail.googleapis.com/gmail/v1/users/me/"
+AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
+TOKEN_URI = "https://oauth2.googleapis.com/token"
+KEYCHAIN_SERVICE = "gmail-cli"
+
+# Adding these would trash or report mail, which this tool promises never to do.
+BLOCKED_ADD_LABELS = {"TRASH", "SPAM"}
+
+
+class CliError(Exception):
+    pass
+
+
+# ---------------------------------------------------------------- Keychain
+
+
+def keychain_get(account: str) -> dict | None:
+    result = subprocess.run(
+        ["security", "find-generic-password", "-s", KEYCHAIN_SERVICE, "-a", account, "-w"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return None
+    return json.loads(base64.b64decode(result.stdout.strip()))
+
+
+def keychain_set(account: str, value: dict) -> None:
+    encoded = base64.b64encode(json.dumps(value).encode()).decode()
+    # Pass the secret through stdin (security -i) so it never shows up in `ps`.
+    command = (
+        f'add-generic-password -U -s {KEYCHAIN_SERVICE} -a {account} '
+        f'-l "gmail CLI ({account})" -w {encoded}\n'
+    )
+    subprocess.run(["security", "-i"], input=command, text=True, capture_output=True)
+    if keychain_get(account) != value:
+        raise CliError(f"Could not save the {account} credentials to Keychain.")
+
+
+def keychain_delete(account: str) -> None:
+    subprocess.run(
+        ["security", "delete-generic-password", "-s", KEYCHAIN_SERVICE, "-a", account],
+        capture_output=True,
+    )
+
+
+# ------------------------------------------------------------------- OAuth
+
+
+def load_client_file(path: str) -> dict:
+    try:
+        data = json.loads(Path(path).expanduser().read_text())
+    except OSError as error:
+        raise CliError(f"Could not read {path}: {error}") from error
+    if "installed" in data:
+        info = data["installed"]
+    elif "web" in data:
+        raise CliError(
+            "This is a 'Web application' OAuth client. Create a 'Desktop app' client in "
+            "Google Cloud Console (APIs & Services > Credentials) and use that file."
+        )
+    else:
+        raise CliError("This doesn't look like a Google OAuth client JSON file.")
+    return {"client_id": info["client_id"], "client_secret": info["client_secret"]}
+
+
+class _CallbackHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):  # noqa: N802 (http.server naming)
+        params = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(self.path).query))
+        if "code" in params or "error" in params:
+            self.server.oauth_params = params  # type: ignore[attr-defined]
+            message = "Gmail CLI is signed in. You can close this tab."
+            if "error" in params:
+                message = f"Sign-in failed: {html.escape(params['error'])}"
+            body = f"<!doctype html><title>Gmail CLI</title><p>{message}</p>".encode()
+            self.send_response(200)
+        else:
+            body = b""
+            self.send_response(404)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args):
+        pass
+
+
+def b64url(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+
+def interactive_login(client: dict, open_browser: bool = True) -> dict:
+    verifier = secrets.token_urlsafe(64)
+    state = secrets.token_urlsafe(24)
+    server = http.server.HTTPServer(("127.0.0.1", 0), _CallbackHandler)
+    server.oauth_params = None  # type: ignore[attr-defined]
+    server.timeout = 1
+    redirect_uri = f"http://127.0.0.1:{server.server_port}"
+    url = AUTH_URI + "?" + urllib.parse.urlencode(
+        {
+            "client_id": client["client_id"],
+            "redirect_uri": redirect_uri,
+            "response_type": "code",
+            "scope": SCOPE,
+            "access_type": "offline",
+            "prompt": "consent",
+            "code_challenge": b64url(hashlib.sha256(verifier.encode()).digest()),
+            "code_challenge_method": "S256",
+            "state": state,
+        }
+    )
+    print("Opening Google sign-in in your browser. If it doesn't open, visit:", file=sys.stderr)
+    print(url, file=sys.stderr)
+    if open_browser:
+        subprocess.run(["open", url], capture_output=True)
+
+    deadline = time.time() + 300
+    while server.oauth_params is None and time.time() < deadline:  # type: ignore[attr-defined]
+        server.handle_request()
+    server.server_close()
+    params = server.oauth_params  # type: ignore[attr-defined]
+    if params is None:
+        raise CliError("Timed out waiting for Google sign-in (5 minutes).")
+    if "error" in params:
+        raise CliError(f"Google sign-in failed: {params['error']}")
+    if params.get("state") != state:
+        raise CliError("Sign-in response didn't match this request; try again.")
+
+    token = post_form(
+        TOKEN_URI,
+        {
+            "code": params["code"],
+            "client_id": client["client_id"],
+            "client_secret": client["client_secret"],
+            "redirect_uri": redirect_uri,
+            "grant_type": "authorization_code",
+            "code_verifier": verifier,
+        },
+    )
+    if SCOPE not in token.get("scope", "").split():
+        raise CliError(
+            "Google didn't grant Gmail access. Sign in again and leave the Gmail "
+            "permission checkbox ticked."
+        )
+    if "refresh_token" not in token:
+        raise CliError("Google didn't return a refresh token; try `gmail login` again.")
+    return token
+
+
+def post_form(url: str, fields: dict) -> dict:
+    request = urllib.request.Request(url, data=urllib.parse.urlencode(fields).encode())
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return json.loads(response.read())
+    except urllib.error.HTTPError as error:
+        try:
+            detail = json.loads(error.read())
+        except ValueError:
+            detail = {}
+        if detail.get("error") == "invalid_grant":
+            raise CliError(
+                "Your Gmail sign-in expired or was revoked. Run `gmail login`. If this "
+                "happens weekly, publish the Google Cloud OAuth app (see the gmail skill)."
+            ) from error
+        raise CliError(f"Google auth error: {detail or error}") from error
+
+
+# --------------------------------------------------------------------- API
+
+
+class Gmail:
+    def __init__(self):
+        self.client = keychain_get("client")
+        self.token = keychain_get("token")
+        if not self.client or not self.token:
+            raise CliError("Gmail isn't set up yet. Run: gmail setup <client_secret.json>")
+        self._access_token: str | None = None
+        self._lock = threading.Lock()
+        self._labels: list[dict] | None = None
+        self._send_as: list[dict] | None = None
+
+    @property
+    def email(self) -> str:
+        return self.token.get("email", "")
+
+    def access_token(self, force: bool = False) -> str:
+        with self._lock:
+            if self._access_token is None or force:
+                response = post_form(
+                    TOKEN_URI,
+                    {
+                        "client_id": self.client["client_id"],
+                        "client_secret": self.client["client_secret"],
+                        "refresh_token": self.token["refresh_token"],
+                        "grant_type": "refresh_token",
+                    },
+                )
+                self._access_token = response["access_token"]
+            return self._access_token
+
+    def call(self, method: str, path: str, params: dict | None = None, body: dict | None = None):
+        url = API + path
+        if params:
+            url += "?" + urllib.parse.urlencode(params, doseq=True)
+        data = json.dumps(body).encode() if body is not None else None
+        refresh = False
+        for attempt in range(4):
+            request = urllib.request.Request(url, data=data, method=method)
+            request.add_header("Authorization", f"Bearer {self.access_token(force=refresh)}")
+            if data is not None:
+                request.add_header("Content-Type", "application/json")
+            refresh = False
+            try:
+                with urllib.request.urlopen(request, timeout=60) as response:
+                    raw = response.read()
+                    return json.loads(raw) if raw else {}
+            except urllib.error.HTTPError as error:
+                if error.code == 401 and attempt == 0:
+                    refresh = True
+                    continue
+                if error.code in (429, 500, 502, 503) and attempt < 3:
+                    time.sleep(2**attempt)
+                    continue
+                try:
+                    message = json.loads(error.read())["error"]["message"]
+                except (ValueError, KeyError, TypeError):
+                    message = str(error)
+                raise CliError(f"Gmail API error ({error.code}): {message}") from error
+        raise CliError("Gmail API request failed after retries.")
+
+    # Labels and identities ------------------------------------------------
+
+    def labels(self) -> list[dict]:
+        if self._labels is None:
+            self._labels = self.call("GET", "labels").get("labels", [])
+        return self._labels
+
+    def label_names(self) -> dict[str, str]:
+        return {label["id"]: label["name"] for label in self.labels()}
+
+    def resolve_label(self, name_or_id: str) -> str:
+        return resolve_label(self.labels(), name_or_id)
+
+    def send_as(self) -> list[dict]:
+        if self._send_as is None:
+            self._send_as = self.call("GET", "settings/sendAs").get("sendAs", [])
+        return self._send_as
+
+    def my_addresses(self) -> set[str]:
+        addresses = {entry["sendAsEmail"].lower() for entry in self.send_as()}
+        addresses.add(self.email.lower())
+        return addresses
+
+    # Messages -------------------------------------------------------------
+
+    def get_messages(self, ids: list[str], fmt: str = "metadata") -> list[dict]:
+        params = {"format": fmt}
+        if fmt == "metadata":
+            params["metadataHeaders"] = ["From", "To", "Cc", "Subject", "Date"]
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+            return list(pool.map(lambda i: self.call("GET", f"messages/{i}", params), ids))
+
+
+def resolve_label(labels: list[dict], name_or_id: str) -> str:
+    for label in labels:
+        if label["id"] == name_or_id:
+            return label["id"]
+    matches = [label for label in labels if label["name"].lower() == name_or_id.lower()]
+    if not matches:
+        raise CliError(f"No label named {name_or_id!r}. See `gmail labels`, or `gmail label-create`.")
+    return matches[0]["id"]
+
+
+# ------------------------------------------------------- Message formatting
+
+
+def headers_of(payload: dict) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for header in payload.get("headers", []):
+        result.setdefault(header["name"].lower(), header["value"])
+    return result
+
+
+def decode_part(part: dict) -> str:
+    data = part.get("body", {}).get("data")
+    if not data:
+        return ""
+    raw = base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))
+    content_type = headers_of(part).get("content-type", "")
+    match = re.search(r'charset="?([\w.-]+)', content_type, re.I)
+    charset = match.group(1) if match else "utf-8"
+    try:
+        return raw.decode(charset, errors="replace")
+    except LookupError:
+        return raw.decode("utf-8", errors="replace")
+
+
+def walk_parts(payload: dict):
+    yield payload
+    for part in payload.get("parts", []) or []:
+        yield from walk_parts(part)
+
+
+def message_body(payload: dict) -> str:
+    plain, rich = [], []
+    for part in walk_parts(payload):
+        mime = part.get("mimeType", "")
+        if part.get("filename"):
+            continue
+        if mime == "text/plain":
+            plain.append(decode_part(part))
+        elif mime == "text/html":
+            rich.append(html_to_text(decode_part(part)))
+    text = "\n".join(plain) if plain else "\n".join(rich)
+    return text.replace("\r\n", "\n").strip()
+
+
+def attachments_of(payload: dict) -> list[dict]:
+    found = []
+    for part in walk_parts(payload):
+        body = part.get("body", {})
+        if part.get("filename") and body.get("attachmentId"):
+            found.append(
+                {
+                    "filename": part["filename"],
+                    "mimeType": part.get("mimeType", ""),
+                    "size": body.get("size", 0),
+                    "attachmentId": body["attachmentId"],
+                }
+            )
+    return found
+
+
+class _TextExtractor(html.parser.HTMLParser):
+    BLOCKS = {"p", "div", "br", "li", "tr", "h1", "h2", "h3", "h4", "blockquote", "table"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+        self.skip = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ("style", "script", "head"):
+            self.skip += 1
+        elif tag in self.BLOCKS:
+            self.parts.append("\n")
+        if tag == "li":
+            self.parts.append("- ")
+
+    def handle_endtag(self, tag):
+        if tag in ("style", "script", "head") and self.skip:
+            self.skip -= 1
+        elif tag in self.BLOCKS:
+            self.parts.append("\n")
+
+    def handle_data(self, data):
+        if not self.skip:
+            self.parts.append(data)
+
+
+def html_to_text(markup: str) -> str:
+    parser = _TextExtractor()
+    parser.feed(markup)
+    text = "".join(parser.parts).replace("\xa0", " ")
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r" *\n *", "\n", text)
+    text = re.sub(r"\n+(?=- )", "\n", text)  # keep list items together
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
+def _starts_quote(lines: list[str], index: int) -> bool:
+    line = lines[index].strip()
+    following = [l.strip() for l in lines[index + 1 : index + 3]]
+    if line.startswith("On ") and any(
+        re.search(r"\bwrote:$", " ".join([line, *following[:extra]])) for extra in range(3)
+    ):
+        return True  # Gmail/Apple Mail: "On Mon, Nov 3, 2026 at 9:14 AM Sam <sam@x.com> wrote:"
+    if re.match(r"^-{2,} ?Original Message ?-{2,}$", line, re.I):
+        return True
+    if line.startswith("From:") and following and re.match(r"^(Sent|Date):", following[0]):
+        return True  # Outlook header block
+    rest = [l.strip() for l in lines[index:]]
+    return line.startswith(">") and all(not l or l.startswith(">") for l in rest)
+
+
+def trim_quoted(text: str) -> str:
+    """Drop the quoted history most replies carry, for compact thread views."""
+    lines = text.split("\n")
+    for index in range(1, len(lines)):
+        if _starts_quote(lines, index):
+            return "\n".join(lines[:index]).rstrip() + "\n[quoted text trimmed]"
+    return text
+
+
+def local_time(internal_date: str | int) -> str:
+    stamp = dt.datetime.fromtimestamp(int(internal_date) / 1000)
+    return stamp.astimezone().strftime("%Y-%m-%d %H:%M %Z")
+
+
+def label_list(message: dict, names: dict[str, str]) -> str:
+    return ", ".join(names.get(i, i) for i in message.get("labelIds", []))
+
+
+def print_summary(message: dict, names: dict[str, str]) -> None:
+    head = headers_of(message.get("payload", {}))
+    print(f"{message['id']}  thread {message['threadId']}  {local_time(message['internalDate'])}")
+    print(f"  From: {head.get('from', '')}")
+    if head.get("to"):
+        print(f"  To: {head['to']}")
+    print(f"  Subject: {head.get('subject', '(no subject)')}")
+    print(f"  Labels: {label_list(message, names)}")
+    if message.get("snippet"):
+        print(f"  {html.unescape(message['snippet'])}")
+    print()
+
+
+def print_full(message: dict, names: dict[str, str], trim: bool = False) -> None:
+    payload = message.get("payload", {})
+    head = headers_of(payload)
+    print(f"=== Message {message['id']}  (thread {message['threadId']})")
+    for key in ("from", "reply-to", "to", "cc", "date", "subject"):
+        if head.get(key):
+            print(f"{key.title()}: {head[key]}")
+    print(f"Labels: {label_list(message, names)}")
+    for item in attachments_of(payload):
+        print(f"Attachment: {item['filename']} ({item['mimeType']}, {item['size']} bytes)")
+    print()
+    body = message_body(payload)
+    print(trim_quoted(body) if trim else body)
+    print()
+
+
+def message_json(message: dict, names: dict[str, str], full: bool) -> dict:
+    payload = message.get("payload", {})
+    head = headers_of(payload)
+    result = {
+        "id": message["id"],
+        "threadId": message["threadId"],
+        "date": local_time(message["internalDate"]),
+        "from": head.get("from", ""),
+        "to": head.get("to", ""),
+        "cc": head.get("cc", ""),
+        "subject": head.get("subject", ""),
+        "labels": [names.get(i, i) for i in message.get("labelIds", [])],
+        "snippet": html.unescape(message.get("snippet", "")),
+    }
+    if full:
+        result["replyTo"] = head.get("reply-to", "")
+        result["messageIdHeader"] = head.get("message-id", "")
+        result["body"] = message_body(payload)
+        result["attachments"] = attachments_of(payload)
+    return result
+
+
+def gmail_link(account: str, thread_id: str) -> str:
+    return f"https://mail.google.com/mail/u/{account}/#all/{thread_id}"
+
+
+# ------------------------------------------------------------------ Drafts
+
+
+def read_body(args) -> str | None:
+    if getattr(args, "body", None) is not None:
+        return args.body
+    if getattr(args, "body_file", None):
+        if args.body_file == "-":
+            return sys.stdin.read()
+        return Path(args.body_file).expanduser().read_text()
+    return None
+
+
+def format_sender(entry: dict) -> str:
+    name = entry.get("displayName") or ""
+    return email.utils.formataddr((name, entry["sendAsEmail"])) if name else entry["sendAsEmail"]
+
+
+def pick_sender(send_as: list[dict], original_recipients: list[str], requested: str | None) -> str | None:
+    """Reply from whichever of my addresses the mail was sent to, like Gmail does."""
+    by_email = {entry["sendAsEmail"].lower(): entry for entry in send_as}
+    if requested:
+        entry = by_email.get(requested.lower())
+        if not entry:
+            known = ", ".join(sorted(by_email)) or "none"
+            raise CliError(f"{requested} isn't one of your Gmail send-as addresses ({known}).")
+        return format_sender(entry)
+    for address in original_recipients:
+        if address.lower() in by_email:
+            return format_sender(by_email[address.lower()])
+    for entry in send_as:
+        if entry.get("isDefault"):
+            return format_sender(entry)
+    return None
+
+
+def reply_headers(head: dict[str, str], mine: set[str], reply_all: bool) -> dict[str, str]:
+    """Work out To/Cc/Subject/threading headers for a reply to a message."""
+    def addresses(*keys):
+        return [pair for key in keys for pair in email.utils.getaddresses([head.get(key, "")]) if pair[1]]
+
+    sender = addresses("from")
+    from_me = bool(sender) and sender[0][1].lower() in mine
+    if from_me:
+        to = addresses("to")
+    else:
+        to = addresses("reply-to") or sender
+    cc: list[tuple[str, str]] = []
+    if reply_all:
+        seen = {pair[1].lower() for pair in to} | mine
+        for pair in addresses("cc") if from_me else addresses("to", "cc"):
+            if pair[1].lower() not in seen:
+                seen.add(pair[1].lower())
+                cc.append(pair)
+    subject = head.get("subject", "")
+    if not re.match(r"^\s*re:", subject, re.I):
+        subject = f"Re: {subject}".strip()
+    result = {
+        "To": ", ".join(email.utils.formataddr(pair) for pair in to),
+        "Subject": subject,
+    }
+    if cc:
+        result["Cc"] = ", ".join(email.utils.formataddr(pair) for pair in cc)
+    message_id = head.get("message-id")
+    if message_id:
+        result["In-Reply-To"] = message_id
+        result["References"] = " ".join(filter(None, [head.get("references", ""), message_id]))
+    return result
+
+
+def build_message(headers: dict[str, str], body: str) -> EmailMessage:
+    message = EmailMessage(policy=email.policy.default)
+    for key, value in headers.items():
+        if value:
+            message[key] = value
+    message.set_content(body.rstrip("\n") + "\n")
+    return message
+
+
+def encode_message(message: EmailMessage) -> str:
+    return base64.urlsafe_b64encode(message.as_bytes()).decode()
+
+
+def print_draft(gmail: Gmail, draft: dict, headers: dict[str, str], as_json: bool) -> None:
+    message = draft.get("message", {})
+    info = {
+        "draftId": draft["id"],
+        "messageId": message.get("id"),
+        "threadId": message.get("threadId"),
+        **{key.lower(): value for key, value in headers.items() if key in ("From", "To", "Cc", "Bcc", "Subject")},
+        "link": gmail_link(gmail.email, message.get("threadId", "")) if message.get("threadId") else None,
+    }
+    if as_json:
+        print(json.dumps(info, indent=2, ensure_ascii=False))
+        return
+    print(f"Draft {info['draftId']} saved (not sent).")
+    for key in ("from", "to", "cc", "bcc", "subject"):
+        if info.get(key):
+            print(f"  {key.title()}: {info[key]}")
+    if info["link"]:
+        print(f"  Open: {info['link']}")
+
+
+# ---------------------------------------------------------------- Commands
+
+
+def cmd_setup(args) -> None:
+    client = load_client_file(args.client_file)
+    keychain_set("client", client)
+    print("Saved the OAuth client to Keychain. You can delete the JSON file afterward.", file=sys.stderr)
+    cmd_login(args)
+
+
+def cmd_login(args) -> None:
+    client = keychain_get("client")
+    if not client:
+        raise CliError("No OAuth client saved yet. Run: gmail setup <client_secret.json>")
+    token = interactive_login(client, open_browser=not args.no_browser)
+    request = urllib.request.Request(API + "profile")
+    request.add_header("Authorization", f"Bearer {token['access_token']}")
+    with urllib.request.urlopen(request, timeout=30) as response:
+        profile = json.loads(response.read())
+    keychain_set(
+        "token",
+        {
+            "refresh_token": token["refresh_token"],
+            "email": profile["emailAddress"],
+            "scope": token.get("scope", ""),
+            "created": dt.datetime.now(dt.timezone.utc).isoformat(),
+        },
+    )
+    print(f"Signed in as {profile['emailAddress']}.")
+
+
+def cmd_logout(args) -> None:
+    keychain_delete("token")
+    print("Removed the saved Gmail sign-in from Keychain (the OAuth client is kept).")
+
+
+def cmd_status(args) -> None:
+    gmail = Gmail()
+    profile = gmail.call("GET", "profile")
+    info = {
+        "email": profile["emailAddress"],
+        "messagesTotal": profile.get("messagesTotal"),
+        "threadsTotal": profile.get("threadsTotal"),
+        "signedInAt": gmail.token.get("created"),
+        "sendAs": [format_sender(entry) for entry in gmail.send_as()],
+    }
+    if args.json:
+        print(json.dumps(info, indent=2, ensure_ascii=False))
+        return
+    print(f"Signed in as {info['email']} (since {info['signedInAt']}).")
+    print(f"{info['messagesTotal']} messages in {info['threadsTotal']} threads.")
+    print("Send-as addresses: " + "; ".join(info["sendAs"]))
+
+
+def cmd_search(args) -> None:
+    gmail = Gmail()
+    params = {"q": args.query, "maxResults": args.max}
+    if args.page_token:
+        params["pageToken"] = args.page_token
+    if args.include_spam_trash:
+        params["includeSpamTrash"] = "true"
+    response = gmail.call("GET", "messages", params)
+    ids = [item["id"] for item in response.get("messages", [])]
+    messages = gmail.get_messages(ids)
+    names = gmail.label_names()
+    if args.json:
+        print(json.dumps(
+            {"messages": [message_json(m, names, False) for m in messages],
+             "nextPageToken": response.get("nextPageToken")},
+            indent=2, ensure_ascii=False,
+        ))
+        return
+    if not messages:
+        print("No messages found.")
+    for message in messages:
+        print_summary(message, names)
+    if response.get("nextPageToken"):
+        print(f"More results: --page-token {response['nextPageToken']}")
+
+
+def cmd_read(args) -> None:
+    gmail = Gmail()
+    messages = gmail.get_messages(args.ids, fmt="full")
+    names = gmail.label_names()
+    if args.json:
+        print(json.dumps([message_json(m, names, True) for m in messages], indent=2, ensure_ascii=False))
+        return
+    for message in messages:
+        print_full(message, names)
+
+
+def cmd_thread(args) -> None:
+    gmail = Gmail()
+    thread = gmail.call("GET", f"threads/{args.id}", {"format": "full"})
+    names = gmail.label_names()
+    messages = thread.get("messages", [])
+    if args.json:
+        print(json.dumps([message_json(m, names, True) for m in messages], indent=2, ensure_ascii=False))
+        return
+    print(f"Thread {args.id}: {len(messages)} messages  {gmail_link(gmail.email, args.id)}\n")
+    for message in messages:
+        print_full(message, names, trim=not args.full)
+
+
+def cmd_attachments(args) -> None:
+    gmail = Gmail()
+    message = gmail.call("GET", f"messages/{args.id}", {"format": "full"})
+    items = attachments_of(message.get("payload", {}))
+    if args.name:
+        items = [item for item in items if item["filename"] == args.name]
+    if not items:
+        raise CliError("No matching attachments on that message.")
+    out = Path(args.out).expanduser()
+    out.mkdir(parents=True, exist_ok=True)
+    for item in items:
+        data = gmail.call("GET", f"messages/{args.id}/attachments/{item['attachmentId']}")["data"]
+        name = Path(item["filename"]).name.lstrip(".") or "attachment"
+        target = out / name
+        counter = 1
+        while target.exists():
+            target = out / f"{Path(name).stem}-{counter}{Path(name).suffix}"
+            counter += 1
+        target.write_bytes(base64.urlsafe_b64decode(data + "=" * (-len(data) % 4)))
+        print(target)
+
+
+def cmd_labels(args) -> None:
+    gmail = Gmail()
+    labels = sorted(gmail.labels(), key=lambda label: (label["type"] != "system", label["name"].lower()))
+    if args.json:
+        print(json.dumps(labels, indent=2, ensure_ascii=False))
+        return
+    for label in labels:
+        print(f"{label['name']}\t{label['id']}\t{label['type']}")
+
+
+def cmd_label_create(args) -> None:
+    gmail = Gmail()
+    label = gmail.call(
+        "POST", "labels",
+        body={"name": args.name, "labelListVisibility": "labelShow", "messageListVisibility": "show"},
+    )
+    print(f"Created label {label['name']} ({label['id']}).")
+
+
+def modify(gmail: Gmail, ids: list[str], threads: bool, add: list[str], remove: list[str]) -> None:
+    add_ids = [gmail.resolve_label(name) for name in add]
+    remove_ids = [gmail.resolve_label(name) for name in remove]
+    blocked = BLOCKED_ADD_LABELS.intersection(add_ids)
+    if blocked:
+        raise CliError(f"This tool doesn't move mail to {', '.join(sorted(blocked))}.")
+    if not add_ids and not remove_ids:
+        raise CliError("Nothing to change: pass --add and/or --remove.")
+    body = {"addLabelIds": add_ids, "removeLabelIds": remove_ids}
+    if threads:
+        for thread_id in ids:
+            gmail.call("POST", f"threads/{thread_id}/modify", body=body)
+    else:
+        gmail.call("POST", "messages/batchModify", body={"ids": ids, **body})
+    kind = "thread" if threads else "message"
+    names = gmail.label_names()
+    changes = [f"+{names.get(i, i)}" for i in add_ids] + [f"-{names.get(i, i)}" for i in remove_ids]
+    print(f"Updated {len(ids)} {kind}{'s' if len(ids) != 1 else ''}: {' '.join(changes)}")
+
+
+def cmd_label(args) -> None:
+    modify(Gmail(), args.ids, args.thread, args.add or [], args.remove or [])
+
+
+def label_shortcut(add: list[str], remove: list[str]):
+    def run(args) -> None:
+        modify(Gmail(), args.ids, args.thread, add, remove)
+    return run
+
+
+def cmd_drafts(args) -> None:
+    gmail = Gmail()
+    response = gmail.call("GET", "drafts", {"maxResults": args.max, **({"q": args.query} if args.query else {})})
+    drafts = response.get("drafts", [])
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+        full = list(pool.map(lambda d: gmail.call("GET", f"drafts/{d['id']}", {"format": "metadata"}), drafts))
+    rows = []
+    for draft in full:
+        message = draft["message"]
+        head = headers_of(message.get("payload", {}))
+        rows.append({
+            "draftId": draft["id"], "threadId": message["threadId"], "to": head.get("to", ""),
+            "subject": head.get("subject", ""), "snippet": html.unescape(message.get("snippet", "")),
+        })
+    if args.json:
+        print(json.dumps(rows, indent=2, ensure_ascii=False))
+        return
+    if not rows:
+        print("No drafts.")
+    for row in rows:
+        print(f"{row['draftId']}  thread {row['threadId']}\n  To: {row['to']}\n  Subject: {row['subject']}\n  {row['snippet']}\n")
+
+
+def cmd_draft_show(args) -> None:
+    gmail = Gmail()
+    draft = gmail.call("GET", f"drafts/{args.id}", {"format": "full"})
+    names = gmail.label_names()
+    if args.json:
+        print(json.dumps({"draftId": draft["id"], **message_json(draft["message"], names, True)}, indent=2, ensure_ascii=False))
+        return
+    print(f"Draft {draft['id']}")
+    print_full(draft["message"], names)
+
+
+def cmd_draft_new(args) -> None:
+    gmail = Gmail()
+    body = read_body(args)
+    if body is None:
+        raise CliError("Pass the email text with --body or --body-file.")
+    headers = {
+        "From": pick_sender(gmail.send_as(), [], args.sender) or "",
+        "To": ", ".join(args.to),
+        "Cc": ", ".join(args.cc or []),
+        "Bcc": ", ".join(args.bcc or []),
+        "Subject": args.subject,
+    }
+    raw = encode_message(build_message(headers, body))
+    draft = gmail.call("POST", "drafts", body={"message": {"raw": raw}})
+    print_draft(gmail, draft, headers, args.json)
+
+
+def cmd_draft_reply(args) -> None:
+    gmail = Gmail()
+    body = read_body(args)
+    if body is None:
+        raise CliError("Pass the email text with --body or --body-file.")
+    original = gmail.call(
+        "GET", f"messages/{args.message_id}",
+        {"format": "metadata", "metadataHeaders": ["From", "To", "Cc", "Reply-To", "Subject", "Message-ID", "References", "Delivered-To"]},
+    )
+    head = headers_of(original["payload"])
+    headers = reply_headers(head, gmail.my_addresses(), args.all)
+    recipients = [pair[1] for pair in email.utils.getaddresses([head.get(k, "") for k in ("delivered-to", "to", "cc")])]
+    headers = {"From": pick_sender(gmail.send_as(), recipients, args.sender) or "", **headers}
+    if args.cc:
+        headers["Cc"] = ", ".join(filter(None, [headers.get("Cc", ""), *args.cc]))
+    if args.bcc:
+        headers["Bcc"] = ", ".join(args.bcc)
+    raw = encode_message(build_message(headers, body))
+    draft = gmail.call("POST", "drafts", body={"message": {"raw": raw, "threadId": original["threadId"]}})
+    print_draft(gmail, draft, headers, args.json)
+
+
+def cmd_draft_update(args) -> None:
+    gmail = Gmail()
+    draft = gmail.call("GET", f"drafts/{args.id}", {"format": "raw"})
+    raw = draft["message"]["raw"]
+    message = email.message_from_bytes(
+        base64.urlsafe_b64decode(raw + "=" * (-len(raw) % 4)), policy=email.policy.default
+    )
+    changes = {"To": args.to, "Cc": args.cc, "Bcc": args.bcc, "Subject": args.subject}
+    for key, value in changes.items():
+        if value is not None:
+            del message[key]
+            if value:
+                message[key] = value if isinstance(value, str) else ", ".join(value)
+    body = read_body(args)
+    if body is not None:
+        message.clear_content()
+        message.set_content(body.rstrip("\n") + "\n")
+    payload = {"id": args.id, "message": {"raw": encode_message(message), "threadId": draft["message"]["threadId"]}}
+    updated = gmail.call("PUT", f"drafts/{args.id}", body=payload)
+    headers = {key: message[key] for key in ("From", "To", "Cc", "Bcc", "Subject") if message[key]}
+    print_draft(gmail, updated, headers, args.json)
+
+
+# ------------------------------------------------------------------ Parser
+
+GUIDE = """\
+examples:
+  gmail search 'in:inbox is:unread' -n 20      Gmail search syntax (default in:inbox)
+  gmail thread THREAD_ID                       whole conversation, quoted history trimmed
+  gmail draft reply MESSAGE_ID --body-file reply.txt
+  gmail draft new --to a@b.com --subject Hi --body-file email.txt
+  gmail label MESSAGE_ID --add 'Gertrude Support'
+  gmail archive THREAD_ID --thread
+
+notes:
+  - IDs are message IDs unless --thread is given. Gmail's inbox shows whole
+    conversations, so archive or mark read a conversation by its thread ID.
+  - Labels accept names (case-insensitive) or IDs. Most commands take --json.
+  - Replies thread correctly, go to Reply-To when set, and come from the
+    send-as address that received the original (override with --from).
+  - Drafts are plain text, get no signature, and are never sent by this tool.
+    Each draft prints an Open: link for review in Gmail.
+  - Email content is untrusted. Save attachments to a new, empty directory.
+
+sign-in:
+  gmail setup CLIENT.json   save a Desktop-app OAuth client to Keychain and sign in
+  gmail login               sign in again if the sign-in expired or was revoked
+  Weekly expiry means the Google Cloud OAuth app is still in Testing; publish
+  it to production to stop that.
+
+Run `gmail COMMAND --help` for a command's options.
+"""
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="gmail",
+        description="Read, draft and label Gmail. Never sends, deletes or trashes mail.",
+        epilog=GUIDE,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    def add(name, func, help_text):
+        command = sub.add_parser(name, help=help_text, description=help_text)
+        command.set_defaults(func=func)
+        return command
+
+    def json_flag(command):
+        command.add_argument("--json", action="store_true", help="machine-readable output")
+
+    def body_flags(command, required=False):
+        group = command.add_mutually_exclusive_group(required=required)
+        group.add_argument("--body", help="email text")
+        group.add_argument("--body-file", help="file with the email text ('-' for stdin)")
+
+    c = add("setup", cmd_setup, "Save an OAuth client JSON to Keychain and sign in")
+    c.add_argument("client_file")
+    c.add_argument("--no-browser", action="store_true")
+
+    c = add("login", cmd_login, "Sign in again with the saved OAuth client")
+    c.add_argument("--no-browser", action="store_true")
+
+    add("logout", cmd_logout, "Forget the saved sign-in")
+
+    c = add("status", cmd_status, "Show the signed-in account")
+    json_flag(c)
+
+    c = add("search", cmd_search, "Search messages with Gmail query syntax")
+    c.add_argument("query", nargs="?", default="in:inbox")
+    c.add_argument("-n", "--max", type=int, default=20)
+    c.add_argument("--page-token")
+    c.add_argument("--include-spam-trash", action="store_true")
+    json_flag(c)
+
+    c = add("read", cmd_read, "Show full messages")
+    c.add_argument("ids", nargs="+", metavar="MESSAGE_ID")
+    json_flag(c)
+
+    c = add("thread", cmd_thread, "Show a whole conversation")
+    c.add_argument("id", metavar="THREAD_ID")
+    c.add_argument("--full", action="store_true", help="keep quoted reply history")
+    json_flag(c)
+
+    c = add("attachments", cmd_attachments, "Download a message's attachments")
+    c.add_argument("id", metavar="MESSAGE_ID")
+    c.add_argument("--out", required=True, help="directory to save into")
+    c.add_argument("--name", help="only this filename")
+
+    c = add("labels", cmd_labels, "List labels")
+    json_flag(c)
+
+    c = add("label-create", cmd_label_create, "Create a label")
+    c.add_argument("name")
+
+    c = add("label", cmd_label, "Add or remove labels (names or IDs)")
+    c.add_argument("ids", nargs="+", metavar="ID")
+    c.add_argument("--add", action="append", metavar="LABEL")
+    c.add_argument("--remove", action="append", metavar="LABEL")
+    c.add_argument("--thread", action="store_true", help="IDs are thread IDs (whole conversations)")
+
+    for name, plus, minus, text in (
+        ("archive", [], ["INBOX"], "Archive (remove from Inbox)"),
+        ("unarchive", ["INBOX"], [], "Move back to the Inbox"),
+        ("mark-read", [], ["UNREAD"], "Mark as read"),
+        ("mark-unread", ["UNREAD"], [], "Mark as unread"),
+    ):
+        c = add(name, label_shortcut(plus, minus), text)
+        c.add_argument("ids", nargs="+", metavar="ID")
+        c.add_argument("--thread", action="store_true", help="IDs are thread IDs (whole conversations)")
+
+    c = add("drafts", cmd_drafts, "List drafts")
+    c.add_argument("query", nargs="?")
+    c.add_argument("-n", "--max", type=int, default=20)
+    json_flag(c)
+
+    draft = sub.add_parser("draft", help="Create, update or show a draft (never sends)")
+    draft_sub = draft.add_subparsers(dest="draft_command", required=True)
+
+    c = draft_sub.add_parser("new", help="Draft a new email")
+    c.set_defaults(func=cmd_draft_new)
+    c.add_argument("--to", action="append", required=True)
+    c.add_argument("--cc", action="append")
+    c.add_argument("--bcc", action="append")
+    c.add_argument("--subject", required=True)
+    c.add_argument("--from", dest="sender", help="send-as address to use")
+    body_flags(c, required=True)
+    json_flag(c)
+
+    c = draft_sub.add_parser("reply", help="Draft a reply in the same thread")
+    c.set_defaults(func=cmd_draft_reply)
+    c.add_argument("message_id", metavar="MESSAGE_ID", help="message being replied to")
+    c.add_argument("--all", action="store_true", help="reply all")
+    c.add_argument("--cc", action="append")
+    c.add_argument("--bcc", action="append")
+    c.add_argument("--from", dest="sender", help="send-as address to use")
+    body_flags(c, required=True)
+    json_flag(c)
+
+    c = draft_sub.add_parser("update", help="Replace a draft's text or headers")
+    c.set_defaults(func=cmd_draft_update)
+    c.add_argument("id", metavar="DRAFT_ID")
+    c.add_argument("--to")
+    c.add_argument("--cc")
+    c.add_argument("--bcc")
+    c.add_argument("--subject")
+    body_flags(c)
+    json_flag(c)
+
+    c = draft_sub.add_parser("show", help="Show a draft")
+    c.set_defaults(func=cmd_draft_show)
+    c.add_argument("id", metavar="DRAFT_ID")
+    json_flag(c)
+
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    try:
+        args.func(args)
+    except CliError as error:
+        print(f"gmail: {error}", file=sys.stderr)
+        return 1
+    except KeyboardInterrupt:
+        return 130
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
