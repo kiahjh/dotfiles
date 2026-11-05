@@ -1,5 +1,5 @@
--- Floating panels for the current Gertrude task: Toggle Todo and Fire It Up.
--- Each toggles one floating layer in the session:
+-- Gertrude task actions: Toggle Todo (a floating pane) and Fire It Up (a tab).
+-- Toggle Todo toggles one floating layer in the session:
 --   focused → minimize; minimized, unfocused or in another tab → show and focus;
 --   missing → create it in the current tab.
 -- gt resolves the task from the Rex session, never from a pane's cwd.
@@ -103,17 +103,22 @@ panel_action{
   end,
 }
 
--- Fire It Up: the task's dev servers and an ngrok tunnel to its API, stacked in
--- a full-height panel on the right. The tunnel lets a phone on another network
--- (such as coffee shop Wi-Fi) reach the local API.
--- Ctrl+C stops one and leaves a shell in the task, so it can be rerun there.
--- Shows the public URL first; ngrok's own screen puts it below a short pane.
+-- Fire It Up: the task's dev servers and an ngrok tunnel to its API in a
+-- "Servers" tab: the three web servers across the top row, the API and ngrok
+-- across the bottom. Running it again switches to that tab.
+-- The tunnel lets a phone on another network (such as coffee shop Wi-Fi) reach
+-- the local API. Ctrl+C stops one server and leaves a shell in the task, so it
+-- can be rerun there. The ngrok pane shows the public URL first; ngrok's own
+-- screen puts it below what a short pane can show.
 local ngrok_view = home .. "/.config/rex/gertrude_ngrok.sh"
-local servers = {
-  {label = "API", command = function() return {"just", "watch-api"} end},
-  {label = "Account", command = function() return {"just", "web", "account"} end},
+local servers_tab = "Servers"
+local web_row = {
   {label = "Dash", command = function() return {"just", "web", "dash"} end},
+  {label = "Account", command = function() return {"just", "web", "account"} end},
   {label = "Storybook V2", command = function() return {"just", "web", "storybook-v2"} end},
+}
+local api_row = {
+  {label = "API", command = function() return {"just", "watch-api"} end},
   {label = "ngrok", command = function(task)
     if type(task.apiPort) ~= "number" then
       error("This task has no API port yet; run Resume Task Setup first.", 0)
@@ -121,8 +126,6 @@ local servers = {
     return {"/bin/bash", ngrok_view, tostring(task.apiPort)}
   end},
 }
-local server_labels = {}
-for _, server in ipairs(servers) do server_labels[server.label] = true end
 
 local function server_pane(server, task)
   local command = {"/bin/zsh", "-c", 'trap : INT; "$@"; print; exec zsh -l', "fire-it-up"}
@@ -130,19 +133,39 @@ local function server_pane(server, task)
   return rex.layout.block{flavor = shell, label = server.label, options = {cwd = task.directory, command = command}}
 end
 
--- Equal rows: the first takes 1/n, then 1/(n-1) of the rest, and so on.
-local function stack(task, first)
+-- Equal columns: the first takes 1/n, then 1/(n-1) of the rest, and so on.
+local function row(servers, task, first)
+  first = first or 1
   if first == #servers then return server_pane(servers[first], task) end
-  return rex.layout.vertical(1 / (#servers - first + 1), server_pane(servers[first], task), stack(task, first + 1))
+  return rex.layout.horizontal(1 / (#servers - first + 1), server_pane(servers[first], task), row(servers, task, first + 1))
 end
 
-panel_action{
+rex.action{
   name = "gt_fire_it_up",
   title = "Fire It Up",
-  description = "Run the API, Account, Dash, and Storybook V2 dev servers and an ngrok tunnel to the API in a floating panel. Run again to minimize or show it.",
-  keywords = "gt gertrude task dev servers start run watch api web account dash storybook ngrok tunnel phone float floating",
-  gt_command = "rex-task",
-  bounds = {0.5, 0, 0.5, 1},
-  owns = function(label) return server_labels[label] == true end,
-  layout = function(task) return stack(task, 1) end,
+  category = "Gertrude",
+  description = "Run the Dash, Account, and Storybook V2 dev servers, the API, and an ngrok tunnel to the API in a Servers tab. Run again to switch to it.",
+  keywords = "gt gertrude task dev servers start run watch api web account dash storybook ngrok tunnel phone tab",
+  args = {},
+  run = function(ctx)
+    local session_id = ctx.session_id
+    if not session_id then error("Run Fire It Up from a Gertrude task session.", 0) end
+
+    local view = call("session.view", {session_id = session_id})
+    for _, window in ipairs(view.windows or {}) do
+      if window.label == servers_tab then
+        call("session.focus_window", {session_id = session_id, window_id = window.window_id})
+        return {state = "focused"}
+      end
+    end
+
+    local task = task_info("rex-task", session_id)
+    call("session.new_window", {
+      session_id = session_id,
+      window_label = servers_tab,
+      focus = true,
+      layout = rex.layout.vertical(0.5, row(web_row, task), row(api_row, task)),
+    })
+    return {state = "opened"}
+  end,
 }

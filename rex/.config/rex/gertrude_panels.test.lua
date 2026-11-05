@@ -102,53 +102,65 @@ for _, text in ipairs({"Todos", "Todos (0)", "Todos (12)", "Todo", "Todo (3)"}) 
   check_toggles(todo, {text})
 end
 
--- Fire It Up: missing → four equal full-height rows on the right, one per server,
--- each in the task with a shell left behind after Ctrl+C.
+-- Fire It Up: missing → a new "Servers" tab with the three web servers in equal
+-- columns on the top half and the API and ngrok on the bottom half, each in the
+-- task with a shell left behind after Ctrl+C.
 mock.result = {ok = true, stdout = '{"directory":"/tasks/demo","apiPort":29850}\n', stderr = ""}
 result = run(fire, empty)
 assert(result.state == "opened")
 check_gt("rex-task")
-assert(#calls == 1 and calls[1].method == "session.new_layer")
+assert(#calls == 1 and calls[1].method == "session.new_window")
 created = calls[1].args
-assert(created.session_id == "session:task" and created.window_id == "window:b" and created.focus == true)
-local b = created.bounds
-assert(b[1] == 0.5 and b[2] == 0 and b[3] == 0.5 and b[4] == 1, "right half, full height")
+assert(created.session_id == "session:task" and created.window_label == "Servers" and created.focus == true)
 
-local rows, heights = {}, {}
-local function walk(node, share)
+local top = created.layout.split
+assert(top.direction == "vertical" and top.ratio == 0.5, "two rows of equal height")
+local function columns(node, share, out)
   if node.block then
-    table.insert(rows, node.block)
-    table.insert(heights, share)
-    return
+    table.insert(out, {block = node.block, width = share})
+    return out
   end
-  assert(node.split.direction == "vertical", "stack rows top to bottom")
-  walk(node.split.before, share * node.split.ratio)
-  walk(node.split.after, share * (1 - node.split.ratio))
+  assert(node.split.direction == "horizontal", "panes in a row sit side by side")
+  columns(node.split.before, share * node.split.ratio, out)
+  columns(node.split.after, share * (1 - node.split.ratio), out)
+  return out
 end
-walk(created.layout, 1)
-local expected = {
-  {"API", {"just", "watch-api"}}, {"Account", {"just", "web", "account"}},
-  {"Dash", {"just", "web", "dash"}}, {"Storybook V2", {"just", "web", "storybook-v2"}},
+local function check_row(node, expected)
+  local panes = columns(node, 1, {})
+  assert(#panes == #expected)
+  for i, pane in ipairs(panes) do
+    assert(math.abs(pane.width - 1 / #expected) < 1e-9, "columns must be evenly sized")
+    local block = pane.block
+    assert(block.label == expected[i][1] and block.flavor == "com.superlogical.terminal.shell")
+    assert(block.options.cwd == "/tasks/demo")
+    local command = block.options.command
+    assert(command[1] == "/bin/zsh" and command[2] == "-c" and command[3]:find('trap : INT; "$@"; print; exec zsh -l', 1, true))
+    assert(command[4] == "fire-it-up")
+    local recipe = expected[i][2]
+    assert(#command == 4 + #recipe)
+    for j, word in ipairs(recipe) do assert(command[4 + j] == word) end
+  end
+end
+check_row(top.before, {
+  {"Dash", {"just", "web", "dash"}}, {"Account", {"just", "web", "account"}},
+  {"Storybook V2", {"just", "web", "storybook-v2"}},
+})
+check_row(top.after, {
+  {"API", {"just", "watch-api"}},
   {"ngrok", {"/bin/bash", home .. "/.config/rex/gertrude_ngrok.sh", "29850"}},
-}
-assert(#rows == 5)
-for i, row in ipairs(rows) do
-  assert(math.abs(heights[i] - 0.2) < 1e-9, "rows must be evenly sized")
-  assert(row.label == expected[i][1] and row.flavor == "com.superlogical.terminal.shell")
-  assert(row.options.cwd == "/tasks/demo")
-  local command = row.options.command
-  assert(command[1] == "/bin/zsh" and command[2] == "-c" and command[3]:find('trap : INT; "$@"; print; exec zsh -l', 1, true))
-  assert(command[4] == "fire-it-up")
-  local recipe = expected[i][2]
-  assert(#command == 4 + #recipe)
-  for j, word in ipairs(recipe) do assert(command[4 + j] == word) end
-end
+})
 
-check_toggles(fire, {"API", "Account", "Dash", "Storybook V2", "ngrok"})
-check_toggles(fire, {"ngrok"})
-check_toggles(fire, {"Dash"}) -- still found after closing the other panes
-assert(run(fire, {active_window_id = "window:b", windows = {window("window:b", "block:p1", {tiled, panel(nil, {"Todos (2)"})})}}).state == "opened",
-  "the todo panel is not the servers panel")
+-- Servers tab already open (active or not) → switch to it, start nothing.
+for _, case in ipairs({
+  {active_window_id = "window:a", windows = {window("window:a", "block:a", {}), {window_id = "window:s", label = "Servers", layers = {}}}},
+  {active_window_id = "window:s", windows = {{window_id = "window:s", label = "Servers", layers = {}}}},
+}) do
+  result = run(fire, case)
+  assert(result.state == "focused" and #commands == 0 and #calls == 1)
+  assert(calls[1].method == "session.focus_window" and calls[1].args.window_id == "window:s")
+end
+-- Server-named panes elsewhere don't count as the Servers tab.
+assert(run(fire, {active_window_id = "window:b", windows = {window("window:b", "block:p1", {tiled, panel(nil, {"API", "ngrok"})})}}).state == "opened")
 
 -- Not a task session: show gt's message and create nothing.
 mock.result = {ok = false, stdout = "", stderr = "gt: this Rex session isn't a Gertrude task; open a task first\n"}
@@ -164,7 +176,7 @@ end
 mock.result = {ok = true, stdout = '{"directory":"/tasks/demo","apiPort":null}\n', stderr = ""}
 local no_port_ok, no_port_err = xpcall(function() return run(fire, empty) end, function(e) return e end)
 assert(not no_port_ok and tostring(no_port_err):find("no API port", 1, true), tostring(no_port_err))
-assert(#calls == 0, "never start a partial panel")
+assert(#calls == 0, "never start a partial tab")
 
 rex = real
 rex.log("Toggle Todo and Fire It Up passed: open, layout, minimize, restore, refocus, and non-task cases, with mocked Rex calls.")

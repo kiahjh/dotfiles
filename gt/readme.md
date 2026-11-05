@@ -23,14 +23,14 @@ The pane is labeled **Todos (N)**, where N counts lines starting with `- [ ]`
 program edits the file, even while minimized. `gertrude_todo.nvim.lua` does this
 and is loaded only into that pane's Neovim, not your normal config.
 
-**Fire It Up** opens a full-height floating panel on the right half of the tab with
-five equal rows: `just watch-api`, `just web account`, `just web dash`,
-`just web storybook-v2`, and an ngrok tunnel to the task's API port, each run in
-the task checkout. The tunnel lets a phone on a different network reach the local
-API; its row shows the public URL first (`gertrude_ngrok.sh`), because ngrok's own
-screen puts it below what a short pane can show. It toggles the same way as
-Toggle Todo; minimized servers keep running. Ctrl+C stops one server and leaves a
-shell in the task where it can be rerun. Closing the panel stops its servers.
+**Fire It Up** opens a **Servers** tab in the task session with two rows, each run
+in the task checkout. The top row has `just web dash`, `just web account`, and
+`just web storybook-v2`. The bottom row has `just watch-api` and an ngrok tunnel to
+the task's API port. The tunnel lets a phone on a different network reach the local
+API; its pane shows the public URL first (`gertrude_ngrok.sh`), because ngrok's own
+screen puts it below what a short pane can show. Running it again switches to the
+Servers tab instead of starting a second set. Ctrl+C stops one server and leaves a
+shell in the task where it can be rerun. Closing the tab stops its servers.
 
 Both live in `rex/.config/rex/gertrude_panels.lua` and find the task with
 `gt rex-task`/`gt rex-todo`.
