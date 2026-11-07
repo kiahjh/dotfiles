@@ -28,6 +28,16 @@
       "open-computer-use": {
         "type": "local",
         "command": ["/opt/homebrew/bin/open-computer-use", "mcp"]
+      },
+      "browse": {
+        "type": "local",
+        "command": [
+          "/Users/miciah/.local/bin/browse",
+          "mcp"
+        ],
+        "environment": {
+          "OPENCODE_BROWSER_RUNTIME": "auto-update"
+        }
       }
     }
   }
