@@ -22,6 +22,9 @@ examples. Choose whatever makes the most sense for the scenario.
 - Make sure each frame is fully loaded and painted (fonts, images, the new state) before
   capturing it.
 - Check stills and a contact sheet of key moments before a full render.
+- Before building the whole video, show the user a 5–10 second moving clip with sound, and
+  get their OK on the look, pacing and audio.
+- Render at 1080p unless the user asks for more.
 - Keep scratch work outside the repo, remove any temporary stories or pages afterward,
   and deliver to ~/Desktop.
 - Use sound effects and pleasant, not-distracting music.
