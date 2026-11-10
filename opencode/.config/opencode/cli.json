@@ -32,7 +32,8 @@
     "indicators": "status"
   },
   "prompt": {
-    "image_preview": true
+    "image_preview": true,
+    "paste": "full"
   },
   "terminal": {
     "title": true
