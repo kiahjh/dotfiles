@@ -112,13 +112,16 @@ panel_action{
 -- screen puts it below what a short pane can show.
 local ngrok_view = home .. "/.config/rex/gertrude_ngrok.sh"
 local servers_tab = "Servers"
+-- Gertrude's pinned Swift toolchain can't build against the default Xcode 27 SDK;
+-- Xcode 26.6's command-line tools work (see the repo's AGENTS.kiah.md).
+local api_developer_dir = "DEVELOPER_DIR=/Applications/Xcode 26.6.app/Contents/Developer"
 local web_row = {
   {label = "Dash", command = function() return {"just", "web", "dash"} end},
   {label = "Account", command = function() return {"just", "web", "account"} end},
   {label = "Storybook V2", command = function() return {"just", "web", "storybook-v2"} end},
 }
 local api_row = {
-  {label = "API", command = function() return {"just", "watch-api"} end},
+  {label = "API", command = function() return {"env", api_developer_dir, "just", "watch-api"} end},
   {label = "ngrok", command = function(task)
     if type(task.apiPort) ~= "number" then
       error("This task has no API port yet; run Resume Task Setup first.", 0)

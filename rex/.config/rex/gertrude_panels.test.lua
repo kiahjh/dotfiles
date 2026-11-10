@@ -146,7 +146,7 @@ check_row(top.before, {
   {"Storybook V2", {"just", "web", "storybook-v2"}},
 })
 check_row(top.after, {
-  {"API", {"just", "watch-api"}},
+  {"API", {"env", "DEVELOPER_DIR=/Applications/Xcode 26.6.app/Contents/Developer", "just", "watch-api"}},
   {"ngrok", {"/bin/bash", home .. "/.config/rex/gertrude_ngrok.sh", "29850"}},
 })
 
