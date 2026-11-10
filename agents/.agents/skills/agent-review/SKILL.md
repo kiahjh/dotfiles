@@ -9,3 +9,5 @@ Have a subagent do the review on a different model from the one that built the c
 
 - If you're a Claude model, use GPT-6 Astra (`openai/gpt-6-astra#xhigh`).
 - If you're a GPT model, use Opus 5.5 (`claude-agent/opus#xhigh`).
+
+On a later round, tell the reviewer what's already been decided and to focus on what changed since the last review.
