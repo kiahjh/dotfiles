@@ -1,0 +1,2 @@
+- If a command or tool call takes far longer than it should, run `pmset -g log | tail -40` to check whether the Mac slept before blaming the tool.
+- For Python scripts that need packages (PIL, numpy, …), use `uv run --with <pkg>` instead of installing them globally.
