@@ -48,7 +48,7 @@ function fixture(check: (f: {
     const dump = join(root, "fixture.sql.gz");
     writeFileSync(dump, gzipSync("SELECT 'scrubbed snapshot';\n"));
     const stub = (name: string, body: string) => writeFileSync(join(bin, name), `#!${process.execPath}\n${body}\n`, { mode: 0o755 });
-    const shared = `import {readFileSync,writeFileSync,existsSync,rmSync,copyFileSync} from 'node:fs';
+    const shared = `import {readFileSync,writeFileSync,existsSync,rmSync,copyFileSync,readdirSync} from 'node:fs';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 const root=process.env.TEST_ROOT;const args=process.argv.slice(2);
@@ -84,7 +84,8 @@ if(process.env.PGHOST!=='127.0.0.1'||process.env.PGSERVICE||process.env.PGHOSTAD
 const command=${JSON.stringify(command)};const db=name=>join(root,'db',name);
 if(args.includes('--version')){console.log(command+' (PostgreSQL) 17.9');process.exit(0);}
 if(command==='psql'){
- if(args.includes('--command')){const query=args[args.indexOf('--command')+1];console.log(query==='SHOW server_version_num'?'170009':[...query.matchAll(/'([^']+)'/g)].map(m=>m[1]).filter(n=>existsSync(db(n))).join('\\n'));}
+ if(args.includes('--command')){const query=args[args.indexOf('--command')+1];const pattern=query.match(/~ '([^']+)'/)?.[1];
+  console.log(query==='SHOW server_version_num'?'170009':pattern?readdirSync(join(root,'db')).filter(n=>new RegExp(pattern).test(n)).join('\\n'):[...query.matchAll(/'([^']+)'/g)].map(m=>m[1]).filter(n=>existsSync(db(n))).join('\\n'));}
  else {const text=await Bun.stdin.text();writeFileSync(db(args.at(-1)),text);}
 }else if(command==='createdb'){
  const name=args.at(-1);if(existsSync(db(name)))throw Error('database already exists');
@@ -220,6 +221,18 @@ test("finish refuses dirty or unmerged work; discard removes only that task and 
     expect(f.tasks()).toHaveLength(0);
     expect(JSON.parse(readFileSync(join(f.root, "rex.json"), "utf8"))).toHaveLength(0);
     expect(existsSync(join(f.root, "db", taskDatabaseNames(task.slug).databaseName))).toBe(false);
+  });
+});
+
+test("finish also drops the task's parallel test database copies", () => {
+  fixture((f) => {
+    succeeded(f.invoke(["new", "demo", "--no-open"]));
+    const names = taskDatabaseNames(f.tasks()[0].slug);
+    const db = (name: string) => join(f.root, "db", name);
+    const keep = [`${names.testDatabaseName}_pX`, `${names.testDatabaseName}_p1_other`, "gt_other_test_p1"];
+    for (const name of [`${names.testDatabaseName}_p1`, `${names.testDatabaseName}_p12`, ...keep]) writeFileSync(db(name), "");
+    succeeded(f.invoke(["finish", "demo", "--discard"]));
+    expect(readdirSync(join(f.root, "db")).sort()).toEqual(keep.sort());
   });
 });
 

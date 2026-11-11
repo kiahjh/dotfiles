@@ -47,8 +47,12 @@ export function existingWorkspaceDatabases(task: Workspace): string[] {
 }
 
 export function dropWorkspaceDatabases(task: Workspace): void {
-  requireCommands(["dropdb"]);
-  for (const name of workspaceDatabases(task).reverse()) {
+  requireCommands(["psql", "dropdb"]);
+  const [database, testDatabase] = workspaceDatabases(task);
+  // `just api-test` makes one copy of the test database per shard (`<test>_p1`, `_p2`, ...).
+  const copies = run("psql", ["-X", "--no-password", "--dbname", "postgres", "-At", "--set", "ON_ERROR_STOP=1", "--command",
+    `SELECT datname FROM pg_database WHERE datname ~ '^${testDatabase}_p[0-9]+$';`], { env: postgresEnvironment(task) }).stdout;
+  for (const name of [...copies.trim().split(/\r?\n/).filter(Boolean), testDatabase, database]) {
     run("dropdb", ["--no-password", "--if-exists", "--force", name], { env: postgresEnvironment(task), inherit: true });
   }
 }
