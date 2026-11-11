@@ -229,8 +229,9 @@ test("finish also drops the task's parallel test database copies", () => {
     succeeded(f.invoke(["new", "demo", "--no-open"]));
     const names = taskDatabaseNames(f.tasks()[0].slug);
     const db = (name: string) => join(f.root, "db", name);
-    const keep = [`${names.testDatabaseName}_pX`, `${names.testDatabaseName}_p1_other`, "gt_other_test_p1"];
-    for (const name of [`${names.testDatabaseName}_p1`, `${names.testDatabaseName}_p12`, ...keep]) writeFileSync(db(name), "");
+    const keep = [`${names.testDatabaseName}p1`, `${names.databaseName}_other`, "gt_other_test_p1"];
+    const copies = [`${names.testDatabaseName}_p1`, `${names.testDatabaseName}_p12`, `${names.testDatabaseName}_b631_p1`];
+    for (const name of [...copies, ...keep]) writeFileSync(db(name), "");
     succeeded(f.invoke(["finish", "demo", "--discard"]));
     expect(readdirSync(join(f.root, "db")).sort()).toEqual(keep.sort());
   });
