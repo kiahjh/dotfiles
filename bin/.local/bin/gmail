@@ -568,8 +568,31 @@ def build_message(headers: dict[str, str], body: str) -> EmailMessage:
     for key, value in headers.items():
         if value:
             message[key] = value
-    message.set_content(body.rstrip("\n") + "\n")
+    set_body(message, body)
     return message
+
+
+_URL = re.compile(r"https?://[^\s<>\"]+[^\s<>\".,;:!?)\]]")
+
+
+def body_html(body: str) -> str:
+    """Gmail-style HTML for a plain-text body: one <div> per line, no hard wrapping."""
+    rows = []
+    for line in body.rstrip("\n").split("\n"):
+        if not line.strip():
+            rows.append("<div><br></div>")
+            continue
+        escaped = html.escape(line, quote=False)
+        linked = _URL.sub(lambda m: f'<a href="{m.group(0)}">{m.group(0)}</a>', escaped)
+        rows.append(f"<div>{linked}</div>")
+    return '<div dir="ltr">' + "".join(rows) + "</div>\n"
+
+
+def set_body(message: EmailMessage, body: str) -> None:
+    # Plain-text-only drafts make Gmail's composer hard-wrap lines at ~70 chars on send,
+    # so recipients see a narrow column. Including an HTML part keeps rich mode.
+    message.set_content(body.rstrip("\n") + "\n")
+    message.add_alternative(body_html(body), subtype="html")
 
 
 def encode_message(message: EmailMessage) -> str:
@@ -860,7 +883,7 @@ def cmd_draft_update(args) -> None:
     body = read_body(args)
     if body is not None:
         message.clear_content()
-        message.set_content(body.rstrip("\n") + "\n")
+        set_body(message, body)
     payload = {"id": args.id, "message": {"raw": encode_message(message), "threadId": draft["message"]["threadId"]}}
     updated = gmail.call("PUT", f"drafts/{args.id}", body=payload)
     headers = {key: message[key] for key in ("From", "To", "Cc", "Bcc", "Subject") if message[key]}
