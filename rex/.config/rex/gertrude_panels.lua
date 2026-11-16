@@ -104,7 +104,7 @@ panel_action{
 }
 
 -- Fire It Up: the task's dev servers and an ngrok tunnel to its API in a
--- "Servers" tab: the three web servers across the top row, the API and ngrok
+-- "Servers" tab: the four web servers across the top row, the API and ngrok
 -- across the bottom. Running it again switches to that tab.
 -- The tunnel lets a phone on another network (such as coffee shop Wi-Fi) reach
 -- the local API. Ctrl+C stops one server and leaves a shell in the task, so it
@@ -118,6 +118,7 @@ local api_developer_dir = "DEVELOPER_DIR=/Applications/Xcode 26.6.app/Contents/D
 local web_row = {
   {label = "Dash", command = function() return {"just", "web", "dash"} end},
   {label = "Account", command = function() return {"just", "web", "account"} end},
+  {label = "Admin", command = function() return {"just", "web", "admin"} end},
   {label = "Storybook V2", command = function() return {"just", "web", "storybook-v2"} end},
 }
 local api_row = {
@@ -147,8 +148,8 @@ rex.action{
   name = "gt_fire_it_up",
   title = "Fire It Up",
   category = "Gertrude",
-  description = "Run the Dash, Account, and Storybook V2 dev servers, the API, and an ngrok tunnel to the API in a Servers tab. Run again to switch to it.",
-  keywords = "gt gertrude task dev servers start run watch api web account dash storybook ngrok tunnel phone tab",
+  description = "Run the Dash, Account, Admin, and Storybook V2 dev servers, the API, and an ngrok tunnel to the API in a Servers tab. Run again to switch to it.",
+  keywords = "gt gertrude task dev servers start run watch api web account admin dash storybook ngrok tunnel phone tab",
   args = {},
   run = function(ctx)
     local session_id = ctx.session_id
