@@ -10,3 +10,6 @@ web page instead of text.
 
 Make it understandable at a glance. If it's too much to be grokable on one screen,
 break it into steps instead of dumping a wall of text.
+
+End with quick-reply buttons for the likely decisions. Each copies a short reply, such as
+"14: match old dashboard", for the user to paste back.
