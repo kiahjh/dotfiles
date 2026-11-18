@@ -1,11 +1,13 @@
 import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
+import { MASTER_BRANCH } from "./constants.ts";
 import { fail, GtError } from "./errors.ts";
 import { run } from "./process.ts";
-import { parsePullRequestNumber, validateSlug } from "./slug.ts";
-import { ensureTaskScratch } from "./task.ts";
-import { workspaceStateDir, workspaces, type Workspace } from "./workspace-state.ts";
+import { isValidSlug, parsePullRequestNumber } from "./slug.ts";
+import { ensureTaskScratch, taskDirectoryNameForTitle } from "./task.ts";
+import { repositoryDirectory, workspaceRoot, workspaceStateDir, workspaces, type Workspace } from "./workspace-state.ts";
 import { rexSessions } from "./workspace-tools.ts";
 import {
   createWorkspace, findWorkspace, finishWorkspace, forkWorkspace, openSupport,
@@ -14,14 +16,18 @@ import {
 
 export const rexOperations = ["new", "pr", "fork", "finish", "discard", "refresh-db", "support", "open", "setup"] as const;
 export type RexOperation = typeof rexOperations[number];
+type RexArgs = { name?: string; number?: number | string; task?: string; confirm?: string };
 export type RexRequest = {
   operation: RexOperation;
   sourceSession?: string;
   clientID?: string;
-  args: { name?: string; number?: number; task?: string };
+  args: RexArgs;
 };
 
-export class RexActionCancelled extends Error {}
+const allowedArgs: Record<RexOperation, (keyof RexArgs)[]> = {
+  new: ["name"], pr: ["number"], fork: ["name", "task"], support: [], open: ["task"], setup: ["task"],
+  finish: ["task", "confirm"], discard: ["task", "confirm"], "refresh-db": ["task", "confirm"],
+};
 
 export function parseRexRequest(operation: string, raw: string): RexRequest {
   if (!rexOperations.includes(operation as RexOperation)) fail("unknown Gertrude Rex action");
@@ -39,14 +45,15 @@ export function parseRexRequest(operation: string, raw: string): RexRequest {
       fail(`invalid Rex ${key}`);
     }
   }
-  const args = data.args ?? {};
-  if (!args || typeof args !== "object" || Array.isArray(args)) fail("invalid Rex action arguments");
-  const allowed = operation === "new" ? ["name"] : operation === "pr" ? ["number"]
-    : operation === "fork" ? ["name", "task"] : operation === "support" ? [] : ["task"];
-  for (const [key, value] of Object.entries(args)) {
-    if (!allowed.includes(key) || (key === "number" ? !Number.isSafeInteger(value) || Number(value) <= 0 : typeof value !== "string")) {
-      fail(`invalid ${operation} argument: ${key}`);
-    }
+  const raws = data.args ?? {};
+  if (!raws || typeof raws !== "object" || Array.isArray(raws)) fail("invalid Rex action arguments");
+  const args: RexArgs = {};
+  for (const [key, value] of Object.entries(raws)) {
+    // Palette answers arrive as text, so a PR number may be either; plans validate the text.
+    const valid = typeof value === "string"
+      || (key === "number" && Number.isSafeInteger(value) && Number(value) > 0);
+    if (!allowedArgs[operation as RexOperation].includes(key as keyof RexArgs) || !valid) fail(`invalid ${operation} argument: ${key}`);
+    (args as Record<string, unknown>)[key] = typeof value === "string" ? value.trim() : value;
   }
   return { operation: operation as RexOperation, sourceSession: data.sourceSession as string | undefined,
     clientID: data.clientID as string | undefined, args };
@@ -79,100 +86,207 @@ export function rexConfirmation(operation: "finish" | "discard" | "refresh-db", 
   return `${operation === "refresh-db" ? "refresh" : operation} ${task.name}`;
 }
 
-function status(state: string, message: string, kind?: string): void {
-  if (!process.stdout.isTTY) return;
-  const text = Buffer.from(message).toString("base64");
-  process.stdout.write(`\x1b]7501;state=${state}:app=gt${kind ? `:kind=${kind}` : ""}:msg=${text}\x1b\\`);
+// A question for Rex's command palette. `prompt` is passed as-is to
+// rex.ui.input or rex.ui.pick, and the answer is stored in args[field].
+type PickItem = { id: string; title?: string; subtitle?: string; icon?: string; detail?: string };
+export type RexPrompt = {
+  field: keyof RexArgs;
+  kind: "input" | "pick";
+  prompt: { title: string; placeholder?: string; value?: string; confirm?: string; items?: PickItem[]; allow_other?: boolean };
+};
+// What the Rex action does next: ask a question, or run. Inline steps finish
+// within the action's deadline; jobs get their own session for progress.
+// Focused jobs end in the task you're going to; the others work in the background.
+export type RexPlan =
+  | { ask: RexPrompt }
+  | { run: "inline" | "job"; title: string; focus: boolean };
+type Resolved =
+  | { ask: RexPrompt; problem?: string }
+  | { run: "inline" | "job"; title: string; focus: boolean; task?: Workspace; name?: string; pullRequest?: number };
+
+export type PullRequest = { number: number; title: string; author: string; branch: string; draft: boolean };
+
+/** Open pull requests, or undefined when GitHub can't be asked; the palette then takes a typed number. */
+export function openPullRequests(): PullRequest[] | undefined {
+  const result = run("gh", ["pr", "list", "--json", "number,title,author,headRefName,isDraft", "--limit", "100"],
+    { cwd: repositoryDirectory(), allowFailure: true, timeout: 8_000 });
+  if (result.status !== 0) return undefined;
+  try {
+    return JSON.parse(result.stdout).map((pr: { number: number; title: string; author: { login: string }; headRefName: string; isDraft: boolean }) => ({
+      number: pr.number, title: pr.title, author: pr.author.login, branch: pr.headRefName, draft: pr.isDraft,
+    }));
+  } catch {
+    return undefined;
+  }
 }
 
-export type RexActionIO = {
-  ask: (prompt: string) => Promise<string>;
-  print: (message: string) => void;
+function shortPath(path: string): string {
+  return path.startsWith(homedir() + "/") ? "~" + path.slice(homedir().length) : path;
+}
+
+function taskItem(task: Workspace): PickItem {
+  const detail = !existsSync(task.directory) ? "missing checkout" : task.phase === "ready" ? undefined : task.phase;
+  return { id: task.id, title: task.name, subtitle: shortPath(task.directory), icon: "branch", ...detail ? { detail } : {} };
+}
+
+const taskQuestions: Record<Exclude<RexOperation, "new" | "pr" | "support">, { title: string; confirm: string }> = {
+  open: { title: "Reopen task", confirm: "Open task" },
+  setup: { title: "Resume setup for which task?", confirm: "Resume setup" },
+  fork: { title: "Fork which task?", confirm: "Fork this task" },
+  finish: { title: "Finish which task?", confirm: "Finish this task" },
+  discard: { title: "Discard which task?", confirm: "Discard this task" },
+  "refresh-db": { title: "Refresh which task's databases?", confirm: "Refresh this task" },
 };
 
-async function chooseTask(request: RexRequest, io: RexActionIO): Promise<Workspace> {
+// The task an action applies to. Reopen is a picker, not an operation on the
+// task already shown; the others use the source session's task when it has one.
+function chooseTask(request: RexRequest): Workspace | { ask: RexPrompt } {
+  const operation = request.operation as keyof typeof taskQuestions;
   if (request.args.task) return findWorkspace(request.args.task);
-  // Reopen is a picker, not an operation on the task we're already viewing.
-  const current = request.operation === "open" ? undefined : currentRexWorkspace(request.sourceSession);
+  const current = operation === "open" ? undefined : currentRexWorkspace(request.sourceSession);
   if (current) return current;
   const tasks = workspaces().sort((a, b) => a.name.localeCompare(b.name));
-  if (!tasks.length) fail("no registered tasks; use New Task in the Gertrude category first (support is permanent)");
-  io.print("Choose a development task (support is not disposable):");
-  tasks.forEach((task, index) => io.print(`  ${index + 1}. ${task.name} [${task.phase}]\n     ${task.directory}`));
-  status("blocked", "Choose a Gertrude task", "question");
-  const answer = (await io.ask("Task number or name (blank cancels): ")).trim();
-  if (!answer) throw new RexActionCancelled();
-  if (/^\d+$/.test(answer)) {
-    const task = tasks[Number(answer) - 1];
-    if (!task) fail("invalid task number");
-    return task;
+  if (!tasks.length) fail("no registered tasks; use New Task first (support is permanent)");
+  return { ask: { field: "task", kind: "pick", prompt: { ...taskQuestions[operation], placeholder: "Filter tasks", items: tasks.map(taskItem) } } };
+}
+
+/** Why a new task (or a fork of parent) can't use this name, if it can't. */
+function nameProblem(name: string, parent?: Workspace): string | undefined {
+  if (!name) return "enter a name";
+  if (!isValidSlug(name)) return "use letters, digits, '.', '_' or '-', starting with a letter or digit";
+  if (name === MASTER_BRANCH) return `the name can't be ${MASTER_BRANCH}`;
+  if (!parent && name === "support") return "support is permanent; use Open Support";
+  const title = parent ? `${parent.name}/${name}` : name;
+  const directory = join(workspaceRoot(), taskDirectoryNameForTitle(title));
+  if (workspaces().some((task) => task.name === title || task.directory === directory) || existsSync(directory)) return `${title} already exists`;
+  const branch = `gt/${taskDirectoryNameForTitle(title)}`;
+  if (run("git", ["check-ref-format", "--branch", branch], { allowFailure: true }).status !== 0) return `${branch} isn't a valid branch name`;
+  if (existsSync(repositoryDirectory())
+    && run("git", ["-C", repositoryDirectory(), "show-ref", "--verify", "--quiet", `refs/heads/${branch}`], { allowFailure: true }).status === 0) {
+    return `branch ${branch} already exists`;
   }
-  return findWorkspace(answer);
+  return undefined;
 }
 
-async function taskName(request: RexRequest, io: RexActionIO): Promise<string> {
-  status("blocked", "Name the Gertrude task", "question");
-  const name = (request.args.name ?? await io.ask("Task name (blank cancels): ")).trim();
-  if (!name) throw new RexActionCancelled();
-  validateSlug(name);
-  return name;
+function askName(name: string | undefined, prompt: { title: string; placeholder: string; confirm: string }, parent?: Workspace): Resolved | string {
+  const problem = name === undefined ? undefined : nameProblem(name, parent);
+  if (name !== undefined && !problem) return name;
+  return { ask: { field: "name", kind: "input", prompt: { ...prompt, title: problem ? `${prompt.title}: ${problem}` : prompt.title, value: name } }, problem };
 }
 
-export async function executeRexAction(request: RexRequest, io: RexActionIO): Promise<string | undefined> {
+function askPullRequest(value: string | undefined, problem: string | undefined, pullRequests: () => PullRequest[] | undefined): Resolved {
+  const title = problem ? `Review a pull request: ${problem}` : "Review a pull request";
+  const listed = pullRequests();
+  if (!listed) {
+    return { ask: { field: "number", kind: "input", prompt: { title, placeholder: "Pull request number, like 943", value, confirm: "Review PR" } }, problem };
+  }
+  const existing = new Set(workspaces().map((task) => task.name));
+  return { problem, ask: { field: "number", kind: "pick", prompt: {
+    title, placeholder: "Filter pull requests, or type a number", confirm: "Review PR", allow_other: true,
+    items: listed.map((pr) => {
+      const detail = existing.has(`review-${pr.number}`) ? "reopen" : pr.draft ? "draft" : undefined;
+      return { id: String(pr.number), title: `#${pr.number} ${pr.title}`, subtitle: `${pr.author} · ${pr.branch}`, icon: "branch", ...detail ? { detail } : {} };
+    }),
+  } } };
+}
+
+const consequences = {
+  finish: (name: string) => `Finish ${name}? Its checkout, databases, and Rex session are removed (it must be clean and merged)`,
+  discard: (name: string) => `Discard ${name}? This deletes its checkout, databases, and Rex session, including uncommitted and unmerged work`,
+  "refresh-db": (name: string) => `Replace ${name}'s databases with the scrubbed snapshot? Local database edits are lost`,
+};
+const confirmLabels = { finish: "Finish task", discard: "Discard task", "refresh-db": "Replace databases" };
+
+function resolveRexAction(request: RexRequest, pullRequests: () => PullRequest[] | undefined): Resolved {
+  const { operation, args } = request;
+  if (operation === "support") return { run: "inline", title: "Open Support", focus: true };
+  if (operation === "new") {
+    const name = askName(args.name as string | undefined, { title: "New task", placeholder: "short-task-name", confirm: "Create task" });
+    return typeof name === "string" ? { run: "job", title: `New ${name}`, focus: true, name } : name;
+  }
+  if (operation === "pr") {
+    if (args.number === undefined) return askPullRequest(undefined, undefined, pullRequests);
+    let pullRequest: number;
+    try {
+      pullRequest = typeof args.number === "number" ? args.number : parsePullRequestNumber(args.number);
+    } catch (error) {
+      if (!(error instanceof GtError)) throw error;
+      return askPullRequest(String(args.number), `“${args.number}” isn't a pull request number`, pullRequests);
+    }
+    // A PR that already has a review task opens it instead of failing.
+    const existing = workspaces().find((task) => task.name === `review-${pullRequest}`);
+    if (existing) return { run: "inline", title: `Open ${existing.name}`, focus: true, task: existing };
+    return { run: "job", title: `Review PR #${pullRequest}`, focus: true, name: `review-${pullRequest}`, pullRequest };
+  }
+
+  const task = chooseTask(request);
+  if ("ask" in task) return task;
+  if (operation === "open") return { run: "inline", title: `Open ${task.name}`, focus: true, task };
+  if (operation === "setup") return { run: "job", title: `Set up ${task.name}`, focus: true, task };
+  if (operation === "fork") {
+    if (task.phase !== "ready") fail(`${task.name} isn't ready to fork; use Resume Task Setup first`);
+    const name = askName(args.name, { title: `Fork ${task.name}`, placeholder: "fork-name", confirm: "Fork task" }, task);
+    return typeof name === "string" ? { run: "job", title: `Fork ${task.name}/${name}`, focus: true, task, name } : name;
+  }
+
+  // Destructive: always a typed, task-specific confirmation, even with a task argument.
+  const phrase = rexConfirmation(operation, task);
+  if (args.confirm !== phrase) {
+    const problem = args.confirm === undefined ? undefined : `type “${phrase}” exactly`;
+    return { problem, ask: { field: "confirm", kind: "input", prompt: {
+      title: problem ? `${consequences[operation](task.name)}. To confirm, ${problem}` : consequences[operation](task.name),
+      placeholder: `Type “${phrase}” to confirm`, confirm: confirmLabels[operation],
+    } } };
+  }
+  const verb = { finish: "Finish", discard: "Discard", "refresh-db": "Refresh databases:" }[operation];
+  return { run: "job", title: `${verb} ${task.name}`, focus: false, task };
+}
+
+/** The next step for a Rex action: a palette question, or how to run it. */
+export function planRexAction(request: RexRequest, pullRequests = openPullRequests): RexPlan {
+  const resolved = resolveRexAction(request, pullRequests);
+  return "ask" in resolved ? { ask: resolved.ask } : { run: resolved.run, title: resolved.title, focus: resolved.focus };
+}
+
+function status(state: string, message: string): void {
+  if (!process.stdout.isTTY) return;
+  const text = Buffer.from(message).toString("base64");
+  process.stdout.write(`\x1b]7501;state=${state}:app=gt:msg=${text}\x1b\\`);
+}
+
+/** Runs a fully answered request; returns the session to show afterwards, if any. */
+export async function executeRexAction(request: RexRequest): Promise<string | undefined> {
+  // Every answer must already be present: jobs never ask in the terminal.
+  const step = resolveRexAction(request, () => undefined);
+  if ("ask" in step) fail(step.problem ?? `missing ${step.ask.field}; run this from the Rex command palette`);
   const { operation } = request;
-  io.print(`Gertrude: ${operation}\n`);
+  const { task, name } = step;
+  console.log(`${step.title}\n`);
+  status("working", step.title);
   if (operation === "support") {
-    status("working", "Opening support");
     openSupport();
     return JSON.parse(readFileSync(join(workspaceStateDir(), "support.json"), "utf8")).rexSession;
   }
-  if (operation === "new" || operation === "pr") {
-    let name: string;
-    let pullRequest: number | undefined;
-    if (operation === "pr") {
-      status("blocked", "Enter the pull request number", "question");
-      const value = request.args.number === undefined ? (await io.ask("Pull request number (blank cancels): ")).trim() : String(request.args.number);
-      if (!value) throw new RexActionCancelled();
-      pullRequest = parsePullRequestNumber(value);
-      name = `review-${pullRequest}`;
-    } else {
-      name = await taskName(request, io);
-    }
-    status("working", `Preparing ${name}`);
-    await createWorkspace(name, { pullRequest });
+  if (operation === "new" || (operation === "pr" && !task)) {
+    await createWorkspace(name!, { pullRequest: step.pullRequest });
     return findWorkspace(name).rexSession ?? undefined;
   }
-
-  const task = await chooseTask(request, io);
-  io.print(`Task: ${task.name}\nCheckout: ${task.directory}\n`);
+  console.log(`Task: ${task!.name}\nCheckout: ${task!.directory}\n`);
   if (operation === "fork") {
-    const name = await taskName(request, io);
-    status("working", `Forking ${task.name}`);
-    process.chdir(task.directory);
-    await forkWorkspace(name);
-    return findWorkspace(`${task.name}/${name}`).rexSession ?? undefined;
+    process.chdir(task!.directory);
+    await forkWorkspace(name!);
+    return findWorkspace(`${task!.name}/${name}`).rexSession ?? undefined;
   }
-  if (operation === "open" || operation === "setup") {
-    status("working", `${operation === "setup" ? "Preparing" : "Opening"} ${task.name}`);
-    if (operation === "setup") await prepareWorkspace(task.id);
-    openWorkspace(task.id);
-    return findWorkspace(task.id).rexSession ?? undefined;
+  if (operation === "open" || operation === "setup" || operation === "pr") {
+    if (operation === "setup") await prepareWorkspace(task!.id);
+    openWorkspace(task!.id);
+    return findWorkspace(task!.id).rexSession ?? undefined;
   }
-
-  const phrase = rexConfirmation(operation, task);
-  io.print(operation === "refresh-db"
-    ? "This replaces BOTH task databases with the scrubbed snapshot. Local database edits will be lost."
-    : operation === "discard"
-      ? "This DELETES the checkout, both databases, and its Rex session, INCLUDING uncommitted/unmerged work."
-      : "This deletes the checkout, both databases, and its Rex session. Clean/merged checks still apply.");
-  status("blocked", `Confirm ${operation} for ${task.name}`, "permission");
-  if (await io.ask(`Type '${phrase}' to confirm (anything else cancels): `) !== phrase) throw new RexActionCancelled();
-  status("working", `${operation}: ${task.name}`);
   if (operation === "refresh-db") {
-    await refreshWorkspaceDatabases(task.id);
-    return task.rexSession ?? undefined;
+    await refreshWorkspaceDatabases(task!.id);
+    return undefined;
   }
-  await finishWorkspace(task.id, operation === "discard");
+  await finishWorkspace(task!.id, operation === "discard");
   return undefined;
 }
 
@@ -192,39 +306,29 @@ function selectSession(request: RexRequest, sessionID?: string): void {
   }
 }
 
+function waitForReturn(): Promise<void> {
+  const terminal = createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve) => {
+    terminal.on("close", resolve);
+    terminal.on("SIGINT", () => terminal.close());
+    terminal.question("Press Return to close this job… ", () => terminal.close());
+  });
+}
+
 export async function runRexAction(operation: string, raw: string): Promise<void> {
   const request = parseRexRequest(operation, raw);
-  const terminal = createInterface({ input: process.stdin, output: process.stdout, terminal: Boolean(process.stdin.isTTY) });
-  const lines = terminal[Symbol.asyncIterator]();
-  terminal.on("SIGINT", () => terminal.close());
-  const io: RexActionIO = {
-    print: (text) => console.log(text),
-    ask: async (prompt) => {
-      terminal.setPrompt(prompt);
-      terminal.prompt();
-      const line = await lines.next();
-      if (line.done) throw new RexActionCancelled();
-      return line.value.trim();
-    },
-  };
   try {
-    const session = await executeRexAction(request, io);
-    status("done", "Gertrude task action completed");
-    selectSession(request, session ?? request.sourceSession);
+    const session = await executeRexAction(request);
+    status("done", "Done");
+    selectSession(request, session);
   } catch (error) {
-    if (error instanceof RexActionCancelled) {
-      status("idle", "Cancelled");
-      console.log("Cancelled; no requested destructive operation was run.");
-      selectSession(request, request.sourceSession);
-      return;
-    }
     status("error", "Gertrude task action failed");
     if (!process.stdin.isTTY) throw error;
     console.error(error instanceof GtError || error instanceof Error ? error.message : String(error));
     console.error("The operation did not finish. Recorded task resources are retained for recovery; use Resume Task Setup when appropriate.");
-    try { await io.ask("Press Return to close this job… "); } catch {}
+    // Background jobs aren't on screen; bring this one up so the failure is seen.
+    selectSession(request, process.env.REX_SESSION);
+    await waitForReturn();
     selectSession(request, request.sourceSession);
-  } finally {
-    terminal.close();
   }
 }

@@ -2,21 +2,24 @@ import { expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { parseRexRequest, rexConfirmation, RexActionCancelled, rexTask, rexTodo } from "./gt-src/rex-actions.ts";
+import { parseRexRequest, planRexAction, rexConfirmation, rexTask, rexTodo, type RexPlan } from "./gt-src/rex-actions.ts";
 import { taskPortsForSlot } from "./gt-src/ports.ts";
 import { newWorkspace, writeWorkspace } from "./gt-src/workspace-state.ts";
 
 test("Rex context accepts only known operations, fields, and typed arguments", () => {
-  expect(parseRexRequest("new", '{"args":{"name":"demo"}}')).toEqual({
+  expect(parseRexRequest("new", '{"args":{"name":" demo "}}')).toEqual({
     operation: "new", sourceSession: undefined, clientID: undefined, args: { name: "demo" },
   });
   expect(parseRexRequest("pr", '{"args":{"number":42}}').args.number).toBe(42);
+  expect(parseRexRequest("pr", '{"args":{"number":"#42"}}').args.number).toBe("#42");
+  expect(parseRexRequest("finish", '{"args":{"task":"demo","confirm":"finish demo"}}').args.confirm).toBe("finish demo");
   for (const [operation, raw] of [
     ["unknown", "{}"], ["new", "not-json"], ["new", "null"], ["new", "[]"],
     ["new", '{"sourceSession":"other"}'], ["new", '{"clientID":"--server"}'],
     ["new", '{"args":{"name":123}}'], ["pr", '{"args":{"number":-1}}'],
     ["pr", '{"args":{"number":1.5}}'], ["new", '{"args":{"name":"demo","discard":true}}'],
     ["finish", '{"args":{"confirm":true}}'], ["support", '{"args":{"task":"demo"}}'],
+    ["open", '{"args":{"confirm":"open demo"}}'], ["new", '{"args":{"confirm":"x"}}'],
     ["finish", '{"sourceSession":"session:valid","cwd":"/must-not-guess"}'],
   ]) expect(() => parseRexRequest(operation, raw)).toThrow();
 });
@@ -26,7 +29,97 @@ test("each destructive action has a distinct task-specific confirmation", () => 
   expect(rexConfirmation("finish", task)).toBe("finish parent/spike");
   expect(rexConfirmation("discard", task)).toBe("discard parent/spike");
   expect(rexConfirmation("refresh-db", task)).toBe("refresh parent/spike");
-  expect(new RexActionCancelled()).toBeInstanceOf(Error);
+});
+
+function withTasks(check: (root: string, tasks: Record<string, ReturnType<typeof newWorkspace>>) => void): void {
+  const root = mkdtempSync(join(tmpdir(), "gt-rex-plan-"));
+  const saved = { state: process.env.GT_STATE_DIR, tasks: process.env.GT_TASKS_DIR, repo: process.env.GT_REPOSITORY_DIR };
+  process.env.GT_STATE_DIR = join(root, "state");
+  process.env.GT_TASKS_DIR = join(root, "tasks");
+  process.env.GT_REPOSITORY_DIR = join(root, "missing-repository");
+  try {
+    const tasks: Record<string, ReturnType<typeof newWorkspace>> = {};
+    for (const name of ["demo", "review-7", "half-done"]) {
+      const directory = join(root, "tasks", name);
+      mkdirSync(directory, { recursive: true });
+      const task = newWorkspace(name, directory, "fixture");
+      task.phase = name === "half-done" ? "setup" : "ready";
+      task.rexSession = `session:${name}`;
+      writeWorkspace(task);
+      tasks[name] = task;
+    }
+    check(root, tasks);
+  } finally {
+    for (const [key, value] of [["GT_STATE_DIR", saved.state], ["GT_TASKS_DIR", saved.tasks], ["GT_REPOSITORY_DIR", saved.repo]] as const) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+const plan = (operation: string, context: object, pullRequests = () => undefined as never): RexPlan =>
+  planRexAction(parseRexRequest(operation, JSON.stringify(context)), pullRequests);
+const asked = (result: RexPlan) => {
+  if (!("ask" in result)) throw new Error(`expected a question, got ${JSON.stringify(result)}`);
+  return result.ask;
+};
+
+test("Rex plans ask for a task name until it is usable, then run a focused job", () => {
+  withTasks(() => {
+    expect(asked(plan("new", { args: {} }))).toMatchObject({ field: "name", kind: "input", prompt: { title: "New task" } });
+    for (const [name, problem] of [["", "enter a name"], ["bad name", "use letters"], ["master", "can't be master"],
+      ["support", "support is permanent"], ["demo", "demo already exists"]]) {
+      const question = asked(plan("new", { args: { name } }));
+      expect(question.prompt.title).toContain(problem);
+      expect(question.prompt.value).toBe(name);
+    }
+    expect(plan("new", { args: { name: "fresh" } })).toEqual({ run: "job", title: "New fresh", focus: true });
+  });
+});
+
+test("Rex PR plans offer open pull requests, accept typed numbers, and reopen existing reviews", () => {
+  withTasks(() => {
+    const listed = () => [{ number: 7, title: "Seven", author: "a", branch: "b7", draft: false },
+      { number: 8, title: "Eight", author: "c", branch: "b8", draft: true }];
+    const question = asked(plan("pr", { args: {} }, listed));
+    expect(question).toMatchObject({ field: "number", kind: "pick", prompt: { allow_other: true } });
+    expect(question.prompt.items!.map((item) => [item.id, item.detail])).toEqual([["7", "reopen"], ["8", "draft"]]);
+    expect(asked(plan("pr", { args: {} }, () => undefined)).kind).toBe("input");
+    expect(asked(plan("pr", { args: { number: "abc" } }, listed)).prompt.title).toContain("isn't a pull request number");
+    expect(plan("pr", { args: { number: "#8" } })).toEqual({ run: "job", title: "Review PR #8", focus: true });
+    expect(plan("pr", { args: { number: 7 } })).toEqual({ run: "inline", title: "Open review-7", focus: true });
+  });
+});
+
+test("Rex task plans use the source session's task, except reopen, which always picks", () => {
+  withTasks((_, tasks) => {
+    expect(asked(plan("setup", { sourceSession: "session:unrelated", args: {} }))).toMatchObject({ field: "task", kind: "pick" });
+    const items = asked(plan("open", { sourceSession: "session:demo", args: {} })).prompt.items!;
+    expect(items.map((item) => item.title)).toEqual(["demo", "half-done", "review-7"]);
+    expect(items.find((item) => item.title === "half-done")!.detail).toBe("setup");
+    expect(plan("open", { args: { task: tasks.demo.id } })).toEqual({ run: "inline", title: "Open demo", focus: true });
+    expect(plan("setup", { sourceSession: "session:half-done", args: {} })).toEqual({ run: "job", title: "Set up half-done", focus: true });
+    expect(asked(plan("fork", { sourceSession: "session:demo", args: {} })).prompt.title).toBe("Fork demo");
+    expect(asked(plan("fork", { sourceSession: "session:demo", args: { name: "bad name" } })).prompt.value).toBe("bad name");
+    expect(plan("fork", { sourceSession: "session:demo", args: { name: "child" } })).toEqual({ run: "job", title: "Fork demo/child", focus: true });
+    expect(() => plan("fork", { sourceSession: "session:half-done", args: { name: "child" } })).toThrow("isn't ready to fork");
+  });
+});
+
+test("Rex destructive plans require the exact typed phrase and run in the background", () => {
+  withTasks(() => {
+    for (const [operation, phrase] of [["finish", "finish demo"], ["discard", "discard demo"], ["refresh-db", "refresh demo"]]) {
+      const context = { sourceSession: "session:demo", args: {} };
+      const question = asked(plan(operation, context));
+      expect(question).toMatchObject({ field: "confirm", kind: "input" });
+      expect(question.prompt.placeholder).toContain(phrase);
+      for (const wrong of ["", "yes", phrase.toUpperCase()]) {
+        expect(asked(plan(operation, { ...context, args: { confirm: wrong } })).prompt.title).toContain(`type “${phrase}” exactly`);
+      }
+      const result = plan(operation, { ...context, args: { confirm: phrase } });
+      expect(result).toMatchObject({ run: "job", focus: false });
+    }
+  });
 });
 
 test("Rex todo resolves only the session's registered task and never overwrites notes", () => {

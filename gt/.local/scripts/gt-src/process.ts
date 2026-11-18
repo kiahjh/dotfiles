@@ -8,6 +8,7 @@ export type RunOptions = {
   inherit?: boolean;
   allowFailure?: boolean;
   maxBuffer?: number;
+  timeout?: number;
 };
 
 export type RunResult = {
@@ -23,6 +24,7 @@ export function run(command: string, args: string[], options: RunOptions = {}): 
     input: options.input,
     encoding: "utf8",
     maxBuffer: options.maxBuffer ?? 64 * 1024 * 1024,
+    timeout: options.timeout,
     stdio: options.inherit
       ? options.input === undefined
         ? "inherit"

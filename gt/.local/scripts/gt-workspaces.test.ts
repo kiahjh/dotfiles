@@ -432,10 +432,10 @@ test("discard still refuses redirected worktrees and main checkouts", () => {
   });
 });
 
-test("Rex new action accepts a typed task name and selects the ready session", () => {
+test("Rex new action runs a palette-answered name and selects the ready session", () => {
   fixture((f) => {
-    const context = JSON.stringify({ clientID: "client:fixture", args: {} });
-    succeeded(f.invoke(["rex-action", "new", context], undefined, {}, "from-palette\n"));
+    const context = JSON.stringify({ clientID: "client:fixture", args: { name: "from-palette" } });
+    succeeded(f.invoke(["rex-action", "new", context], undefined, {}, ""));
     expect(f.tasks()).toHaveLength(1);
     const task = f.tasks()[0];
     expect(task.name).toBe("from-palette");
@@ -443,6 +443,28 @@ test("Rex new action accepts a typed task name and selects the ready session", (
     expect(task.rexSession).not.toBeNull();
     const calls = readFileSync(join(f.root, "calls"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
     expect(calls.some((call) => call.cmd === "rex" && call.args.includes("session.select") && call.args.includes(`session_id=${task.rexSession}`))).toBe(true);
+  });
+});
+
+test("Rex jobs never ask in the terminal; unanswered or invalid requests fail before changing anything", () => {
+  fixture((f) => {
+    for (const args of [{}, { name: "bad name" }]) {
+      const result = f.invoke(["rex-action", "new", JSON.stringify({ args })], undefined, {}, "typed-in-terminal\n");
+      expect(result.status).toBe(1);
+    }
+    expect(f.invoke(["rex-action", "new", "{}"]).stderr?.toString()).toContain("run this from the Rex command palette");
+    expect(f.tasks()).toHaveLength(0);
+  });
+});
+
+test("Rex plan reports the next palette question as JSON", () => {
+  fixture((f) => {
+    const result = f.invoke(["rex-plan", "new", JSON.stringify({ args: {} })]);
+    succeeded(result);
+    expect(JSON.parse(result.stdout!.toString())).toMatchObject({ ask: { field: "name", kind: "input" } });
+    const ready = f.invoke(["rex-plan", "new", JSON.stringify({ args: { name: "demo" } })]);
+    expect(JSON.parse(ready.stdout!.toString())).toEqual({ run: "job", title: "New demo", focus: true });
+    expect(f.tasks()).toHaveLength(0);
   });
 });
 
@@ -454,7 +476,6 @@ test("Rex support action runs without terminal input and reuses only the permane
     for (let attempt = 0; attempt < 2; attempt++) {
       const result = f.invoke(["rex-action", "support", context], undefined, {}, "");
       succeeded(result);
-      expect(result.stdout?.toString()).not.toContain("Task number or name");
       expect(result.stdout?.toString()).not.toContain("Press Return");
     }
     const sessions = JSON.parse(readFileSync(join(f.root, "rex.json"), "utf8"));
@@ -475,74 +496,68 @@ test("Rex fork uses the captured source session, never the worker cwd", () => {
   fixture((f) => {
     succeeded(f.invoke(["new", "parent"]));
     const parent = f.tasks()[0];
-    const context = JSON.stringify({ sourceSession: parent.rexSession, args: {} });
-    succeeded(f.invoke(["rex-action", "fork", context], f.root, { REX_SESSION: "session:temporary-job" }, "child\n"));
+    const context = JSON.stringify({ sourceSession: parent.rexSession, args: { name: "child" } });
+    succeeded(f.invoke(["rex-action", "fork", context], f.root, { REX_SESSION: "session:temporary-job" }, ""));
     expect(f.tasks().some((task) => task.name === "parent/child" && task.parentID === parent.id)).toBe(true);
   });
 });
 
-test("Rex finish confirms the captured task and can safely close its source session", () => {
+test("Rex finish runs the confirmed captured task and can safely close its source session", () => {
   fixture((f) => {
     succeeded(f.invoke(["new", "demo"]));
     const task = f.tasks()[0];
-    const context = JSON.stringify({ sourceSession: task.rexSession, args: {} });
-    succeeded(f.invoke(["rex-action", "finish", context], f.root, { REX_SESSION: "session:temporary-job" }, "finish demo\n"));
+    const context = JSON.stringify({ sourceSession: task.rexSession, args: { confirm: "finish demo" } });
+    succeeded(f.invoke(["rex-action", "finish", context], f.root, { REX_SESSION: "session:temporary-job" }, ""));
     expect(existsSync(task.directory)).toBe(false);
     expect(f.tasks()).toHaveLength(0);
     expect(JSON.parse(readFileSync(join(f.root, "rex.json"), "utf8"))).toHaveLength(0);
   });
 });
 
-test("Rex destructive actions cancel on wrong confirmation or EOF, including discard", () => {
+test("Rex destructive actions refuse a missing or wrong confirmation, including discard", () => {
   fixture((f) => {
     succeeded(f.invoke(["new", "demo"]));
     const task = f.tasks()[0];
     writeFileSync(join(task.directory, "valuable.txt"), "uncommitted work\n");
-    const context = JSON.stringify({ sourceSession: task.rexSession, args: {} });
     for (const operation of ["finish", "discard", "refresh-db"]) {
-      succeeded(f.invoke(["rex-action", operation, context], undefined, {}, "yes\n"));
-      succeeded(f.invoke(["rex-action", operation, context], undefined, {}, ""));
+      for (const args of [{}, { confirm: "yes" }, { task: "demo" }]) {
+        const context = JSON.stringify({ sourceSession: task.rexSession, args });
+        expect(f.invoke(["rex-action", operation, context], undefined, {}, `${operation} demo\n`).status).toBe(1);
+      }
       expect(existsSync(task.directory)).toBe(true);
       expect(readFileSync(join(task.directory, "valuable.txt"), "utf8")).toBe("uncommitted work\n");
       expect(existsSync(join(f.root, "db", taskDatabaseNames(task.slug).databaseName))).toBe(true);
     }
-    succeeded(f.invoke(["rex-action", "discard", context], undefined, {}, "discard demo\n"));
+    succeeded(f.invoke(["rex-action", "discard", JSON.stringify({ sourceSession: task.rexSession, args: { confirm: "discard demo" } })]));
     expect(existsSync(task.directory)).toBe(false);
   });
 });
 
-test("Rex reopen always offers a choice, including repeated opens from a registered task", () => {
+test("Rex reopen opens the chosen task, never the source session's", () => {
   fixture((f) => {
     succeeded(f.invoke(["new", "current"]));
     succeeded(f.invoke(["new", "other", "--no-open"]));
     const current = f.tasks().find((task) => task.name === "current")!;
-    const context = JSON.stringify({ sourceSession: current.rexSession, args: {} });
+    const other = f.tasks().find((task) => task.name === "other")!;
+    const unanswered = f.invoke(["rex-plan", "open", JSON.stringify({ sourceSession: current.rexSession, args: {} })]);
+    expect(JSON.parse(unanswered.stdout!.toString()).ask.field).toBe("task");
     for (let attempt = 0; attempt < 2; attempt++) {
-      const result = f.invoke(["rex-action", "open", context], f.root, {}, "2\n");
+      const result = f.invoke(["rex-action", "open", JSON.stringify({ sourceSession: current.rexSession, args: { task: other.id } })]);
       succeeded(result);
-      expect(result.stdout?.toString()).toContain("Choose a development task");
       expect(result.stdout?.toString()).toContain("Task: other");
     }
-    const cancelled = f.invoke(["rex-action", "open", context], f.root, {}, "\n");
-    succeeded(cancelled);
-    expect(cancelled.stdout?.toString()).toContain("Cancelled");
-    const explicit = f.invoke(["rex-action", "open", JSON.stringify({ sourceSession: current.rexSession, args: { task: "other" } })]);
-    succeeded(explicit);
-    expect(explicit.stdout?.toString()).not.toContain("Choose a development task");
     expect(JSON.parse(readFileSync(join(f.root, "rex.json"), "utf8"))).toHaveLength(2);
   });
 });
 
-test("Rex action without task context offers an explicit choice and never guesses from cwd", () => {
+test("Rex action without task context asks for one and never guesses from cwd", () => {
   fixture((f) => {
     succeeded(f.invoke(["new", "demo"]));
     const task = f.tasks()[0];
-    const context = JSON.stringify({ sourceSession: "session:unrelated", args: {} });
-    const cancelled = f.invoke(["rex-action", "finish", context], task.directory, {}, "\n");
-    succeeded(cancelled);
-    expect(cancelled.stdout?.toString()).toContain("Choose a development task");
+    const context = JSON.stringify({ sourceSession: "session:unrelated", args: { confirm: "finish demo" } });
+    expect(f.invoke(["rex-action", "finish", context], task.directory).status).toBe(1);
     expect(existsSync(task.directory)).toBe(true);
-    succeeded(f.invoke(["rex-action", "finish", context], f.root, {}, "1\nfinish demo\n"));
+    succeeded(f.invoke(["rex-action", "finish", JSON.stringify({ sourceSession: "session:unrelated", args: { task: task.id, confirm: "finish demo" } })], task.directory));
     expect(existsSync(task.directory)).toBe(false);
   });
 });

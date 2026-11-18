@@ -39,38 +39,50 @@ The task lifecycle actions are thin Lua actions in `rex/.config/rex/gertrude.lua
 provisioning and safety checks. `stow rex gt`, then `rex config reload` installs
 them without restarting Rex. No keyboard bindings are changed.
 
-The current Rex build does not expose a general native palette input form to Lua;
-actions with required arguments are marked bindable-only by the app. The actions
-therefore take no required arguments. **Open Support** runs directly, without a
-temporary terminal. The other actions open an independent job session with a
-readable session/tab name, such as **New Task** or **Refresh Task Databases**, for
-input, confirmation, progress, and errors. Setup is not subject to the Lua action's
-30-second deadline. The watcher CLI is resolved through your login shell with a
-fallback to the macOS app's stable installation, because Rex.app's background PATH
-may not include Rex itself. A scoped watcher removes the empty job session when its
-terminal closes; it leaves renamed jobs or jobs with added tabs/panes alone.
-Errors wait for Return so their output can be read. Blank input or Ctrl+C cancels
-a prompt without executing its requested operation. Action titles omit the
-redundant Gertrude prefix; they remain grouped in the **Gertrude** category.
+Every question is asked natively in the command palette (`rex.ui.input` and
+`rex.ui.pick`, Rex API revision 17 or later). gt decides what to ask: the Lua
+action loops on `gt rex-plan <operation> <context>`, which answers with the next
+question or with how to run, and puts each answer back in the context. An invalid
+answer, such as a taken or malformed task name, comes back as the same question
+with the problem in its title and your text ready to edit. Escape cancels without
+changing anything. Action titles omit the redundant Gertrude prefix; they remain
+grouped in the **Gertrude** category.
 
-The originating Rex session ID is captured before the job opens. Its registered
-task is preselected, even though the job runs in another directory/session, except
-**Reopen Task**, which always offers the task picker unless an explicit task was
-passed. If there is no registered source task, the job asks which task to use; it
-never guesses from a pane's cwd. Support is not included in disposable task choices.
+- **New Task** asks for a name. **Fork Task** asks for the fork's name.
+- **Review PR** lists the open pull requests from GitHub (`gh pr list`); type to
+  filter, or type a number that isn't listed. Without `gh`, it asks for a number.
+  A PR that already has a review task reopens it instead.
+- **Reopen Task** always shows the task list. The others use the source session's
+  registered task, and show the list only when there isn't one. They never guess
+  from a pane's cwd. Support is not included in disposable task choices.
+- **Finish** requires typing `finish <task>`, **Discard** `discard <task>`, and
+  **Refresh Task Databases** `refresh <task>`, even when passed a task argument.
+  All underlying checks still apply.
 
-Finish requires typing `finish <task>`, discard requires `discard <task>`, and DB
-refresh requires `refresh <task>`. All underlying checks still apply. Palette
-finish runs outside the target session so it can safely close that session;
-running OpenCode agents still block deletion, even with discard.
+Once everything is answered, **Open Support** and **Reopen Task** run directly,
+without a terminal. Longer work runs in an independent job session with a readable
+session/tab name, such as **New demo** or **Finish demo**, that only shows progress
+and never asks for input; it isn't subject to the Lua action's 30-second deadline.
+New, Review, Fork, and Resume Setup show their job and then switch to the task
+when it's ready. Finish, Discard, and Refresh run in the background: the job
+appears in the sidebar with its status and closes when done. If any job fails, it
+comes to the front and waits for Return so its output can be read. Palette finish
+runs outside the target session so it can safely close that session; running
+OpenCode agents still block deletion, even with discard.
+
+The watcher CLI is resolved through your login shell with a fallback to the macOS
+app's stable installation, because Rex.app's background PATH may not include Rex
+itself. A scoped watcher removes the empty job session when its terminal closes;
+it leaves renamed jobs or jobs with added tabs/panes alone.
 
 After setup/open, gt asks the originating Rex app to show the resulting session.
 If Rex Remote Control is disabled or that app disconnects, select the completed
 task in Rex manually. Existing support refresh schedules remain unchanged.
 
-Optional arguments are also accepted from CLI/key bindings, for example
-`rex do gt_new name=example-task` and `rex do gt_pr number=943`. Destructive
-actions always require the typed confirmation, even when passed a task argument.
+Answers can also be passed as arguments from the CLI or key bindings, which skips
+those questions, for example `rex do gt_new name=example-task`,
+`rex do gt_pr number=943`, or `rex do gt_finish task=demo confirm="finish demo"`.
+Anything missing is still asked in the connected Rex apps.
 
 Lua adapter test (all Rex calls mocked, no sessions or commands created):
 

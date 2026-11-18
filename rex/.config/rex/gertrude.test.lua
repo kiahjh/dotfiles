@@ -1,17 +1,27 @@
 local real = rex
+local home = os.getenv("HOME")
+local gt = home .. "/.local/scripts/gt"
 local registered = {}
-local calls = {}
-local queued = {}
-local commands = {}
-local watchers = {}
-local command_result = {ok = true, stdout = "", stderr = ""}
+local calls, queued, commands, watchers, prompts = {}, {}, {}, {}, {}
+local plans, answers = {}, {}
+local action_result = {ok = true, stdout = "", stderr = ""}
 local rex_path = "/fixture/Rex Server.app/Contents/MacOS/rex"
 local lookup_result = {ok = true, stdout = rex_path .. "\n", stderr = ""}
+
+local function answer(kind, prompt)
+  table.insert(prompts, {kind = kind, prompt = prompt})
+  -- Replies like {nil, "cancelled"} need an explicit range; # can't count past a nil.
+  return unpack(table.remove(answers, 1), 1, 3)
+end
 
 rex = {
   action = function(definition) registered[definition.name] = definition end,
   json = real.json,
   layout = real.layout,
+  ui = {
+    input = function(prompt) return answer("input", prompt) end,
+    pick = function(prompt) return answer("pick", prompt) end,
+  },
   call = function(method, args)
     assert(method == "session.create", "must launch an independent job session")
     table.insert(calls, args)
@@ -28,12 +38,34 @@ rex = {
       return lookup_result
     end
     table.insert(commands, {argv = argv, options = options})
-    return command_result
+    assert(argv[1] == gt and options.cwd == home and options.timeout < 30, "respect the config action deadline")
+    assert(options.env.PATH:find(home .. "/.bun/bin", 1, true), "gt needs bun, which is not on the app server PATH")
+    if argv[2] == "rex-plan" then return table.remove(plans, 1) end
+    assert(argv[2] == "rex-action")
+    return action_result
   end}),
   client = {queue = function(name, args)
     table.insert(queued, {name = name, args = args})
   end},
 }
+
+local function reset(steps, replies)
+  calls, queued, commands, watchers, prompts = {}, {}, {}, {}, {}
+  plans, answers = {}, replies or {}
+  for _, step in ipairs(steps) do
+    if type(step) == "string" then
+      table.insert(plans, {ok = false, stdout = "", stderr = step})
+    else
+      table.insert(plans, {ok = true, stdout = real.json.encode(step), stderr = ""})
+    end
+  end
+end
+local function request(index)
+  local command = commands[index]
+  assert(command.argv[2] == "rex-plan" or command.argv[2] == "rex-action")
+  return assert(real.json.decode(command.argv[4]))
+end
+local palette = {origin = "palette", session_id = "session:source", client_id = "client:source"}
 
 dofile(assert(real.args.config, "pass config=/path/to/gertrude.lua"))
 local count = 0
@@ -44,67 +76,94 @@ for _, definition in pairs(registered) do
   for _, kind in pairs(definition.args) do
     assert(kind:sub(-1) == "?", "required args make actions unusable from the palette")
   end
-  local before_jobs, before_queued = #calls, #queued
-  local result = definition.run({origin = "palette", session_id = "session:source", client_id = "client:source"}, {})
-  local command
-  if definition.name == "gt_support" then
-    assert(result == nil)
-    assert(#calls == before_jobs and #queued == before_queued, "support must not open or select a job terminal")
-    command = commands[#commands].argv
-    assert(commands[#commands].options.cwd == os.getenv("HOME"))
-    assert(commands[#commands].options.timeout < 30, "support must respect the config action deadline")
-    local support_path = commands[#commands].options.env.PATH
-    assert(support_path:find("/fixture/Rex Server.app/Contents/MacOS:", 1, true) == 1, "support runs rex, which is not on the app server PATH")
-    assert(support_path:find(os.getenv("HOME") .. "/.bun/bin", 1, true), "gt needs bun, which is not on the app server PATH")
-  else
-    assert(result.session_id == "session:test-job")
-    local job = calls[#calls]
-    local title = definition.title:gsub("…$", "")
-    assert(job.label == title and job.initial_windows[1].window_label == title, "sessions and tabs need readable names")
-    assert(job.initial_windows[1].layout.block.options.cwd == os.getenv("HOME"))
-    command = job.initial_windows[1].layout.block.options.command
-    local watcher = watchers[#watchers]
-    assert(watcher.options.detach == true, "cleanup must outlive the action")
-    assert(watcher.options.env.REX_SESSION == false and watcher.options.env.REX_BLOCK == false
-      and watcher.options.env.REX_CLIENT == false, "do not inherit the source terminal's context")
-    assert(watcher.argv[1] == rex_path and watcher.argv[2] == "do", "use the resolved absolute CLI path, including spaces")
-    assert(watcher.argv[3] == "-s" and watcher.argv[4] == result.session_id, "watch only the job we created")
-    assert(watcher.argv[5] == "--fail-fast")
-    assert(watcher.argv[6] == os.getenv("HOME") .. "/.config/rex/gertrude_job_cleanup.lua")
-    assert(watcher.argv[7] == "label=" .. title)
-    assert(watcher.argv[8] == "window=window:job" and watcher.argv[9] == "block=block:job")
-    assert(queued[#queued].name == "session.select")
-    assert(queued[#queued].args.session_id == "session:test-job")
-  end
-  assert(command[1] == os.getenv("HOME") .. "/.local/scripts/gt")
-  assert(command[2] == "rex-action")
-  local payload = assert(real.json.decode(command[4]))
-  assert(payload.sourceSession == "session:source")
-  assert(payload.clientID == "client:source")
 end
 assert(count == 9, "expected nine palette actions")
-assert(#calls == 8 and #watchers == 8 and #commands == 1)
-local before = #queued
+
+-- Questions go to the palette; answers go back to gt until it says to run.
+local name_question = {field = "name", kind = "input", prompt = {title = "New task", confirm = "Create task"}}
+reset({{ask = name_question}, {ask = {field = "name", kind = "input", prompt = {title = "New task: already exists", value = "taken"}}},
+  {run = "job", title = "New demo", focus = true}}, {{"taken"}, {"demo"}})
+local result = registered.gt_new.run(palette, {})
+assert(#prompts == 2 and prompts[1].kind == "input" and prompts[1].prompt.title == "New task")
+assert(prompts[2].prompt.value == "taken", "re-ask with the rejected answer to edit")
+assert(request(1).args.name == nil and request(2).args.name == "taken" and request(3).args.name == "demo")
+assert(request(3).sourceSession == "session:source" and request(3).clientID == "client:source")
+assert(result.session_id == "session:test-job")
+local job = calls[1]
+assert(job.label == "New demo" and job.initial_windows[1].window_label == "New demo", "sessions and tabs need readable names")
+assert(job.initial_windows[1].layout.block.options.cwd == home)
+local command = job.initial_windows[1].layout.block.options.command
+assert(command[1] == gt and command[2] == "rex-action" and command[3] == "new")
+assert(real.json.decode(command[4]).args.name == "demo", "the job gets every answer; it never asks")
+local watcher = watchers[1]
+assert(watcher.options.detach == true, "cleanup must outlive the action")
+assert(watcher.options.env.REX_SESSION == false and watcher.options.env.REX_BLOCK == false
+  and watcher.options.env.REX_CLIENT == false, "do not inherit the source terminal's context")
+assert(watcher.argv[1] == rex_path and watcher.argv[2] == "do", "use the resolved absolute CLI path, including spaces")
+assert(watcher.argv[3] == "-s" and watcher.argv[4] == result.session_id, "watch only the job we created")
+assert(watcher.argv[5] == "--fail-fast")
+assert(watcher.argv[6] == home .. "/.config/rex/gertrude_job_cleanup.lua")
+assert(watcher.argv[7] == "label=New demo")
+assert(watcher.argv[8] == "window=window:job" and watcher.argv[9] == "block=block:job")
+assert(#queued == 1 and queued[1].name == "session.select" and queued[1].args.session_id == "session:test-job")
+
+-- Cancelling changes nothing.
+reset({{ask = name_question}}, {{nil, "cancelled"}})
+assert(registered.gt_new.run(palette, {}).state == "cancelled")
+assert(#calls == 0 and #watchers == 0 and #queued == 0 and #commands == 1)
+
+-- Picks pass item IDs, or typed text with allow_other.
+local pr_question = {field = "number", kind = "pick", prompt = {title = "Review a pull request", allow_other = true, items = {{id = "7"}}}}
+for _, reply in ipairs({{"7"}, {{text = "#8"}}}) do
+  reset({{ask = pr_question}, {run = "job", title = "Review PR", focus = true}}, {reply})
+  registered.gt_pr.run(palette, {})
+  assert(prompts[1].kind == "pick" and prompts[1].prompt.items[1].id == "7")
+  assert(request(2).args.number == (type(reply[1]) == "table" and "#8" or "7"))
+end
+
+-- Background jobs don't take over the screen.
+reset({{run = "job", title = "Finish demo", focus = false}})
+registered.gt_finish.run(palette, {task = "demo", confirm = "finish demo"})
+assert(#prompts == 0 and #calls == 1 and #queued == 0, "finish, discard, and refresh run in the background")
+assert(request(1).args.confirm == "finish demo")
+
+-- CLI runs never switch the visible app, and arguments are never shell text.
+reset({{run = "job", title = "New x", focus = true}})
 registered.gt_new.run({origin = "cli", session_id = "session:source"}, {name = "no-shell; $(injection)"})
-assert(#queued == before, "CLI tests must not switch the visible app")
-local command = calls[#calls].initial_windows[1].layout.block.options.command
-assert(command[3] == "new")
-assert(real.json.decode(command[4]).args.name == "no-shell; $(injection)")
+assert(#queued == 0, "CLI tests must not switch the visible app")
+assert(real.json.decode(calls[1].initial_windows[1].layout.block.options.command[4]).args.name == "no-shell; $(injection)")
 
-command_result = {ok = false, stdout = "", stderr = "support fixture error"}
-local ok, err = pcall(registered.gt_support.run, {origin = "palette"}, {})
-assert(not ok and tostring(err):find("support fixture error", 1, true), "support failures must reach the UI")
+-- Inline steps run directly, with no job session.
+reset({{run = "inline", title = "Open Support", focus = true}})
+assert(registered.gt_support.run(palette, {}).state == "done")
+assert(#calls == 0 and #queued == 0 and #prompts == 0, "support must not open or select a job terminal")
+assert(commands[2].argv[2] == "rex-action" and commands[2].argv[3] == "support")
+assert(commands[2].options.env.PATH:find("/fixture/Rex Server.app/Contents/MacOS:", 1, true) == 1, "inline gt runs rex, which is not on the app server PATH")
+action_result = {ok = false, stdout = "", stderr = "gt: support fixture error\n"}
+reset({{run = "inline", title = "Open Support", focus = true}})
+local ok, err = pcall(registered.gt_support.run, palette, {})
+assert(not ok and err == "support fixture error", "inline failures must reach the UI: " .. tostring(err))
 
-for _, result in ipairs({
+-- gt's refusals and unanswerable prompts are reported, not swallowed.
+reset({"gt: not a registered task; use gt list\n"})
+ok, err = pcall(registered.gt_open.run, palette, {task = "nope"})
+assert(not ok and err == "not a registered task; use gt list" and #calls == 0)
+for why, expected in pairs({timeout = "Nobody answered", busy = "already asking", no_client = "No Rex app", unsupported = "update Rex"}) do
+  reset({{ask = name_question}}, {{nil, why}})
+  ok, err = pcall(registered.gt_new.run, palette, {})
+  assert(not ok and err:find(expected, 1, true) and #calls == 0, why .. ": " .. tostring(err))
+end
+
+for _, lookup in ipairs({
   {ok = false, stdout = "", stderr = "missing rex"},
   {ok = true, stdout = "rex\n", stderr = ""},
   {ok = true, stdout = "/unexpected/output\n/cli/rex\n", stderr = ""},
 }) do
-  lookup_result.ok, lookup_result.stdout, lookup_result.stderr = result.ok, result.stdout, result.stderr
-  local before_jobs = #calls
-  local ran, failure = pcall(registered.gt_open.run, {origin = "palette"}, {})
+  lookup_result.ok, lookup_result.stdout, lookup_result.stderr = lookup.ok, lookup.stdout, lookup.stderr
+  reset({{run = "job", title = "Set up demo", focus = true}})
+  local ran, failure = pcall(registered.gt_setup.run, palette, {})
   assert(not ran and tostring(failure):find("Could not locate the Rex CLI", 1, true), tostring(failure))
-  assert(#calls == before_jobs, "failed CLI lookup must not leave a job session behind")
+  assert(#calls == 0, "failed CLI lookup must not leave a job session behind")
 end
 
 local cleanup_file = assert(real.args.config:match("^(.*)/")) .. "/gertrude_job_cleanup.lua"
@@ -175,4 +234,4 @@ test_cleanup({{window_id = "window:job"}}, {{block_id = "block:job"}}, nil, "rep
 test_cleanup({{window_id = "window:job"}}, {{block_id = "block:job"}}, nil, "repurposed", nil, nil, nil,
   "block_created", {block_id = "block:user"})
 rex = real
-rex.log("All nine Gertrude actions and scoped job cleanup passed with mocked Rex calls; no sessions or commands were created.")
+rex.log("All nine Gertrude actions, palette questions, and scoped job cleanup passed with mocked Rex calls; no sessions or commands were created.")

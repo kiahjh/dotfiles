@@ -16,7 +16,7 @@ type CliAction =
   | { command: "open" | "setup"; taskArg?: string }
   | { command: "adopt"; taskArg: string; agent: boolean }
   | { command: "setup-env-db"; taskArg?: string }
-  | { command: "rex-action"; operation: string; context: string }
+  | { command: "rex-action" | "rex-plan"; operation: string; context: string }
   | { command: "rex-todo" | "rex-task"; session: string };
 
 const HELP_FLAGS = new Set(["--help", "-h"]);
@@ -276,8 +276,9 @@ export function parseCli(argv: string[]): CliAction {
     }
 
     case "rex-action":
-      if (args.length !== 2) throw new GtError("rex-action is an internal Rex UI command", 2);
-      return { command: "rex-action", operation: args[0], context: args[1] };
+    case "rex-plan":
+      if (args.length !== 2) throw new GtError(`${command} is an internal Rex UI command`, 2);
+      return { command, operation: args[0], context: args[1] };
 
     case "rex-todo":
     case "rex-task":
@@ -345,6 +346,11 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
     case "rex-action": {
       const { runRexAction } = await import("./rex-actions.ts");
       await runRexAction(action.operation, action.context);
+      return;
+    }
+    case "rex-plan": {
+      const { parseRexRequest, planRexAction } = await import("./rex-actions.ts");
+      console.log(JSON.stringify(planRexAction(parseRexRequest(action.operation, action.context))));
       return;
     }
     case "rex-todo":

@@ -9,13 +9,15 @@ gt provisions Gertrude resources; Rex is the everyday session switcher. Do not
 manage the user's conversations, panes, or tabs unless asked. Read `gt --help`
 for the installed command interface.
 
-The user can also search Gertrude in Rex's command palette. Open Support runs
-without a temporary terminal; the other Lua actions open readably named temporary
-job sessions for inputs/progress and use the captured source session ID to choose
-a task. Empty job sessions are removed after their terminals close; renamed or
-repurposed sessions are preserved. `gt rex-action` is the internal adapter, not a
-way to bypass authorization or cleanup checks. Destructive palette actions require
-a task-specific typed confirmation; support is never disposable.
+The user can also search Gertrude in Rex's command palette. The Lua actions ask
+every question natively in the palette (`rex.ui`), guided by `gt rex-plan`, and
+use the captured source session ID to choose a task. Open Support and Reopen run
+without a terminal; provisioning and cleanup run in readably named job sessions
+that only show progress. Empty job sessions are removed after their terminals
+close; renamed or repurposed sessions are preserved. `gt rex-plan`/`gt rex-action`
+are internal adapters, not a way to bypass authorization or cleanup checks.
+Destructive palette actions require a task-specific typed confirmation; support
+is never disposable.
 
 - `gt list`: find registered tasks, including adopted Helve worktrees.
 - `gt new <name>`: native worktree from latest origin/master, isolated scrubbed
