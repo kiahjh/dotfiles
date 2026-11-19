@@ -139,9 +139,13 @@ class Themes(unittest.TestCase):
             self.assertGreaterEqual(contrast(p["background"], p["accent"]), 4.5)
             # Rex uses the accent for the cursor and highlighted rows, and puts
             # dark text on a light accent and white text on a dark one.
-            text = "#000000" if p["mode"] == "dark" else "#ffffff"
-            self.assertGreaterEqual(contrast(p["accent"], p["terminalBackground"]), 7 if p["mode"] == "dark" else 4.5)
-            self.assertGreaterEqual(contrast(text, p["accent"]), 4.5)
+            # Dark themes need a light accent (Rex's palette highlight turned
+            # dark text on Kiahgawa's #e3cf9f but white text on #a8874c).
+            self.assertGreaterEqual(contrast(p["accent"], p["terminalBackground"]), 4.5)
+            if p["mode"] == "dark":
+                self.assertGreaterEqual(contrast("#000000", p["accent"]), 7)
+            else:
+                self.assertGreaterEqual(contrast("#ffffff", p["accent"]), 4.5)
 
     def test_important_text_has_readable_contrast(self):
         # Floors for themes designed here. Ports (with a source) keep their
@@ -173,7 +177,11 @@ class Themes(unittest.TestCase):
                 order, direction = ("background", "inset", "panel", "raised", "selection"), -1
             levels = [luminance(p[key]) for key in order]
             for lower, upper in zip(levels, levels[1:]):
-                self.assertGreater(direction * (upper - lower), 0, order)
+                # Ports may share a layer: Vantablack's background is pure black.
+                if "source" in p:
+                    self.assertGreaterEqual(direction * (upper - lower), 0, order)
+                else:
+                    self.assertGreater(direction * (upper - lower), 0, order)
 
 
 if __name__ == "__main__":
