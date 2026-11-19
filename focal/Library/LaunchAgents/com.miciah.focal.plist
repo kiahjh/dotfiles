@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.miciah.solo</string>
+  <string>com.miciah.focal</string>
 
   <key>ProgramArguments</key>
   <array>
-    <string>/Users/miciah/Applications/Solo.app/Contents/MacOS/Solo</string>
+    <string>/Users/miciah/Applications/Focal.app/Contents/MacOS/Focal</string>
   </array>
 
   <key>RunAtLoad</key>
@@ -27,16 +27,16 @@
 
   <key>EnvironmentVariables</key>
   <dict>
-    <key>SOLO_GAP</key>
+    <key>FOCAL_GAP</key>
     <string>24</string>
-    <key>SOLO_DEBUG</key>
+    <key>FOCAL_DEBUG</key>
     <string>0</string>
   </dict>
 
   <key>StandardOutPath</key>
-  <string>/Users/miciah/Library/Logs/solo.log</string>
+  <string>/Users/miciah/Library/Logs/focal.log</string>
 
   <key>StandardErrorPath</key>
-  <string>/Users/miciah/Library/Logs/solo.err.log</string>
+  <string>/Users/miciah/Library/Logs/focal.err.log</string>
 </dict>
 </plist>

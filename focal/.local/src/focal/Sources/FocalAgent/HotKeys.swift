@@ -32,14 +32,14 @@ final class HotKeys {
       },
       1, &spec, Unmanaged.passUnretained(self).toOpaque(), &handler)
 
-    // ⌃⌥P, ⌃⌥S, ⌃⌥D
-    let modifiers = UInt32(controlKey | optionKey)
+    // ⌃⌘P, ⌃⌘S, ⌃⌘D
+    let modifiers = UInt32(controlKey | cmdKey)
     let keys: [(Int, Action)] = [
       (kVK_ANSI_P, .togglePair), (kVK_ANSI_S, .swap), (kVK_ANSI_D, .nextDisplay),
     ]
     for (key, action) in keys {
       var ref: EventHotKeyRef?
-      let id = EventHotKeyID(signature: OSType(0x534F_4C4F), id: action.rawValue)  // "SOLO"
+      let id = EventHotKeyID(signature: OSType(0x464F_434C), id: action.rawValue)  // "FOCL"
       let status = RegisterEventHotKey(
         UInt32(key), modifiers, id, GetApplicationEventTarget(), 0, &ref)
       if status == noErr, let ref {

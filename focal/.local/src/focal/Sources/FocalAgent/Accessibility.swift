@@ -1,8 +1,8 @@
 import ApplicationServices
 import CoreGraphics
-import SoloCore
+import FocalCore
 
-/// The few Accessibility calls Solo needs, on one app's windows.
+/// The few Accessibility calls Focal needs, on one app's windows.
 enum Window {
   /// The app's focused standard window, or its main one, or its first one.
   static func main(of pid: pid_t) -> AXUIElement? {

@@ -1,6 +1,6 @@
 import AppKit
 import ApplicationServices
-import SoloCore
+import FocalCore
 
 private func windowEventCallback(
   _ observer: AXObserver,
@@ -11,7 +11,7 @@ private func windowEventCallback(
   guard let refcon else { return }
   var pid: pid_t = 0
   AXUIElementGetPid(element, &pid)
-  Unmanaged<SoloController>.fromOpaque(refcon).takeUnretainedValue().windowChanged(pid: pid)
+  Unmanaged<FocalController>.fromOpaque(refcon).takeUnretainedValue().windowChanged(pid: pid)
 }
 
 private struct Screen {
@@ -22,7 +22,7 @@ private struct Screen {
   let area: CGRect
 }
 
-final class SoloController: NSObject {
+final class FocalController: NSObject {
   private let gap: CGFloat
   private var world = World()
   private var observers: [pid_t: AXObserver] = [:]
@@ -229,17 +229,17 @@ final class SoloController: NSObject {
   private func showSetup() {
     let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     if let image = NSImage(
-      systemSymbolName: "rectangle.split.2x1", accessibilityDescription: "Solo setup")
+      systemSymbolName: "rectangle.split.2x1", accessibilityDescription: "Focal setup")
     {
       item.button?.image = image
     } else {
-      item.button?.title = "S"
+      item.button?.title = "F"
     }
-    item.button?.toolTip = "Solo needs Accessibility permission"
+    item.button?.toolTip = "Focal needs Accessibility permission"
 
     let menu = NSMenu()
     let heading = NSMenuItem(
-      title: "Solo needs Accessibility to arrange windows", action: nil, keyEquivalent: "")
+      title: "Focal needs Accessibility to arrange windows", action: nil, keyEquivalent: "")
     heading.isEnabled = false
     menu.addItem(heading)
     menu.addItem(.separator())

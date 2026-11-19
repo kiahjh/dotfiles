@@ -22,12 +22,12 @@ resolve_script() {
 script_path="$(resolve_script "${BASH_SOURCE[0]}")"
 script_dir="$(dirname "$script_path")"
 package_root="$(cd "$script_dir/../.." && pwd -P)"
-source_dir="$package_root/.local/src/solo"
-scratch="$(mktemp -d "${TMPDIR:-/tmp}/solo-test.XXXXXX")"
+source_dir="$package_root/.local/src/focal"
+scratch="$(mktemp -d "${TMPDIR:-/tmp}/focal-test.XXXXXX")"
 trap 'rm -rf "$scratch"' EXIT
 
 plutil -lint "$source_dir/Resources/Info.plist"
-plutil -lint "$package_root/Library/LaunchAgents/com.miciah.solo.plist"
+plutil -lint "$package_root/Library/LaunchAgents/com.miciah.focal.plist"
 swift test \
   --package-path "$source_dir" \
   --scratch-path "$scratch"

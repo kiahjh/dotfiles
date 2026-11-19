@@ -1,4 +1,4 @@
-# Solo
+# Focal
 
 A tiny native macOS agent that shows one app per display, or two side by side,
 and hides the rest so the wallpaper shows around them.
@@ -22,11 +22,11 @@ Every other app on that display is hidden.
   - Pair, switching to the other side: both stay; the active side changes.
   - Pair, switching to a third app: it replaces the active side. The other
     side stays.
-- **Pair mode on (⌃⌥P):** the current app and the app used just before it on
+- **Pair mode on (⌃⌘P):** the current app and the app used just before it on
   this display become a pair: current on the left, previous on the right.
-- **Pair mode off (⌃⌥P again):** the active app goes solo; its partner hides.
-- **Swap sides (⌃⌥S):** the pair's apps trade places.
-- **Next display (⌃⌥D):** the current app moves to the next display and shows
+- **Pair mode off (⌃⌘P again):** the active app goes solo; its partner hides.
+- **Swap sides (⌃⌘S):** the pair's apps trade places.
+- **Next display (⌃⌘D):** the current app moves to the next display and shows
   there the same way as switching to it (replacing that display's solo app or
   active side). The display it left shows the app used just before it there,
   or its partner, solo, if it was paired.
@@ -40,7 +40,7 @@ Every other app on that display is hidden.
   Spotlight, menu bar apps, or password manager popups changes nothing.
 - An app with no standard window changes nothing until it opens one. Clicking
   the desktop activates Finder, but doesn't clear the display.
-- An app belongs to the display its focused window is on. Solo remembers this
+- An app belongs to the display its focused window is on. Focal remembers this
   for hidden apps.
 - Only standard windows are placed and counted. Dialogs, sheets, panels and
   Save windows are left alone.
@@ -55,28 +55,28 @@ Every other app on that display is hidden.
 From the dotfiles repository:
 
 ```sh
-just solo-install
+just focal-install
 ```
 
-The installer tests and builds a signed `~/Applications/Solo.app`, stows the
+The installer tests and builds a signed `~/Applications/Focal.app`, stows the
 LaunchAgent, and starts it. Grant **Accessibility** when macOS asks. If the
-temporary Solo menu-bar item stays after that, choose **Restart Agent After
+temporary Focal menu-bar item stays after that, choose **Restart Agent After
 Granting**.
 
-Change `SOLO_GAP` in `~/Library/LaunchAgents/com.miciah.solo.plist` to tune the
-gap, or set `SOLO_DEBUG` to `1` to log every switch to
-`~/Library/Logs/solo.err.log`. Then rerun `just solo-install`.
+Change `FOCAL_GAP` in `~/Library/LaunchAgents/com.miciah.focal.plist` to tune the
+gap, or set `FOCAL_DEBUG` to `1` to log every switch to
+`~/Library/Logs/focal.err.log`. Then rerun `just focal-install`.
 
-`just solo-uninstall` stops and removes it.
+`just focal-uninstall` stops and removes it.
 
 ## Implementation
 
-- Swift package in `solo/.local/src/solo`, built, signed and installed like
-  `capslock`: `just solo-install` puts `~/Applications/Solo.app` behind the
-  `com.miciah.solo` LaunchAgent.
-- `SoloCore`: pure logic with unit tests: the per-display layout state, what
+- Swift package in `focal/.local/src/focal`, built, signed and installed like
+  `capslock`: `just focal-install` puts `~/Applications/Focal.app` behind the
+  `com.miciah.focal` LaunchAgent.
+- `FocalCore`: pure logic with unit tests: the per-display layout state, what
   each event does to it, and the frame math.
-- `SoloAgent`: the macOS side.
+- `FocalAgent`: the macOS side.
   - `NSWorkspace` notifications for activation, launch, and termination.
   - `NSRunningApplication.hide()` / `unhide()` for visibility.
   - Accessibility (`AXUIElement`) to read and set window frames, and an

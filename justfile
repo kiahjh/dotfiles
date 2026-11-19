@@ -7,7 +7,7 @@ test:
   @just test-xcode-mcp-router
   @bun test ./gt/.local/scripts/
   @./capslock/.local/scripts/capslock-test
-  @./solo/.local/scripts/solo-test
+  @./focal/.local/scripts/focal-test
 
 test-xcode-mcp-router:
   @uv run --python 3.12 --with mcp==2.3.0 python -B -m unittest discover -s scripts/xcode-mcp-router-tests -v
@@ -19,12 +19,12 @@ capslock-uninstall:
   @./capslock/.local/scripts/capslock-uninstall
   @stow -D capslock
 
-solo-install:
-  @./solo/.local/scripts/solo-install
+focal-install:
+  @./focal/.local/scripts/focal-install
 
-solo-uninstall:
-  @./solo/.local/scripts/solo-uninstall
-  @stow -D solo
+focal-uninstall:
+  @./focal/.local/scripts/focal-uninstall
+  @stow -D focal
 
 themes-test:
   @python3 -B -m unittest discover -s themes/tests -v
@@ -37,7 +37,7 @@ stow:
   @stow stow
   @stow bin
   @stow capslock
-  @stow solo
+  @stow focal
   @stow gt
   @stow zellij
   @stow ghostty

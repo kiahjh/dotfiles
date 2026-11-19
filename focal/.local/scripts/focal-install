@@ -23,20 +23,20 @@ script_path="$(resolve_script "${BASH_SOURCE[0]}")"
 script_dir="$(dirname "$script_path")"
 package_root="$(cd "$script_dir/../.." && pwd -P)"
 repo_root="$(cd "$package_root/.." && pwd -P)"
-source_dir="$package_root/.local/src/solo"
-app_dir="$HOME/Applications/Solo.app"
-launch_agent="$HOME/Library/LaunchAgents/com.miciah.solo.plist"
-label="com.miciah.solo"
+source_dir="$package_root/.local/src/focal"
+app_dir="$HOME/Applications/Focal.app"
+launch_agent="$HOME/Library/LaunchAgents/com.miciah.focal.plist"
+label="com.miciah.focal"
 domain="gui/$(id -u)"
 mkdir -p "$HOME/Applications"
-scratch="$(mktemp -d "${TMPDIR:-/tmp}/solo-install.XXXXXX")"
-staging_root="$(mktemp -d "$HOME/Applications/.solo-install.XXXXXX")"
-staged_app="$staging_root/Solo.app"
+scratch="$(mktemp -d "${TMPDIR:-/tmp}/focal-install.XXXXXX")"
+staging_root="$(mktemp -d "$HOME/Applications/.focal-install.XXXXXX")"
+staged_app="$staging_root/Focal.app"
 trap 'rm -rf "$scratch" "$staging_root"' EXIT
 
-"$package_root/.local/scripts/solo-test"
+"$package_root/.local/scripts/focal-test"
 
-printf 'Building Solo.app...\n' >&2
+printf 'Building Focal.app...\n' >&2
 swift build \
   --configuration release \
   --package-path "$source_dir" \
@@ -49,9 +49,9 @@ bin_dir="$(swift build \
 
 mkdir -p "$staged_app/Contents/MacOS"
 cp "$source_dir/Resources/Info.plist" "$staged_app/Contents/Info.plist"
-install -m 0755 "$bin_dir/Solo" "$staged_app/Contents/MacOS/Solo"
+install -m 0755 "$bin_dir/Focal" "$staged_app/Contents/MacOS/Focal"
 
-identity="${SOLO_CODESIGN_IDENTITY:-}"
+identity="${FOCAL_CODESIGN_IDENTITY:-}"
 if [[ -z "$identity" ]]; then
   identity="$(security find-identity -v -p codesigning 2>/dev/null \
     | awk -F'"' '/Apple Development: Miciah Henderson/{print $2; exit}')"
@@ -70,13 +70,13 @@ printf 'Signing with %s...\n' "$identity" >&2
 codesign \
   --force \
   --sign "$identity" \
-  --identifier com.miciah.solo \
+  --identifier com.miciah.focal \
   --timestamp=none \
   "$staged_app"
 codesign --verify --deep --strict --verbose=2 "$staged_app"
 
-printf 'Stowing solo configuration...\n' >&2
-stow --dir "$repo_root" --target "$HOME" solo
+printf 'Stowing focal configuration...\n' >&2
+stow --dir "$repo_root" --target "$HOME" focal
 mkdir -p "$HOME/Library/Logs"
 
 if launchctl print "$domain/$label" >/dev/null 2>&1; then
@@ -84,7 +84,7 @@ if launchctl print "$domain/$label" >/dev/null 2>&1; then
 fi
 
 for _ in {1..20}; do
-  if ! pgrep -f "$app_dir/Contents/MacOS/Solo" >/dev/null 2>&1; then
+  if ! pgrep -f "$app_dir/Contents/MacOS/Focal" >/dev/null 2>&1; then
     break
   fi
   sleep 0.1
@@ -104,12 +104,12 @@ launchctl kickstart -k "$domain/$label"
 sleep 2
 
 if ! launchctl print "$domain/$label" >/dev/null 2>&1; then
-  printf 'solo-install: launch agent did not start\n' >&2
+  printf 'focal-install: launch agent did not start\n' >&2
   exit 1
 fi
 
 printf '\nInstalled %s\n' "$app_dir" >&2
 printf '%s\n' \
-  'If macOS asks, grant Solo Accessibility. Solo starts arranging windows as soon' \
-  'as it has it. If the Solo menu-bar icon stays, choose “Restart Agent After Granting”.' \
-  'Shortcuts: ⌃⌥P pair mode, ⌃⌥S swap sides, ⌃⌥D next display.' >&2
+  'If macOS asks, grant Focal Accessibility. Focal starts arranging windows as soon' \
+  'as it has it. If the Focal menu-bar icon stays, choose “Restart Agent After Granting”.' \
+  'Shortcuts: ⌃⌘P pair mode, ⌃⌘S swap sides, ⌃⌘D next display.' >&2

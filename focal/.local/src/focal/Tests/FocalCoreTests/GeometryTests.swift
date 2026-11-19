@@ -1,5 +1,5 @@
 import CoreGraphics
-import SoloCore
+import FocalCore
 import XCTest
 
 final class GeometryTests: XCTestCase {

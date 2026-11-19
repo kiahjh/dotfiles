@@ -5,15 +5,15 @@
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleDisplayName</key>
-  <string>Solo</string>
+  <string>Focal</string>
   <key>CFBundleExecutable</key>
-  <string>Solo</string>
+  <string>Focal</string>
   <key>CFBundleIdentifier</key>
-  <string>com.miciah.solo</string>
+  <string>com.miciah.focal</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>Solo</string>
+  <string>Focal</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>

@@ -1,6 +1,6 @@
 import Foundation
 
-private let debugging = ProcessInfo.processInfo.environment["SOLO_DEBUG"] == "1"
+private let debugging = ProcessInfo.processInfo.environment["FOCAL_DEBUG"] == "1"
 
 func log(_ message: String) {
   let formatter = ISO8601DateFormatter()
@@ -9,7 +9,7 @@ func log(_ message: String) {
   FileHandle.standardError.write(Data("[\(timestamp)] \(message)\n".utf8))
 }
 
-/// Logs only when SOLO_DEBUG=1, since these happen on every app switch.
+/// Logs only when FOCAL_DEBUG=1, since these happen on every app switch.
 func debug(_ message: @autoclosure () -> String) {
   if debugging { log(message()) }
 }

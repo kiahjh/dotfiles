@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+app_dir="$HOME/Applications/Focal.app"
+launch_agent="$HOME/Library/LaunchAgents/com.miciah.focal.plist"
+label="com.miciah.focal"
+domain="gui/$(id -u)"
+
+if launchctl print "$domain/$label" >/dev/null 2>&1; then
+  launchctl bootout "$domain/$label"
+fi
+
+rm -rf "$app_dir"
+printf 'Removed Focal.app and stopped %s.\n' "$label" >&2
+
+if [[ -L "$launch_agent" ]]; then
+  printf 'The LaunchAgent symlink remains managed by Stow; run `stow -D focal` to remove it.\n' >&2
+fi

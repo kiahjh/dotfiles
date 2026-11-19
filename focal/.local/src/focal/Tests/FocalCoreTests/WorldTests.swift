@@ -1,4 +1,4 @@
-import SoloCore
+import FocalCore
 import XCTest
 
 private let a: AppID = 1
