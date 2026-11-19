@@ -4,11 +4,11 @@ return {
 	config = function()
 		local lualine = require("lualine")
 		local lazy_status = require("lazy.status")
-		local palette = require("kiahgawa").palette()
+		local theme = require("theme")
 
 		lualine.setup({
 			options = {
-				theme = "kiahgawa",
+				theme = "current",
 				globalstatus = true,
 				component_separators = { left = "", right = "" },
 				section_separators = { left = "", right = "" },
@@ -29,7 +29,7 @@ return {
 					{ "filename", path = 0, symbols = { modified = " ●", readonly = " 󰌾", unnamed = "[No Name]", newfile = " 󰎔" } },
 				},
 				lualine_x = {
-					{ lazy_status.updates, cond = lazy_status.has_updates, color = { fg = palette.yellow } },
+					{ lazy_status.updates, cond = lazy_status.has_updates, color = function() return { fg = (theme.colors() or {}).yellow } end },
 					{ "'󰙨 ' .. vim.g.xcodebuild_test_plan" },
 					{ "vim.g.xcodebuild_platform == 'macOS' and '  macOS' or ' ' .. vim.g.xcodebuild_device_name" },
 					{ "' ' .. vim.g.xcodebuild_os" },

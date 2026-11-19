@@ -3,6 +3,7 @@ _default:
 
 test:
   @python3 -B -m unittest discover -s scripts/tests -v
+  @just themes-test
   @just test-xcode-mcp-router
   @bun test ./gt/.local/scripts/
   @./capslock/.local/scripts/capslock-test
@@ -17,8 +18,9 @@ capslock-uninstall:
   @./capslock/.local/scripts/capslock-uninstall
   @stow -D capslock
 
-themes-update:
-  @python3 -B scripts/themes-update.py
+themes-test:
+  @python3 -B -m unittest discover -s themes/tests -v
+  @nvim --headless -u NONE -i NONE -n -l themes/tests/neovim.lua
 
 user-review-build:
   @cd agents/.agents/skills/user-review/app && bun install --frozen-lockfile && node scripts/sync-theme.ts && bun run build

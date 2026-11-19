@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="lab-token" content="__LAB_TOKEN__">
+  <title>Palette lab</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%23333'/%3E%3Ccircle cx='8' cy='8' r='4' fill='%23aaa'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/lab.css">
+  <script type="module" src="/lab.js"></script>
+</head>
+<body>
+  <header class="toolbar">
+    <div class="toolbar-title"><strong id="theme-name">Theme</strong><span id="theme-mode" class="badge">dark</span><span id="edit-count" class="edit-count">0 edits</span></div>
+    <nav class="tabs" role="tablist" aria-label="Previews">
+      <button role="tab" data-view="workspace" aria-selected="true" title="1">Workspace</button>
+      <button role="tab" data-view="xcode" aria-selected="false" title="2">Xcode</button>
+      <button role="tab" data-view="terminal" aria-selected="false" title="3">Terminal</button>
+      <button role="tab" data-view="contrast" aria-selected="false" title="4">Contrast</button>
+    </nav>
+    <div class="toolbar-actions">
+      <span id="save-state" role="status">Connecting…</span>
+      <div class="button-group">
+        <button id="undo" disabled title="Undo (⌘Z)" aria-label="Undo">↶</button>
+        <button id="redo" disabled title="Redo (⇧⌘Z)" aria-label="Redo">↷</button>
+      </div>
+      <button id="compare" aria-pressed="false" title="Show the saved palette (B)">Compare <kbd>B</kbd></button>
+      <details class="menu">
+        <summary aria-label="More">•••</summary>
+        <div class="menu-items">
+          <button id="import">Import JSON…</button>
+          <button id="export">Export JSON</button>
+          <hr>
+          <button id="reload">Reload from disk</button>
+          <button id="reset">Discard changes</button>
+        </div>
+      </details>
+      <button id="save" class="primary" disabled>Save</button>
+    </div>
+  </header>
+  <div class="body">
+    <aside class="inspector" aria-label="Palette">
+      <input id="token-search" type="search" placeholder="Filter colors" aria-label="Filter colors">
+      <div id="palette-editor"></div>
+    </aside>
+    <main id="preview" class="preview">
+      <section class="view" id="view-workspace" aria-label="Rex with OpenCode, Neovim, and zsh"></section>
+      <section class="view" id="view-xcode" aria-label="Xcode" hidden></section>
+      <section class="view" id="view-terminal" aria-label="Terminal" hidden></section>
+      <section class="view contrast" id="view-contrast" aria-label="Contrast" hidden>
+        <h2>Text contrast</h2>
+        <p>WCAG ratios. AA needs 4.5 for body text and 3 for large text; AAA needs 7.</p>
+        <div id="contrast-matrix"></div>
+        <h2>Surfaces and accents</h2>
+        <div id="contrast-pairs"></div>
+      </section>
+    </main>
+  </div>
+  <footer class="statusbar"><span id="notice" role="status"></span><span id="inspect"></span></footer>
+  <input id="import-file" type="file" accept=".json,application/json" hidden>
+  <dialog id="save-dialog">
+    <form method="dialog">
+      <h2>Save palette?</h2>
+      <p id="save-summary"></p>
+      <p class="dialog-detail">Writes the theme’s <code>palette.json</code> and rebuilds its app files. Neovim follows right away if this is the current theme; run <code>theme apply</code> to update Rex and Xcode, and restart OpenCode.</p>
+      <div class="dialog-actions"><button value="cancel">Cancel</button><button value="save" class="primary">Save</button></div>
+    </form>
+  </dialog>
+</body>
+</html>

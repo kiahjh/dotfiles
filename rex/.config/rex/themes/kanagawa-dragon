@@ -1,5 +1,5 @@
 # Kanagawa Dragon: the terminal palette from ethangilmore/zed-kanagawa.
-# Source and MIT notices: THEMES.md in the dotfiles repository.
+# Source and MIT notices: themes/README.md in the dotfiles repository.
 background = #141313
 foreground = #c5c9c5
 cursor-color = #c5c9c5

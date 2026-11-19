@@ -1,0 +1,999 @@
+{
+  "code": [
+    {
+      "name": "Swift",
+      "file": "TrailView.swift",
+      "lines": [
+        [
+          [
+            "muted",
+            "// A quiet place to find your next trail."
+          ]
+        ],
+        [
+          [
+            "keyword",
+            "import "
+          ],
+          [
+            "cyan",
+            "SwiftUI"
+          ]
+        ],
+        [],
+        [
+          [
+            "keyword",
+            "struct "
+          ],
+          [
+            "cyan",
+            "TrailView"
+          ],
+          [
+            "orange",
+            ": "
+          ],
+          [
+            "cyan",
+            "View"
+          ],
+          [
+            "foreground",
+            " {"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "    "
+          ],
+          [
+            "property",
+            "@State "
+          ],
+          [
+            "keyword",
+            "private var "
+          ],
+          [
+            "foreground",
+            "query "
+          ],
+          [
+            "orange",
+            "= "
+          ],
+          [
+            "green",
+            "\"\""
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "    "
+          ],
+          [
+            "keyword",
+            "let "
+          ],
+          [
+            "foreground",
+            "distance "
+          ],
+          [
+            "orange",
+            "= "
+          ],
+          [
+            "purple",
+            "12.8"
+          ]
+        ],
+        [],
+        [
+          [
+            "foreground",
+            "    "
+          ],
+          [
+            "keyword",
+            "var "
+          ],
+          [
+            "property",
+            "body"
+          ],
+          [
+            "orange",
+            ": "
+          ],
+          [
+            "keyword",
+            "some "
+          ],
+          [
+            "cyan",
+            "View"
+          ],
+          [
+            "foreground",
+            " {"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "        "
+          ],
+          [
+            "blue",
+            "VStack"
+          ],
+          [
+            "foreground",
+            "("
+          ],
+          [
+            "property",
+            "alignment"
+          ],
+          [
+            "orange",
+            ": ."
+          ],
+          [
+            "cyan",
+            "leading"
+          ],
+          [
+            "foreground",
+            ") {"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "            "
+          ],
+          [
+            "blue",
+            "Text"
+          ],
+          [
+            "foreground",
+            "("
+          ],
+          [
+            "green",
+            "\"The long way home\""
+          ],
+          [
+            "foreground",
+            ")"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "                ."
+          ],
+          [
+            "blue",
+            "font"
+          ],
+          [
+            "foreground",
+            "(."
+          ],
+          [
+            "property",
+            "title"
+          ],
+          [
+            "foreground",
+            ")"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "            "
+          ],
+          [
+            "blue",
+            "TrailList"
+          ],
+          [
+            "foreground",
+            "("
+          ],
+          [
+            "property",
+            "query"
+          ],
+          [
+            "orange",
+            ": "
+          ],
+          [
+            "foreground",
+            "query)"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "        }"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "    }"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "}"
+          ]
+        ]
+      ]
+    },
+    {
+      "name": "TypeScript",
+      "file": "trails.ts",
+      "lines": [
+        [
+          [
+            "muted",
+            "// Keep the useful things. Leave the noise behind."
+          ]
+        ],
+        [
+          [
+            "keyword",
+            "type "
+          ],
+          [
+            "cyan",
+            "Trail"
+          ],
+          [
+            "orange",
+            " = "
+          ],
+          [
+            "foreground",
+            "{"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "  "
+          ],
+          [
+            "property",
+            "name"
+          ],
+          [
+            "orange",
+            ": "
+          ],
+          [
+            "cyan",
+            "string"
+          ],
+          [
+            "foreground",
+            ";"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "  "
+          ],
+          [
+            "property",
+            "distance"
+          ],
+          [
+            "orange",
+            ": "
+          ],
+          [
+            "cyan",
+            "number"
+          ],
+          [
+            "foreground",
+            ";"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "  "
+          ],
+          [
+            "property",
+            "open"
+          ],
+          [
+            "orange",
+            ": "
+          ],
+          [
+            "cyan",
+            "boolean"
+          ],
+          [
+            "foreground",
+            ";"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "};"
+          ]
+        ],
+        [],
+        [
+          [
+            "keyword",
+            "export async function "
+          ],
+          [
+            "blue",
+            "findTrails"
+          ],
+          [
+            "foreground",
+            "("
+          ],
+          [
+            "property",
+            "query"
+          ],
+          [
+            "orange",
+            ": "
+          ],
+          [
+            "cyan",
+            "string"
+          ],
+          [
+            "foreground",
+            ") {"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "  "
+          ],
+          [
+            "keyword",
+            "const "
+          ],
+          [
+            "foreground",
+            "response "
+          ],
+          [
+            "orange",
+            "= "
+          ],
+          [
+            "keyword",
+            "await "
+          ],
+          [
+            "blue",
+            "fetch"
+          ],
+          [
+            "foreground",
+            "("
+          ],
+          [
+            "green",
+            "`/api/trails?q=${"
+          ],
+          [
+            "blue",
+            "encodeURIComponent"
+          ],
+          [
+            "foreground",
+            "(query)"
+          ],
+          [
+            "green",
+            "}`"
+          ],
+          [
+            "foreground",
+            ");"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "  "
+          ],
+          [
+            "keyword",
+            "if "
+          ],
+          [
+            "foreground",
+            "("
+          ],
+          [
+            "orange",
+            "!"
+          ],
+          [
+            "foreground",
+            "response."
+          ],
+          [
+            "property",
+            "ok"
+          ],
+          [
+            "foreground",
+            ") "
+          ],
+          [
+            "keyword",
+            "throw new "
+          ],
+          [
+            "cyan",
+            "Error"
+          ],
+          [
+            "foreground",
+            "("
+          ],
+          [
+            "green",
+            "\"Unable to load trails\""
+          ],
+          [
+            "foreground",
+            ");"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "  "
+          ],
+          [
+            "keyword",
+            "const "
+          ],
+          [
+            "foreground",
+            "trails"
+          ],
+          [
+            "orange",
+            ": "
+          ],
+          [
+            "cyan",
+            "Trail"
+          ],
+          [
+            "foreground",
+            "[] "
+          ],
+          [
+            "orange",
+            "= "
+          ],
+          [
+            "keyword",
+            "await "
+          ],
+          [
+            "foreground",
+            "response."
+          ],
+          [
+            "blue",
+            "json"
+          ],
+          [
+            "foreground",
+            "();"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "  "
+          ],
+          [
+            "keyword",
+            "return "
+          ],
+          [
+            "foreground",
+            "trails."
+          ],
+          [
+            "blue",
+            "filter"
+          ],
+          [
+            "foreground",
+            "((trail) "
+          ],
+          [
+            "orange",
+            "=> "
+          ],
+          [
+            "foreground",
+            "trail."
+          ],
+          [
+            "property",
+            "open"
+          ],
+          [
+            "foreground",
+            " "
+          ],
+          [
+            "orange",
+            "&& "
+          ],
+          [
+            "foreground",
+            "trail."
+          ],
+          [
+            "property",
+            "distance"
+          ],
+          [
+            "orange",
+            " < "
+          ],
+          [
+            "purple",
+            "20"
+          ],
+          [
+            "foreground",
+            ");"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "}"
+          ]
+        ]
+      ]
+    },
+    {
+      "name": "Python",
+      "file": "forecast.py",
+      "lines": [
+        [
+          [
+            "keyword",
+            "from "
+          ],
+          [
+            "foreground",
+            "dataclasses "
+          ],
+          [
+            "keyword",
+            "import "
+          ],
+          [
+            "blue",
+            "dataclass"
+          ]
+        ],
+        [],
+        [
+          [
+            "property",
+            "@dataclass"
+          ],
+          [
+            "foreground",
+            "("
+          ],
+          [
+            "property",
+            "frozen"
+          ],
+          [
+            "orange",
+            "="
+          ],
+          [
+            "purple",
+            "True"
+          ],
+          [
+            "foreground",
+            ")"
+          ]
+        ],
+        [
+          [
+            "keyword",
+            "class "
+          ],
+          [
+            "cyan",
+            "Forecast"
+          ],
+          [
+            "foreground",
+            ":"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "    temperature: "
+          ],
+          [
+            "cyan",
+            "float"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "    conditions: "
+          ],
+          [
+            "cyan",
+            "str"
+          ],
+          [
+            "orange",
+            " = "
+          ],
+          [
+            "green",
+            "\"clear\""
+          ]
+        ],
+        [],
+        [
+          [
+            "keyword",
+            "def "
+          ],
+          [
+            "blue",
+            "packing_list"
+          ],
+          [
+            "foreground",
+            "(forecast: "
+          ],
+          [
+            "cyan",
+            "Forecast"
+          ],
+          [
+            "foreground",
+            ") "
+          ],
+          [
+            "orange",
+            "-> "
+          ],
+          [
+            "cyan",
+            "list"
+          ],
+          [
+            "foreground",
+            "["
+          ],
+          [
+            "cyan",
+            "str"
+          ],
+          [
+            "foreground",
+            "]:"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "    "
+          ],
+          [
+            "green",
+            "\"\"\"A little preparation goes a long way.\"\"\""
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "    essentials "
+          ],
+          [
+            "orange",
+            "= "
+          ],
+          [
+            "foreground",
+            "["
+          ],
+          [
+            "green",
+            "\"water\""
+          ],
+          [
+            "foreground",
+            ", "
+          ],
+          [
+            "green",
+            "\"map\""
+          ],
+          [
+            "foreground",
+            ", "
+          ],
+          [
+            "green",
+            "\"snacks\""
+          ],
+          [
+            "foreground",
+            "]"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "    "
+          ],
+          [
+            "keyword",
+            "if "
+          ],
+          [
+            "foreground",
+            "forecast.temperature "
+          ],
+          [
+            "orange",
+            "< "
+          ],
+          [
+            "purple",
+            "12"
+          ],
+          [
+            "foreground",
+            ":"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "        essentials."
+          ],
+          [
+            "blue",
+            "append"
+          ],
+          [
+            "foreground",
+            "("
+          ],
+          [
+            "green",
+            "\"warm layer\""
+          ],
+          [
+            "foreground",
+            ")"
+          ]
+        ],
+        [
+          [
+            "foreground",
+            "    "
+          ],
+          [
+            "keyword",
+            "return "
+          ],
+          [
+            "foreground",
+            "essentials"
+          ]
+        ],
+        [],
+        [
+          [
+            "muted",
+            "# TODO: account for rain and changing light"
+          ]
+        ]
+      ]
+    }
+  ],
+  "diff": [
+    {
+      "kind": "hunk",
+      "text": "@@ -18,6 +18,8 @@ loadTrails(query)"
+    },
+    {
+      "kind": "context",
+      "old": 18,
+      "new": 18,
+      "text": "  const response = await fetch(url);"
+    },
+    {
+      "kind": "removed",
+      "old": 19,
+      "text": "  const trails = await response.json();",
+      "highlight": "await response.json()"
+    },
+    {
+      "kind": "removed",
+      "old": 20,
+      "text": "  return trails;",
+      "highlight": "trails"
+    },
+    {
+      "kind": "added",
+      "new": 19,
+      "text": "  if (!response.ok) throw new Error(\"Offline\");",
+      "highlight": "if (!response.ok)"
+    },
+    {
+      "kind": "added",
+      "new": 20,
+      "text": "  const trails: Trail[] = await response.json();",
+      "highlight": ": Trail[]"
+    },
+    {
+      "kind": "added",
+      "new": 21,
+      "text": "  return trails.filter((trail) => trail.open);",
+      "highlight": ".filter((trail) => trail.open)"
+    },
+    {
+      "kind": "added",
+      "new": 22,
+      "text": "  // Closed trails stay out of the results."
+    },
+    {
+      "kind": "context",
+      "old": 21,
+      "new": 23,
+      "text": "}"
+    },
+    {
+      "kind": "context",
+      "old": 22,
+      "new": 24,
+      "text": ""
+    },
+    {
+      "kind": "context",
+      "old": 23,
+      "new": 25,
+      "text": "export { loadTrails };"
+    }
+  ],
+  "commands": [
+    {
+      "label": "Open theme.py",
+      "detail": "themes/scripts",
+      "shortcut": "↵",
+      "role": "blue"
+    },
+    {
+      "label": "Switch theme…",
+      "detail": "theme set",
+      "shortcut": "⌘ T",
+      "role": "yellow"
+    },
+    {
+      "label": "Go to symbol…",
+      "detail": "Search",
+      "shortcut": "⌘ ⇧ O",
+      "role": "purple"
+    },
+    {
+      "label": "Review 3 changed files",
+      "detail": "Source control",
+      "shortcut": "⌘ D",
+      "role": "green"
+    },
+    {
+      "label": "Open settings",
+      "detail": "Preferences",
+      "shortcut": "⌘ ,",
+      "role": "muted"
+    }
+  ],
+  "jobs": [
+    {
+      "name": "lint",
+      "detail": "ruff · 214 files",
+      "status": "Passed",
+      "role": "green",
+      "progress": 100
+    },
+    {
+      "name": "unit tests",
+      "detail": "themes/tests · 30 tests",
+      "status": "Running",
+      "role": "blue",
+      "progress": 64
+    },
+    {
+      "name": "deploy preview",
+      "detail": "Waiting for approval",
+      "status": "Blocked",
+      "role": "warning",
+      "progress": 32
+    },
+    {
+      "name": "e2e",
+      "detail": "Safari 27 · 3 failures",
+      "status": "Failed",
+      "role": "error",
+      "progress": 12
+    }
+  ],
+  "logs": [
+    [
+      "muted",
+      "12:08:02  INFO  Watching themes/ for changes"
+    ],
+    [
+      "blue",
+      "12:08:03  INFO  Rebuilding kiahgawa"
+    ],
+    [
+      "green",
+      "12:08:03  PASS  30 tests passed in 2.9s"
+    ],
+    [
+      "warning",
+      "12:08:04  WARN  Rex isn't running; skipped"
+    ],
+    [
+      "error",
+      "12:08:05  FAIL  Not authorized to send Apple events"
+    ],
+    [
+      "cyan",
+      "12:08:05  INFO  Lab ready at http://127.0.0.1:4173"
+    ]
+  ]
+}

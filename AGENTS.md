@@ -33,7 +33,16 @@ For example:
 - **`just stow`** — Symlink all packages into `~`
 - **`just capslock-install`** — Build, sign, install, and launch the Caps Lock agent
 - **`just capslock-uninstall`** — Stop and remove the Caps Lock agent
+- **`just themes-test`** — Test the theme system
 - **`just`** (no args) — Interactive package chooser
+
+## Themes
+
+`themes/` isn't a stow package. It holds every theme's palette and wallpapers,
+the generator, the `theme` switcher (launcher in `bin`), and the palette lab.
+Switching never edits tracked files: generated files go to
+`~/.local/share/themes/`, where `current` links to the active theme.
+See [themes/README.md](themes/README.md).
 
 ## Adding files
 

@@ -5,7 +5,7 @@ import { testRender } from "@opentui/solid";
 import { OfferCard } from "./card";
 import type { Offer } from "./model";
 
-const themePath = process.env.OPENCODE_TEST_THEME ?? new URL("../../themes/kiahgawa.json", import.meta.url);
+const themePath = process.env.OPENCODE_TEST_THEME ?? new URL("../../themes/kanagawa-dragon.json", import.meta.url);
 const theme = resolveThemeDocument(parseThemeDocument(JSON.parse(readFileSync(themePath, "utf8"))), "dark");
 const item: Offer = {
   id: "test", sessionID: "ses_test", label: "Your architecture diagram",

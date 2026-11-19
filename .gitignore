@@ -1,3 +1,4 @@
+__pycache__/
 .DS_Store
 *.swp
 node_modules/
@@ -50,3 +51,7 @@ agents/.agents/skills/sqlite-data/
 agents/.agents/skills/structured-queries/
 agents/.agents/skills/swift-navigation/
 agents/.agents/skills/testing/
+
+# Links `theme` makes to each generated OpenCode theme
+opencode/.config/opencode/themes/*.json
+!opencode/.config/opencode/themes/kanagawa-dragon.json

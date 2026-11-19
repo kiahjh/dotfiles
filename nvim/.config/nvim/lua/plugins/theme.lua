@@ -1,10 +1,9 @@
+-- Colors come from the current theme in ~/.dotfiles/themes (lua/theme).
 return {
-  'kiahjh/kiahgawa',
+  'rebelot/kanagawa.nvim',
   lazy = false,
   priority = 1000,
-  dependencies = { 'rebelot/kanagawa.nvim' },
   config = function()
-    require('kiahgawa').setup({ dim_inactive = true })
-    vim.cmd.colorscheme 'kiahgawa'
+    require('theme').setup({ dim_inactive = true })
   end,
 }
