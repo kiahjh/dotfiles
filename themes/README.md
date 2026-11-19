@@ -43,7 +43,10 @@ it, so switching never changes tracked files.
 - **Wallpaper:** set on every display. Each switch to a theme shows its next
   wallpaper, so all of them come around before the first repeats; `apply`
   keeps the current one. macOS applies it to the current Space only. The first change saves macOS's previous wallpaper settings to
-  `~/.local/state/theme/wallpaper-before-theme.plist`.
+  `~/.local/state/theme/wallpaper-before-theme.plist`. The
+  `com.miciah.theme-wallpaper` LaunchAgent (in the `bin` package) runs
+  `theme wallpaper next` every 10 minutes. To stop it, run
+  `launchctl bootout gui/$(id -u)/com.miciah.theme-wallpaper`.
 - **Rex:** each connected Rex app imports `rex/<name>`. Rex replaces its copy
   of a theme with the same name and selects it.
 - **OpenCode:** reads theme files only when it starts, but applies a change
