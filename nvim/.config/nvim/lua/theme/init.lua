@@ -26,6 +26,35 @@ local function refresh_lualine()
   end
 end
 
+-- barbar.nvim draws each tab from ~20 groups per state; Kanagawa gives the
+-- ones we don't set its raised surface, which shows as gray blocks. Give
+-- every part of a tab that tab's surface.
+local function barbar(p)
+  local groups = { BufferTabpageFill = { fg = p.muted, bg = p.inset } }
+  local states = {
+    Current = { bg = p.background, fg = p.foreground, number = p.accent, sign = p.accent },
+    Visible = { bg = p.inset, fg = p.subtle, number = p.disabled, sign = p.border },
+    Inactive = { bg = p.inset, fg = p.muted, number = p.disabled, sign = p.border },
+    Alternate = { bg = p.inset, fg = p.subtle, number = p.disabled, sign = p.border },
+  }
+  local parts = {
+    [""] = "fg", Btn = "fg", Icon = "fg", Pin = "fg", PinBtn = "fg",
+    Index = "number", Number = "number", Sign = "sign", SignRight = "sign",
+    Mod = p.yellow, ModBtn = p.yellow, Target = p.red,
+    ADDED = p.green, CHANGED = p.yellow, DELETED = p.red,
+    ERROR = p.error, WARN = p.warning, INFO = p.blue, HINT = p.cyan,
+  }
+  for state, colors in pairs(states) do
+    for part, fg in pairs(parts) do
+      groups["Buffer" .. state .. part] = {
+        fg = colors[fg] or fg, bg = colors.bg,
+        bold = state == "Current" and (part == "" or part == "Target") or nil,
+      }
+    end
+  end
+  return groups
+end
+
 function M.load()
   local p = M.palette()
   loaded = vim.deepcopy(p)
@@ -91,7 +120,7 @@ function M.load()
       },
     },
     overrides = function()
-      return {
+      return vim.tbl_extend("force", {
         Boolean = { fg = p.warning, bold = true },
         CursorLine = { bg = p.panel },
         CursorLineNr = { fg = p.accent, bold = true },
@@ -114,16 +143,10 @@ function M.load()
         NeoTreeNormalNC = { fg = p.muted, bg = p.panel },
         NeoTreeFloatBorder = { fg = p.border, bg = p.inset },
         NeoTreeTitleBar = { fg = p.background, bg = p.accent, bold = true },
-        BufferCurrent = { fg = p.foreground, bg = p.background, bold = true },
-        BufferCurrentIndex = { fg = p.accent, bg = p.background },
-        BufferCurrentMod = { fg = p.accent, bg = p.background },
-        BufferCurrentSign = { fg = p.accent, bg = p.background },
-        BufferInactive = { fg = p.muted, bg = p.inset },
-        BufferVisible = { fg = p.subtle, bg = p.inset },
         NoiceCmdlinePopup = { fg = p.foreground, bg = p.inset },
         NoiceCmdlinePopupBorder = { fg = p.accent, bg = p.inset },
         NoiceCmdlineIcon = { fg = p.accent },
-      }
+      }, barbar(p))
     end,
   })
   kanagawa.load("dragon")

@@ -42,6 +42,12 @@ for i, name in ipairs(themes) do
   for j, value in ipairs(p.ansi) do
     assert(vim.g["terminal_color_" .. (j - 1)]:lower() == value, name .. ": ANSI mismatch " .. (j - 1))
   end
+  -- Every part of a barbar tab sits on that tab's surface (no gray blocks).
+  for _, part in ipairs({ "", "ADDED", "Sign", "SignRight", "Index", "Mod", "ERROR" }) do
+    assert(color("BufferCurrent" .. part, "bg") == p.background, name .. ": BufferCurrent" .. part)
+    assert(color("BufferInactive" .. part, "bg") == p.inset, name .. ": BufferInactive" .. part)
+  end
+  assert(color("BufferTabpageFill", "bg") == p.inset)
   package.loaded["lualine.themes.current"] = nil
   local lualine = require("lualine.themes.current")
   assert(lualine.normal.a.bg == p.accent)
