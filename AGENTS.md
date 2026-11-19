@@ -36,6 +36,7 @@ For example:
 - **`just capslock-uninstall`** — Stop and remove the Caps Lock agent
 - **`just focal-install`** — Build, sign, install, and launch the Focal window manager
 - **`just focal-uninstall`** — Stop and remove Focal
+- **`just steward-install`** — Build Steward and install it into `/Applications`
 - **`just themes-test`** — Test the theme system
 - **`just`** (no args) — Interactive package chooser
 
@@ -46,6 +47,12 @@ the generator, the `theme` switcher (launcher in `bin`), and the palette lab.
 Switching never edits tracked files: generated files go to
 `~/.local/share/themes/`, where `current` links to the active theme.
 See [themes/README.md](themes/README.md).
+
+## Steward
+
+`steward/` isn't a stow package either. It's the Steward menu bar time tracker,
+a Swift package that `just steward-install` builds into `/Applications/Steward.app`.
+It takes its colors from the current theme. See [steward/README.md](steward/README.md).
 
 ## Adding files
 

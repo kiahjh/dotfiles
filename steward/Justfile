@@ -1,0 +1,16 @@
+set shell := ["bash", "-cu"]
+
+default:
+    @just --list
+
+test:
+    swift test
+
+build:
+    Scripts/build-app.sh
+
+install:
+    Scripts/install-app.sh
+
+run: build
+    open build/Steward.app

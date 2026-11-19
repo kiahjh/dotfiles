@@ -8,6 +8,7 @@ test:
   @bun test ./gt/.local/scripts/
   @./capslock/.local/scripts/capslock-test
   @./focal/.local/scripts/focal-test
+  @cd steward && swift test
 
 test-xcode-mcp-router:
   @uv run --python 3.12 --with mcp==2.3.0 python -B -m unittest discover -s scripts/xcode-mcp-router-tests -v
@@ -25,6 +26,9 @@ focal-install:
 focal-uninstall:
   @./focal/.local/scripts/focal-uninstall
   @stow -D focal
+
+steward-install:
+  @./steward/Scripts/install-app.sh
 
 themes-test:
   @python3 -B -m unittest discover -s themes/tests -v
