@@ -36,6 +36,15 @@ it, so switching never changes tracked files.
 - **macOS:** System Events sets dark or light appearance from the palette's
   `mode`, only when it differs. The first change asks for Automation access.
   Helium follows the system appearance on its own.
+- **Helium:** its theme color (the Customize Helium hue) takes the background's
+  hue, or the accent's when the background is gray, since Chromium uses only
+  the hue.
+  Helium reads it only at startup and rewrites its preferences on quit, so when
+  the color changes `theme` quits Helium (pages with unsaved work can still
+  stop that; then Helium is skipped), writes `browser.theme.user_color2`, and
+  reopens it in the background with `--restore-last-session`. Chromium's live
+  route, the `BrowserThemeColor` policy plus `--refresh-platform-policy`, needs
+  root-owned managed preferences on macOS.
 - **Xcode:** `theme` rewrites one Xcode 27 theme, **Current**, with every
   syntax color and the background set exactly (as OKLCH, which Xcode stores).
   Xcode reloads it when the file changes. Select **Current** once in Settings →

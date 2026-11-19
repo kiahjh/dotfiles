@@ -9,6 +9,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import time
 
 import generate
 
@@ -332,6 +333,62 @@ def apply_btop(p):
         return "applies when btop starts"  # None running.
 
 
+def helium_running():
+    try:
+        return bool(run("pgrep", "-x", "Helium").strip())
+    except subprocess.CalledProcessError:
+        return False
+
+
+def helium_seed(p):
+    """Chromium builds Helium's colors from just the hue of this seed, muted by
+    the chosen color style. The background's hue keeps Helium's surfaces in
+    the theme's family; a gray background has no hue, so use the accent's."""
+    return p["background"] if generate.oklch(p["background"])[1] >= 0.008 else p["accent"]
+
+
+def apply_helium(p):
+    """Helium (Chromium) reads its theme color only at startup and rewrites its
+    preferences on quit, so a new color means quitting it, writing the color,
+    and reopening it with its tabs. Pages with unsaved work still get to ask."""
+    prefs_path = Path.home() / "Library/Application Support/net.imput.helium/Default/Preferences"
+    if not prefs_path.exists():
+        raise Skipped("Helium hasn't been run yet")
+    rgb = int(helium_seed(p)[1:], 16)
+    color = (0xFF000000 | rgb) - (1 << 32)  # Chromium stores ARGB as a signed int.
+    if json.loads(prefs_path.read_text()).get("browser", {}).get("theme", {}).get("user_color2") == color:
+        return "already this color"
+    was_running = helium_running()
+    if was_running:
+        run("osascript", "-e", 'ignoring application responses\n'
+            'tell application id "net.imput.helium" to quit\nend ignoring')
+        for _ in range(120):
+            if not helium_running():
+                break
+            time.sleep(0.5)
+        else:
+            raise Skipped("Helium didn't quit (unsaved work?); switch again to recolor it")
+    prefs = json.loads(prefs_path.read_text())
+    theme = prefs.setdefault("browser", {}).setdefault("theme", {})
+    theme.update(user_color2=color, follows_system_colors=False)
+    prefs.setdefault("extensions", {}).setdefault("theme", {})["id"] = "user_color_theme_id"
+    temporary = prefs_path.with_name(f".Preferences.{os.getpid()}")
+    temporary.write_text(json.dumps(prefs, separators=(",", ":")))
+    os.replace(temporary, prefs_path)
+    if not was_running:
+        return "applies when Helium opens"
+    # macOS refuses to launch an app for a moment after it quits (error -600).
+    for attempt in range(10):
+        try:
+            run("open", "-g", "-a", "Helium", "--args", "--restore-last-session")
+            break
+        except subprocess.CalledProcessError:
+            if attempt == 9:
+                raise
+            time.sleep(0.5)
+    return "restarted with its tabs"
+
+
 def apply_neovim(p):
     return "running instances reload themselves"
 
@@ -344,6 +401,7 @@ APPS = {
     "opencode": ("OpenCode", apply_opencode),
     "xcode": ("Xcode", apply_xcode),
     "btop": ("btop", apply_btop),
+    "helium": ("Helium", apply_helium),
     "neovim": ("Neovim", apply_neovim),
 }
 

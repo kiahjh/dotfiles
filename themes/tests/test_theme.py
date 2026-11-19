@@ -164,6 +164,38 @@ class Switching(unittest.TestCase):
         self.assertIn("✗ Wallpaper  Not authorized", output)
         self.assertIn("✓ OpenCode", output)
 
+    def test_helium_takes_the_accent_and_restarts_only_when_it_changes(self):
+        status, output = self.theme("set", "kiahgawa", "--only", "helium")
+        self.assertIn("– Helium     Helium hasn't been run yet", output)
+        prefs = self.home / "Library/Application Support/net.imput.helium/Default/Preferences"
+        prefs.parent.mkdir(parents=True)
+        prefs.write_text(json.dumps({"browser": {"theme": {"user_color2": -205879, "color_variant2": 2}}, "other": 1}))
+        running = [True]
+        def fake(*command, timeout=30):
+            if command[:2] == ("pgrep", "-x"):
+                return "1\n" if running[0] else ""
+            if command[0] == "osascript":
+                running[0] = False
+            return self.fake_run(*command)
+        with patch("theme.run", fake):
+            status, output = self.theme("set", "kiahgawa", "--only", "helium")
+        self.assertIn("restarted with its tabs", output)
+        # Kiahgawa's background is nearly gray, so the accent sets the hue.
+        accent = int(generate.palette("kiahgawa")["accent"][1:], 16)
+        saved = json.loads(prefs.read_text())
+        self.assertEqual(saved["browser"]["theme"], {"user_color2": (0xFF000000 | accent) - (1 << 32), "color_variant2": 2,
+                                                     "follows_system_colors": False})
+        self.assertEqual(saved["other"], 1)
+        self.assertEqual(self.commands[-1], ("open", "-g", "-a", "Helium", "--args", "--restore-last-session"))
+        self.commands.clear()
+        status, output = self.theme("set", "kiahgawa", "--only", "helium")
+        self.assertIn("already this color", output)
+        self.assertFalse(any(command[0] in ("osascript", "open") for command in self.commands))
+
+    def test_helium_takes_its_hue_from_the_background_unless_that_is_gray(self):
+        self.assertEqual(theme.helium_seed(generate.palette("rose-pine")), generate.palette("rose-pine")["background"])
+        self.assertEqual(theme.helium_seed(generate.palette("gruvbox")), generate.palette("gruvbox")["accent"])
+
     def test_wallpaper_choice_is_remembered_per_theme(self):
         self.theme("set", "kiahgawa", "--only", "opencode")
         files = theme.wallpapers("kiahgawa")
