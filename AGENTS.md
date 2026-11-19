@@ -25,6 +25,7 @@ For example:
 | `ohmyzsh`  | `.zshrc` and `.zshenv`         |
 | `opencode` | opencode config                |
 | `pi`       | pi agent settings & MCP        |
+| `solo`     | Native one-app window manager  |
 | `stow`     | Stow's own global ignore list  |
 | `zellij`   | Zellij terminal multiplexer    |
 
@@ -33,6 +34,8 @@ For example:
 - **`just stow`** — Symlink all packages into `~`
 - **`just capslock-install`** — Build, sign, install, and launch the Caps Lock agent
 - **`just capslock-uninstall`** — Stop and remove the Caps Lock agent
+- **`just solo-install`** — Build, sign, install, and launch the Solo window manager
+- **`just solo-uninstall`** — Stop and remove Solo
 - **`just themes-test`** — Test the theme system
 - **`just`** (no args) — Interactive package chooser
 

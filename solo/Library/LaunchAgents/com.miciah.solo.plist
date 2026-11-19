@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.miciah.solo</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/miciah/Applications/Solo.app/Contents/MacOS/Solo</string>
+  </array>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>ThrottleInterval</key>
+  <integer>5</integer>
+
+  <key>LimitLoadToSessionType</key>
+  <string>Aqua</string>
+
+  <key>ProcessType</key>
+  <string>Interactive</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>SOLO_GAP</key>
+    <string>24</string>
+    <key>SOLO_DEBUG</key>
+    <string>0</string>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/miciah/Library/Logs/solo.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/miciah/Library/Logs/solo.err.log</string>
+</dict>
+</plist>
