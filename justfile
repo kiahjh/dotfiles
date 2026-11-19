@@ -22,15 +22,6 @@ themes-test:
   @python3 -B -m unittest discover -s themes/tests -v
   @nvim --headless -u NONE -i NONE -n -l themes/tests/neovim.lua
 
-user-review-build:
-  @cd agents/.agents/skills/user-review/app && bun install --frozen-lockfile && node scripts/sync-theme.ts && bun run build
-
-user-review-test:
-  @cd agents/.agents/skills/user-review/app && bun run test && bun run test:browser
-
-user-review-demo:
-  @node agents/.agents/skills/user-review/app/bin/user-review.mjs demo
-
 stow:
   @stow agents
   @stow git

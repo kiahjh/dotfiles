@@ -62,8 +62,3 @@ supporting files beside them. `stow agents` exposes the collection at
 `~/.claude/skills/` through a compatibility symlink. Keep one authoritative
 copy rather than separate per-tool installations. Existing Pi skills remain
 in the `pi` package.
-
-The `user-review` skill bundles its local viewer, CLI, tests, and build files in
-`agents/.agents/skills/user-review/app/`. Its optional PATH launcher is in the
-`bin` package; runtime reviews and notes stay outside the checkout. Use
-`just user-review-build`, `just user-review-test`, and `just user-review-demo`.
