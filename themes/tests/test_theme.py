@@ -31,7 +31,8 @@ class Switching(unittest.TestCase):
         self.defaults = {"AppleInterfaceStyle": "Dark"}
         self.clients = [{"client_id": "client:app", "info": {"kind": "app", "label": "Laptop"}},
                         {"client_id": "client:cli", "info": {"kind": "cli"}}]
-        for target, value in (("theme.run", self.fake_run), ("theme.shutil.which", lambda name: f"/bin/{name}"),
+        for target, value in (("theme.run", self.fake_run), ("theme.start", self.fake_run),
+                              ("theme.shutil.which", lambda name: f"/bin/{name}"),
                               ("theme.Path.home", lambda: self.home)):
             patcher = patch(target, value)
             patcher.start()
@@ -157,7 +158,7 @@ class Switching(unittest.TestCase):
                 raise subprocess.CalledProcessError(1, command, stderr="Not authorized")
             return self.fake_run(*command)
 
-        with patch("theme.run", failing):
+        with patch("theme.run", failing), patch("theme.start", failing):
             status, output = self.theme("set", "kiahgawa", "--skip", "macos")
         self.assertEqual(status, 1)
         self.assertIn("✗ Wallpaper  Not authorized", output)

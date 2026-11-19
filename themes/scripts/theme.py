@@ -6,22 +6,83 @@ import json
 import os
 from pathlib import Path
 import shutil
+import signal
 import subprocess
 import sys
 
 import generate
 
 WALLPAPER_TYPES = {".heic", ".jpeg", ".jpg", ".png"}
+FADE_SECONDS = 3
+# macOS swaps a new wallpaper in all at once, a couple of seconds after it's
+# set, and doesn't reliably draw the wallpaper under a window that covers it.
+# So: fade a cover showing the new picture in over the old wallpaper (just
+# below the desktop icons), set the wallpaper underneath while the cover hides
+# the swap, then drop the cover once both match. The cover stays 2%
+# translucent so macOS keeps drawing what's under it. Prints "set" as soon as
+# the new picture loads, so the caller needn't wait for the fade.
 SET_WALLPAPER = """
 ObjC.import("AppKit");
+ObjC.import("QuartzCore");
+ObjC.import("CoreGraphics");
 function run(argv) {
-  const url = $.NSURL.fileURLWithPath(argv[0]);
+  const seconds = Number(argv[0]);
+  const url = $.NSURL.fileURLWithPath(argv[1]);
+  const workspace = $.NSWorkspace.sharedWorkspace;
+  const loop = $.NSRunLoop.currentRunLoop;
+  const wait = s => loop.runUntilDate($.NSDate.dateWithTimeIntervalSinceNow(s));
+  const image = $.NSImage.alloc.initWithContentsOfURL(url);
+  if (image.isNil()) throw new Error("can't read " + argv[1]);
+  // Keep App Nap and background throttling from stretching the fade.
+  $.NSProcessInfo.processInfo.beginActivityWithOptionsReason(
+    $.NSActivityUserInitiated | $.NSActivityLatencyCritical, "Fading the wallpaper");
+  $.NSApplication.sharedApplication.setActivationPolicy($.NSApplicationActivationPolicyAccessory);
   const screens = $.NSScreen.screens;
-  for (let i = 0; i < screens.count; i++) {
-    if (!$.NSWorkspace.sharedWorkspace.setDesktopImageURLForScreenOptionsError(url, screens.objectAtIndex(i), $({}), null)) {
-      throw new Error("macOS refused the wallpaper");
+  const setAll = () => {
+    for (let i = 0; i < screens.count; i++) {
+      if (!workspace.setDesktopImageURLForScreenOptionsError(url, screens.objectAtIndex(i), $({}), null)) {
+        throw new Error("macOS refused the wallpaper");
+      }
     }
+  };
+  if (seconds <= 0) { setAll(); console.log("set"); return; }
+  console.log("set");
+  const covers = [];
+  for (let i = 0; i < screens.count; i++) {
+    const frame = screens.objectAtIndex(i).frame;
+    const window = $.NSWindow.alloc.initWithContentRectStyleMaskBackingDefer(
+      frame, $.NSWindowStyleMaskBorderless, $.NSBackingStoreBuffered, false);
+    window.level = $.CGWindowLevelForKey($.kCGDesktopIconWindowLevelKey) - 1;
+    window.opaque = false;
+    window.hasShadow = false;
+    window.ignoresMouseEvents = true;
+    window.releasedWhenClosed = false;
+    window.alphaValue = 0;
+    window.collectionBehavior = $.NSWindowCollectionBehaviorCanJoinAllSpaces
+      | $.NSWindowCollectionBehaviorStationary | $.NSWindowCollectionBehaviorIgnoresCycle;
+    const view = $.NSView.alloc.initWithFrame($.NSMakeRect(0, 0, frame.size.width, frame.size.height));
+    view.wantsLayer = true;
+    view.layer.contents = image;
+    view.layer.contentsGravity = $.kCAGravityResizeAspectFill;
+    window.contentView = view;
+    window.orderFrontRegardless;
+    covers.push(window);
   }
+  const fade = (from, to, duration) => {
+    const start = Date.now();
+    for (;;) {
+      const t = Math.min(1, (Date.now() - start) / (duration * 1000));
+      const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(2 - 2 * t, 2) / 2;
+      for (const window of covers) window.alphaValue = from + (to - from) * eased;
+      if (t >= 1) break;
+      wait(1 / 60);
+    }
+  };
+  fade(0, 0.98, seconds);
+  setAll();
+  wait(4);  // macOS swaps the picture in a couple of seconds after it's set.
+  fade(0.98, 0, 0.5);
+  for (const window of covers) window.close;
 }
 """
 
@@ -32,6 +93,28 @@ class Skipped(Exception):
 
 def run(*command, timeout=30):
     return subprocess.run(command, check=True, capture_output=True, text=True, timeout=timeout).stdout
+
+
+def start(*command):
+    """Run a command that prints "set" to stderr once its work is done and then
+    keeps going, like the wallpaper fade. Its own session keeps launchd from
+    stopping it when `theme` exits."""
+    # A new fade replaces one still running, which would otherwise set its
+    # wallpaper over this one.
+    pidfile = state_dir() / "fade.pid"
+    try:
+        os.kill(int(pidfile.read_text()), signal.SIGTERM)
+    except (OSError, ValueError):
+        pass
+    process = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                               stderr=subprocess.PIPE, text=True, start_new_session=True)
+    pidfile.parent.mkdir(parents=True, exist_ok=True)
+    pidfile.write_text(str(process.pid))
+    line = process.stderr.readline()
+    if line.strip() == "set":
+        return
+    rest = process.communicate(timeout=30)[1]
+    raise subprocess.CalledProcessError(process.returncode, command, stderr=line + rest)
 
 
 def state_dir():
@@ -152,7 +235,7 @@ def apply_wallpaper(p):
     if index.exists() and not backup.exists():
         backup.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(index, backup)
-    run("osascript", "-l", "JavaScript", "-e", SET_WALLPAPER, str(path))
+    start("osascript", "-l", "JavaScript", "-e", SET_WALLPAPER, str(FADE_SECONDS), str(path))
     return path.name
 
 

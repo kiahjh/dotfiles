@@ -43,7 +43,12 @@ it, so switching never changes tracked files.
 - **Wallpaper:** set on every display. Each switch to a theme shows its next
   wallpaper, so all of them come around before the first repeats; `apply`
   keeps the current one. macOS applies it to the current Space only. The first change saves macOS's previous wallpaper settings to
-  `~/.local/state/theme/wallpaper-before-theme.plist`. The
+  `~/.local/state/theme/wallpaper-before-theme.plist`. Changes cross-fade:
+  macOS swaps the picture all at once a couple of seconds after it's set, so
+  `theme` covers each display with the old picture (just below the desktop
+  icons), sets the new one, waits out the swap, and fades the cover over
+  `FADE_SECONDS`. The fade runs on in the background, so `theme` doesn't wait
+  for it. The
   `com.miciah.theme-wallpaper` LaunchAgent (in the `bin` package) runs
   `theme wallpaper next` every 10 minutes. To stop it, run
   `launchctl bootout gui/$(id -u)/com.miciah.theme-wallpaper`.

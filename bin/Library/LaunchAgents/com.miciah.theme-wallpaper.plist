@@ -10,6 +10,8 @@
     <string>wallpaper</string>
     <string>next</string>
   </array>
+  <key>ProcessType</key>
+  <string>Interactive</string>
   <key>StartInterval</key>
   <integer>600</integer>
   <key>EnvironmentVariables</key>
