@@ -1,0 +1,29 @@
+/* Every image starts hidden. content.js marks each one allow, block or error once
+   Jev has seen it. A copy of these rules, without the html prefix, goes into each
+   shadow root (see content.js). */
+
+html:not([data-veil-off]) :is(img, video):not([data-veil="allow"]) {
+  visibility: hidden !important;
+}
+
+/* Blocked images keep their box, but their pixels are pushed out of it. */
+html:not([data-veil-off]) :is(img, video):is([data-veil="block"], [data-veil="error"]) {
+  visibility: visible !important;
+  object-position: -100000px -100000px !important;
+  overflow: clip !important;
+  background: repeating-linear-gradient(45deg, #8881 0 8px, #8883 8px 16px) !important;
+}
+
+html:not([data-veil-off]) [data-veil-bg="pending"] {
+  background-image: none !important;
+}
+
+html:not([data-veil-off]) :is([data-veil-bg="block"], [data-veil-bg="error"]) {
+  background-image: repeating-linear-gradient(45deg, #8881 0 8px, #8883 8px 16px) !important;
+}
+
+html:not([data-veil-off]) :is(img, video)[data-veil="error"],
+html:not([data-veil-off]) [data-veil-bg="error"] {
+  outline: 1px dashed #c33 !important;
+  outline-offset: -1px !important;
+}

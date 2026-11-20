@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Veil options</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body class="page">
+  <h1>Veil</h1>
+  <p class="muted">Every image stays hidden until Jev has checked it. An image is blocked when Jev's
+    probability for any checked question reaches the threshold.</p>
+
+  <form id="form">
+    <section>
+      <h2>TypeSafe</h2>
+      <label>API key <input type="password" name="apiKey" autocomplete="off" spellcheck="false"></label>
+      <label>Model <input type="text" name="model" spellcheck="false"></label>
+    </section>
+
+    <section>
+      <h2>What to block</h2>
+      <div id="categories"></div>
+      <label>Extra rules, one yes/no question per line, where yes means block
+        <textarea name="extraRules" rows="4" placeholder="Is anyone showing bare shoulders?"></textarea>
+      </label>
+      <label>Threshold <span class="muted">(lower is stricter)</span>
+        <input type="number" name="threshold" min="0.01" max="0.99" step="0.01">
+      </label>
+    </section>
+
+    <section>
+      <h2>Behavior</h2>
+      <label class="row"><input type="checkbox" name="failClosed"> Keep images hidden when they can't be checked</label>
+      <label>Check a playing video's current frame every this many seconds
+        <span class="muted">(each check costs about as much as an image)</span>
+        <input type="number" name="videoInterval" min="0.5" max="30" step="0.5">
+      </label>
+      <label>Let through icons smaller than this many pixels a side
+        <input type="number" name="minSide" min="0" max="279" step="1">
+      </label>
+      <label>Paused sites, one per line
+        <textarea name="pausedSites" rows="3" spellcheck="false"></textarea>
+      </label>
+    </section>
+
+    <button type="submit">Save</button>
+    <span id="saved" class="muted"></span>
+  </form>
+
+  <section>
+    <h2>Usage</h2>
+    <p id="usage" class="muted"></p>
+    <button id="clear" type="button">Clear cached answers</button>
+    <span id="cleared" class="muted"></span>
+  </section>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>

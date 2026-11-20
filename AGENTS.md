@@ -54,6 +54,13 @@ See [themes/README.md](themes/README.md).
 a Swift package that `just steward-install` builds into `/Applications/Steward.app`.
 It takes its colors from the current theme. See [steward/README.md](steward/README.md).
 
+## Veil
+
+`veil/` isn't a stow package either. It's the Veil browser extension, which hides
+racy or immodest images and video using TypeSafe's Jev model. Load it unpacked from
+`~/.dotfiles/veil` in Helium. `just veil-e2e` runs its end-to-end test.
+See [veil/README.md](veil/README.md).
+
 ## Adding files
 
 To add a new config file, place it inside the appropriate package directory mirroring its path from `~`. For example, a pi extension at `~/.pi/agent/extensions/foo.ts` goes in:

@@ -9,6 +9,10 @@ test:
   @./capslock/.local/scripts/capslock-test
   @./focal/.local/scripts/focal-test
   @cd steward && swift test
+  @bun test ./veil/
+
+veil-e2e:
+  @bun --install=fallback veil/tests/e2e.js
 
 test-xcode-mcp-router:
   @uv run --python 3.12 --with mcp==2.3.0 python -B -m unittest discover -s scripts/xcode-mcp-router-tests -v
