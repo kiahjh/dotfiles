@@ -33,9 +33,35 @@
 
   // ---- Asking the background worker ----
 
-  async function resolvable(url) {
-    // A blob: URL only works in the page that made it, so read it here.
+  const snapshotCanvas = document.createElement("canvas");
+
+  // What an image or video is showing right now, as a JPEG data URL, at most `maxSide`
+  // pixels a side. "tainted" when the page isn't allowed to read it (cross-origin
+  // without CORS).
+  function snapshot(source, width, height, maxSide) {
+    const scale = Math.min(1, maxSide / Math.max(width, height));
+    snapshotCanvas.width = Math.max(1, Math.round(width * scale));
+    snapshotCanvas.height = Math.max(1, Math.round(height * scale));
+    const context = snapshotCanvas.getContext("2d");
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, snapshotCanvas.width, snapshotCanvas.height);
+    context.drawImage(source, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
+    try {
+      return snapshotCanvas.toDataURL("image/jpeg", 0.85);
+    } catch {
+      return "tainted";
+    }
+  }
+
+  async function resolvable(url, img) {
+    // A blob: URL only works in the page that made it, and pages like iCloud Photos
+    // revoke it as soon as the image loads. Read the pixels from the loaded image,
+    // and only fall back to fetching the blob.
     if (!url.startsWith("blob:")) return url;
+    if (img?.naturalWidth) {
+      const pixels = snapshot(img, img.naturalWidth, img.naturalHeight, 1024);
+      if (pixels !== "tainted") return pixels;
+    }
     const blob = await (await fetch(url)).blob();
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -54,9 +80,9 @@
     }
   }
 
-  async function resultFor(url) {
+  async function resultFor(url, img) {
     try {
-      return await ask({ type: "check", url: await resolvable(url) });
+      return await ask({ type: "check", url: await resolvable(url, img) });
     } catch (error) {
       return { verdict: "error", reasons: [], error: error.message };
     }
@@ -143,7 +169,7 @@
       return;
     }
     img.dataset.veil = "pending";
-    const result = await resultFor(url);
+    const result = await resultFor(url, img);
     if (checkedImg.get(img) !== url) return; // the source changed while we waited
     img.dataset.veil = result.verdict;
     describe(img, result);
@@ -191,21 +217,11 @@
   let videoInterval = 2;
   const videoStates = new WeakMap();
   const liveVideos = new Set();
-  const frameCanvas = document.createElement("canvas");
 
-  // The current frame as a JPEG data URL, "tainted" when the page isn't allowed to
-  // read it (a cross-origin file without CORS), or null before there is a frame.
+  // The current frame (see snapshot), or null before there is one.
   function grabFrame(video) {
     if (video.readyState < 2 || !video.videoWidth) return null;
-    const scale = Math.min(1, 768 / Math.max(video.videoWidth, video.videoHeight));
-    frameCanvas.width = Math.max(1, Math.round(video.videoWidth * scale));
-    frameCanvas.height = Math.max(1, Math.round(video.videoHeight * scale));
-    frameCanvas.getContext("2d").drawImage(video, 0, 0, frameCanvas.width, frameCanvas.height);
-    try {
-      return frameCanvas.toDataURL("image/jpeg", 0.85);
-    } catch {
-      return "tainted";
-    }
+    return snapshot(video, video.videoWidth, video.videoHeight, 768);
   }
 
   function applyVideo(video, state, result) {

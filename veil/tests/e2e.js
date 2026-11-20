@@ -76,6 +76,7 @@ const files = {
   "/racy-shadow.png": ["image/png", png(700, 300, RED)],
   "/racy-late.png": ["image/png", png(900, 300, RED)],
   "/racy-swap.png": ["image/png", png(500, 280, RED)],
+  "/racy-blob.png": ["image/png", png(480, 360, RED)],
   "/icon.png": ["image/png", png(16, 16, [0, 0, 0])],
   "/racy.svg": ["image/svg+xml", svg(400, 300, "#c81e1e")],
   "/icon.svg": ["image/svg+xml", svg(16, 16, "#c81e1e")],
@@ -137,6 +138,17 @@ const page = (crossOrigin) => `<!doctype html>
     document.body.append(late);
   }, 300);
   setTimeout(() => { document.getElementById("swap").src = "/racy-swap.png"; }, 600);
+  // Like iCloud Photos: load a blob: URL off the page, revoke it, then show the image.
+  fetch("/racy-blob.png").then((r) => r.blob()).then((blob) => {
+    const img = new Image();
+    const url = URL.createObjectURL(blob);
+    img.id = "blob";
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      document.body.append(img);
+    };
+    img.src = url;
+  });
 </script>`;
 
 const server = Bun.serve({
@@ -182,7 +194,7 @@ const look = (tab) =>
     const el = (id) => document.getElementById(id) ?? window[id];
     const media = (id) => ({ veil: el(id)?.dataset.veil ?? null, visibility: el(id) && getComputedStyle(el(id)).visibility });
     const bg = (id) => ({ veilBg: el(id).dataset.veilBg ?? null, hasUrl: getComputedStyle(el(id)).backgroundImage.includes("url(") });
-    const ids = ["safe", "racy", "icon", "picture", "late", "swap", "inner", "svg", "svg-icon", "gif", "gif-safe", "video", "video-cors"];
+    const ids = ["blob", "safe", "racy", "icon", "picture", "late", "swap", "inner", "svg", "svg-icon", "gif", "gif-safe", "video", "video-cors"];
     return { ...Object.fromEntries(ids.map((id) => [id, media(id)])), bg: bg("bg"), bgSafe: bg("bg-safe") };
   });
 
@@ -225,6 +237,7 @@ try {
   expectEqual("image in closed shadow root blocked", state.inner, blocked);
   expectEqual("racy background blocked", state.bg, { veilBg: "block", hasUrl: false });
   expectEqual("safe background shown", state.bgSafe, { veilBg: "allow", hasUrl: true });
+  expectEqual("revoked blob: image blocked, read from the page", state.blob, blocked);
   expectEqual("racy SVG blocked", state.svg, blocked);
   expectEqual("SVG icon skipped", state["svg-icon"], shown);
   expectEqual("GIF that turns racy in a later frame blocked", state.gif, blocked);
