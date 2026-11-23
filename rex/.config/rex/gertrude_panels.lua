@@ -104,8 +104,8 @@ panel_action{
 }
 
 -- Fire It Up: the task's dev servers and an ngrok tunnel to its API in a
--- "Servers" tab: the four web servers across the top row, the API and ngrok
--- across the bottom. Running it again switches to that tab.
+-- "Servers" tab as an even grid, two rows of three: Dash, Account and Admin across the top row,
+-- Storybook V2, the API and ngrok across the bottom. Running it again switches to that tab.
 -- The tunnel lets a phone on another network (such as coffee shop Wi-Fi) reach
 -- the local API. Ctrl+C stops one server and leaves a shell in the task, so it
 -- can be rerun there. The ngrok pane shows the public URL first; ngrok's own
@@ -115,13 +115,13 @@ local servers_tab = "Servers"
 -- Gertrude's pinned Swift toolchain can't build against the default Xcode 27 SDK;
 -- Xcode 26.6's command-line tools work (see the repo's AGENTS.kiah.md).
 local api_developer_dir = "DEVELOPER_DIR=/Applications/Xcode 26.6.app/Contents/Developer"
-local web_row = {
+local top_row = {
   {label = "Dash", command = function() return {"just", "web", "dash"} end},
   {label = "Account", command = function() return {"just", "web", "account"} end},
   {label = "Admin", command = function() return {"just", "web", "admin"} end},
-  {label = "Storybook V2", command = function() return {"just", "web", "storybook-v2"} end},
 }
-local api_row = {
+local bottom_row = {
+  {label = "Storybook V2", command = function() return {"just", "web", "storybook-v2"} end},
   {label = "API", command = function() return {"env", api_developer_dir, "just", "watch-api"} end},
   {label = "ngrok", command = function(task)
     if type(task.apiPort) ~= "number" then
@@ -168,7 +168,7 @@ rex.action{
       session_id = session_id,
       window_label = servers_tab,
       focus = true,
-      layout = rex.layout.vertical(0.5, row(web_row, task), row(api_row, task)),
+      layout = rex.layout.vertical(0.5, row(top_row, task), row(bottom_row, task)),
     })
     return {state = "opened"}
   end,

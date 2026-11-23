@@ -24,9 +24,9 @@ program edits the file, even while minimized. `gertrude_todo.nvim.lua` does this
 and is loaded only into that pane's Neovim, not your normal config.
 
 **Fire It Up** opens a **Servers** tab in the task session with two rows, each run
-in the task checkout. The top row has `just web dash`, `just web account`,
-`just web admin`, and `just web storybook-v2`. The bottom row has `just watch-api` and an ngrok tunnel to
-the task's API port. The tunnel lets a phone on a different network reach the local
+of three panes, each run in the task checkout. The top row has `just web dash`,
+`just web account`, and `just web admin`. The bottom row has
+`just web storybook-v2`, `just watch-api`, and an ngrok tunnel to the task's API port. The tunnel lets a phone on a different network reach the local
 API; its pane shows the public URL first (`gertrude_ngrok.sh`), because ngrok's own
 screen puts it below what a short pane can show. Running it again switches to the
 Servers tab instead of starting a second set. Ctrl+C stops one server and leaves a

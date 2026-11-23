@@ -102,9 +102,9 @@ for _, text in ipairs({"Todos", "Todos (0)", "Todos (12)", "Todo", "Todo (3)"}) 
   check_toggles(todo, {text})
 end
 
--- Fire It Up: missing → a new "Servers" tab with the four web servers in equal
--- columns on the top half and the API and ngrok on the bottom half, each in the
--- task with a shell left behind after Ctrl+C.
+-- Fire It Up: missing → a new "Servers" tab with Dash, Account and Admin in
+-- equal columns on the top half and Storybook V2, the API and ngrok on the
+-- bottom half, each in the task with a shell left behind after Ctrl+C.
 mock.result = {ok = true, stdout = '{"directory":"/tasks/demo","apiPort":29850}\n', stderr = ""}
 result = run(fire, empty)
 assert(result.state == "opened")
@@ -143,9 +143,10 @@ local function check_row(node, expected)
 end
 check_row(top.before, {
   {"Dash", {"just", "web", "dash"}}, {"Account", {"just", "web", "account"}},
-  {"Admin", {"just", "web", "admin"}}, {"Storybook V2", {"just", "web", "storybook-v2"}},
+  {"Admin", {"just", "web", "admin"}},
 })
 check_row(top.after, {
+  {"Storybook V2", {"just", "web", "storybook-v2"}},
   {"API", {"env", "DEVELOPER_DIR=/Applications/Xcode 26.6.app/Contents/Developer", "just", "watch-api"}},
   {"ngrok", {"/bin/bash", home .. "/.config/rex/gertrude_ngrok.sh", "29850"}},
 })
