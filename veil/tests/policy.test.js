@@ -31,7 +31,16 @@ describe("buildQuestions", () => {
   test("sends criteria only for categories that have them", () => {
     const { questions } = buildQuestions(withDefaults());
     const withCriteria = Object.keys(questions).filter((id) => questions[id].criteria);
-    expect(withCriteria.map((id) => id.split("_")[0])).toEqual(["bodyFocus"]);
+    expect(withCriteria.map((id) => id.split("_")[0])).toEqual(["nudity", "suggestive", "bodyFocus", "intimacy"]);
+  });
+
+  test("asks about women's clothing and framing only, unless menExempt is off", () => {
+    const wording = (settings) => Object.values(buildQuestions(withDefaults(settings)).questions).map((q) => q.instructions);
+    const exempt = wording({});
+    const everyone = wording({ menExempt: false });
+    expect(exempt.filter((text) => /woman/.test(text))).toHaveLength(3);
+    expect(everyone.filter((text) => /woman/.test(text))).toHaveLength(0);
+    expect(everyone[1]).toBe(CATEGORIES.underwear.instructions);
   });
 
   test("adds a Noul per extra rule, labeled with the rule", () => {
@@ -89,12 +98,9 @@ describe("fitSize", () => {
   const valid = ({ canvasWidth, canvasHeight }) =>
     [canvasWidth, canvasHeight].every((side) => side >= MIN_SIDE && side <= MAX_SIDE);
 
-  test("shrinks big images to 512 on the long side", () => {
-    expect(fitSize(4000, 3000)).toEqual({ drawWidth: 512, drawHeight: 384, canvasWidth: 512, canvasHeight: 384 });
-  });
-
-  test("leaves images that already fit alone", () => {
-    expect(fitSize(400, 300)).toEqual({ drawWidth: 400, drawHeight: 300, canvasWidth: 400, canvasHeight: 300 });
+  test("shrinks big images to 280 on the short side", () => {
+    expect(fitSize(4000, 3000)).toEqual({ drawWidth: 373, drawHeight: 280, canvasWidth: 373, canvasHeight: 280 });
+    expect(fitSize(1080, 1920)).toEqual({ drawWidth: 280, drawHeight: 498, canvasWidth: 280, canvasHeight: 498 });
   });
 
   test("enlarges small images to 280 on the short side", () => {

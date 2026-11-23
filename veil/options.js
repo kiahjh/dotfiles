@@ -18,6 +18,7 @@ async function load() {
   form.extraRules.value = settings.extraRules;
   form.threshold.value = settings.threshold;
   form.failClosed.checked = settings.failClosed;
+  form.menExempt.checked = settings.menExempt;
   form.minSide.value = settings.minSide;
   form.videoInterval.value = settings.videoInterval;
   form.pausedSites.value = settings.pausedSites.join("\n");
@@ -42,6 +43,7 @@ form.addEventListener("submit", async (event) => {
     extraRules: form.extraRules.value,
     threshold: Math.min(0.99, Math.max(0.01, Number(form.threshold.value) || 0.25)),
     failClosed: form.failClosed.checked,
+    menExempt: form.menExempt.checked,
     minSide: Math.max(0, Number(form.minSide.value) || 0),
     videoInterval: Math.min(30, Math.max(0.5, Number(form.videoInterval.value) || 2)),
     pausedSites: form.pausedSites.value.split("\n").map((site) => site.trim()).filter(Boolean),

@@ -84,6 +84,8 @@ const files = {
   "/safe.gif": ["image/gif", ffmpeg("safe.gif", [["green", 1], ["blue", 1]], [])],
   "/turns-racy.webm": ["video/webm", webm([["green", 2.5], ["red", 2.5]])],
   "/racy.webm": ["video/webm", webm([["red", 3]])],
+  "/still.webm": ["video/webm", webm([["yellow", 6]])],
+  "/turns-racy-late.webm": ["video/webm", webm([["green", 1], ["red", 9]])],
 };
 
 // ---- The fake Jev ----
@@ -102,6 +104,7 @@ async function fakeJev(request) {
     model: body.model,
     state: body.state,
     ref,
+    center: [r, g, b],
     questions: Object.values(body.questions),
     size: { width: image.width, height: image.height },
   });
@@ -127,6 +130,9 @@ const page = (crossOrigin) => `<!doctype html>
 <img id="gif-safe" src="/safe.gif">
 <video id="video" src="/turns-racy.webm" autoplay muted playsinline></video>
 <video id="video-cors" src="${crossOrigin}/racy.webm" autoplay muted playsinline></video>
+<video id="still" autoplay muted playsinline></video>
+<div style="height:4000px"></div>
+<video id="offscreen" src="/turns-racy-late.webm" autoplay muted playsinline></video>
 <script>
   const shadow = document.getElementById("host").attachShadow({ mode: "closed" });
   shadow.innerHTML = '<img id="inner" src="/racy-shadow.png">';
@@ -138,6 +144,10 @@ const page = (crossOrigin) => `<!doctype html>
     document.body.append(late);
   }, 300);
   setTimeout(() => { document.getElementById("swap").src = "/racy-swap.png"; }, 600);
+  // Like YouTube and X, which stream into a blob: URL: the page can read its frames.
+  fetch("/still.webm").then((r) => r.blob()).then((blob) => {
+    document.getElementById("still").src = URL.createObjectURL(blob);
+  });
   // Like iCloud Photos: load a blob: URL off the page, revoke it, then show the image.
   fetch("/racy-blob.png").then((r) => r.blob()).then((blob) => {
     const img = new Image();
@@ -160,10 +170,11 @@ const server = Bun.serve({
       const [type, bytes] = files[pathname];
       return new Response(bytes, { headers: { "content-type": type } });
     }
-    return new Response(page(`http://localhost:${server.port}`), { headers: { "content-type": "text/html" } });
+    return new Response(page(`http://media.test:${server.port}`), { headers: { "content-type": "text/html" } });
   },
 });
-const origin = `http://127.0.0.1:${server.port}`;
+// Veil skips localhost, so the test page gets made-up names that Chromium maps to it.
+const origin = `http://veil.test:${server.port}`;
 
 // ---- Run it ----
 
@@ -179,7 +190,13 @@ function playwrightChromium() {
 const context = await chromium.launchPersistentContext(join(work, "profile"), {
   executablePath: process.env.CHROMIUM ?? playwrightChromium(),
   headless: true,
-  args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`, "--autoplay-policy=no-user-gesture-required"],
+  viewport: { width: 1280, height: 2000 },
+  args: [
+    `--disable-extensions-except=${extension}`,
+    `--load-extension=${extension}`,
+    "--autoplay-policy=no-user-gesture-required",
+    "--host-resolver-rules=MAP veil.test 127.0.0.1, MAP media.test 127.0.0.1",
+  ],
 });
 
 let failures = 0;
@@ -194,7 +211,7 @@ const look = (tab) =>
     const el = (id) => document.getElementById(id) ?? window[id];
     const media = (id) => ({ veil: el(id)?.dataset.veil ?? null, visibility: el(id) && getComputedStyle(el(id)).visibility });
     const bg = (id) => ({ veilBg: el(id).dataset.veilBg ?? null, hasUrl: getComputedStyle(el(id)).backgroundImage.includes("url(") });
-    const ids = ["blob", "safe", "racy", "icon", "picture", "late", "swap", "inner", "svg", "svg-icon", "gif", "gif-safe", "video", "video-cors"];
+    const ids = ["blob", "safe", "racy", "icon", "picture", "late", "swap", "inner", "svg", "svg-icon", "gif", "gif-safe", "video", "video-cors", "offscreen"];
     return { ...Object.fromEntries(ids.map((id) => [id, media(id)])), bg: bg("bg"), bgSafe: bg("bg-safe") };
   });
 
@@ -244,6 +261,15 @@ try {
   expectEqual("safe animated GIF shown", state["gif-safe"], shown);
   expectEqual("video blocked once its frames turn racy", state.video, blocked);
   expectEqual("cross-origin video blocked, checked offscreen", state["video-cors"], blocked);
+  const yellow = calls.filter(({ center: [r, g, b] }) => r > 200 && g > 200 && b < 60).length;
+  expectEqual("a video whose picture doesn't change is checked once", yellow, 1);
+  expectEqual("a video played off screen isn't checked again", state.offscreen, shown);
+  await tab.locator("#offscreen").scrollIntoViewIfNeeded();
+  await tab.waitForTimeout(100);
+  expectEqual("...until it's back on screen, hidden until then", (await look(tab)).offscreen.visibility, "hidden");
+  await tab.waitForTimeout(1000);
+  expectEqual("...where it's checked again", (await look(tab)).offscreen, blocked);
+  await tab.evaluate(() => scrollTo(0, 0));
 
   // Hovering a blocked image says why.
   const racy = await tab.locator("#racy").boundingBox();
@@ -262,11 +288,11 @@ try {
   const first = calls[0];
   expectEqual("sends the key and the images header", [first.auth, first.images, first.model], ["Bearer test-key", "true", "jev-latest"]);
   expectEqual("state refers to the asset", first.state, { image: first.ref });
-  expectEqual("asks every category, with criteria where defined", first.questions.map((q) => !!q.criteria), [false, false, false, false, true, false]);
+  expectEqual("asks every category, with criteria where defined", first.questions.map((q) => !!q.criteria), [true, false, false, true, true, true]);
   const outOfBounds = calls.map((call) => call.size).filter(({ width, height }) => Math.min(width, height) < 280 || Math.max(width, height) > 1568);
   expectEqual("every image sent fits Jev's limits", outOfBounds, []);
 
-  // A reload answers images from the cache; only video frames go to Jev again.
+  // A reload answers images from the cache; only the four videos' frames go to Jev again.
   await tab.goto("about:blank");
   const before = calls.length;
   await worker.evaluate(async () => {
@@ -275,13 +301,13 @@ try {
   });
   await tab.goto(origin);
   await tab.waitForTimeout(1500);
-  expectEqual("reload uses the cache for images", calls.length - before <= 2, true);
+  expectEqual("reload uses the cache for images", calls.length - before <= 4, true);
   expectEqual("still blocked after reload", await tab.evaluate(() => document.getElementById("racy").dataset.veil), "block");
 
   // Paused sites are left alone.
   await worker.evaluate(async () => {
     const { settings } = await chrome.storage.local.get("settings");
-    await chrome.storage.local.set({ settings: { ...settings, pausedSites: ["127.0.0.1"] } });
+    await chrome.storage.local.set({ settings: { ...settings, pausedSites: ["veil.test"] } });
   });
   await tab.reload();
   await tab.waitForTimeout(500);
@@ -289,6 +315,15 @@ try {
     "paused site shows everything",
     await tab.evaluate(() => [document.documentElement.hasAttribute("data-veil-off"), getComputedStyle(document.getElementById("racy")).visibility]),
     [true, "visible"],
+  );
+
+  // Localhost is never touched, so dev servers don't see Veil's attributes.
+  await tab.goto(`http://localhost:${server.port}`);
+  await tab.waitForTimeout(500);
+  expectEqual(
+    "localhost left alone",
+    await tab.evaluate(() => [document.querySelectorAll("[data-veil], [data-veil-bg], [data-veil-off]").length, getComputedStyle(document.getElementById("racy")).visibility]),
+    [0, "visible"],
   );
 } finally {
   await context.close();

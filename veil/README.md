@@ -21,7 +21,16 @@ After editing the code, click the reload arrow on Veil's card in `chrome://exten
   spread across the animation, and blocked if any frame is.
 - **Video:** `<video>` stays hidden until its poster or first frame is checked. While it
   plays, Veil checks the current frame every 2 seconds (configurable), and again after
-  every seek. A blocked video stays hidden until two checks in a row look fine.
+  every seek. A blocked video stays hidden until two checks in a row look fine. To save
+  money, a frame that looks the same as the last one checked isn't sent again, and a
+  video that's off screen or in a background tab isn't checked; when it comes back into
+  view it's hidden until its frame has been checked.
+
+By default Veil is gender-aware: swimwear, tight or revealing clothing, and framing
+that shows off the body only count on women and girls, so a shirtless man or a man in
+fitted clothes is fine. Turn off **Only flag women for swimwear...** to apply them to
+everyone. Kissing and sensual touching are blocked, but a couple posing with an arm
+around each other or a hug isn't.
 
 Hover over anything Veil hid to see why: the questions that reached the threshold and
 Jev's probability for each.
@@ -31,8 +40,8 @@ Jev's probability for each.
 - `content.css` hides every `<img>` and `<video>` from the first paint. `content.js`
   finds each image and video and asks the background worker for a verdict. It grabs
   video frames itself (this works for streaming sites such as YouTube and X).
-- `background.js` fetches each image, shrinks it to 512 pixels on the long side (or
-  enlarges or pads it to Jev's 280-pixel minimum), and sends it to Jev as a JPEG. It
+- `background.js` fetches each image, scales it to Jev's minimum of 280 pixels on the
+  short side (padding very thin images), and sends it to Jev as a JPEG. It
   sends one image per request, with one Noul question per category.
 - `offscreen.js` runs in a hidden extension page and does what the worker can't: it
   draws SVGs, decodes animation frames, and grabs frames from cross-origin video files
@@ -52,12 +61,22 @@ can't be checked**.
 The popup shows how many things were hidden on the page, any recent error, and a
 switch to pause Veil on the current site.
 
+Veil doesn't run on localhost (`localhost`, `*.localhost`, `127.0.0.1`, `[::1]`), so the
+attributes it adds don't trip hydration-mismatch errors in local dev servers.
+
 ## Cost
 
 Jev charges $0.042 per million input tokens and nothing for output. The options page
-adds up the tokens Jev reports. In real browsing an image came to about 850 tokens,
-so about 28,000 images per dollar. A video costs one image's worth per check: at one
-check every 2 seconds, an hour of video is 1,800 checks, about $0.06.
+adds up the tokens Jev reports. A check costs about 270 tokens per image, plus about
+1 token per 350 pixels it sends, plus the questions (about 450 tokens for the
+default six). At 280 pixels on the short side, that's about 1,040 tokens a check, so
+about 23,000 images per dollar. A video costs one image's worth per check: at one
+check every 2 seconds, an hour of video whose picture keeps changing is 1,800 checks,
+about $0.08.
+
+Avatars are a large share of what gets checked: about a third of the images in a few
+days of browsing were profile pictures of 96 pixels or less. Raising **Let through
+icons smaller than this many pixels a side** to 97 lets them through unchecked.
 
 ## Limits
 

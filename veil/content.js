@@ -33,7 +33,9 @@
 
   // ---- Asking the background worker ----
 
-  const snapshotCanvas = document.createElement("canvas");
+  // Once anything cross-origin is drawn on a canvas, the canvas can never be read
+  // again, so a tainted canvas is replaced rather than reused.
+  let snapshotCanvas = document.createElement("canvas");
 
   // What an image or video is showing right now, as a JPEG data URL, at most `maxSide`
   // pixels a side. "tainted" when the page isn't allowed to read it (cross-origin
@@ -49,6 +51,7 @@
     try {
       return snapshotCanvas.toDataURL("image/jpeg", 0.85);
     } catch {
+      snapshotCanvas = document.createElement("canvas");
       return "tainted";
     }
   }
@@ -224,6 +227,65 @@
     return snapshot(video, video.videoWidth, video.videoHeight, 768);
   }
 
+  // A 32×32 thumbnail of the current frame, to tell whether the picture has changed
+  // since Jev last saw it. Null when the page can't read the video's pixels.
+  const SIGNATURE_SIDE = 32;
+  const signatureCanvas = () => new OffscreenCanvas(SIGNATURE_SIDE, SIGNATURE_SIDE).getContext("2d", { willReadFrequently: true });
+  let signatureContext = signatureCanvas();
+
+  function signatureOf(video) {
+    signatureContext.drawImage(video, 0, 0, SIGNATURE_SIDE, SIGNATURE_SIDE);
+    try {
+      return signatureContext.getImageData(0, 0, SIGNATURE_SIDE, SIGNATURE_SIDE).data;
+    } catch {
+      signatureContext = signatureCanvas(); // see snapshotCanvas
+      return null;
+    }
+  }
+
+  // Changed when more than 1% of the thumbnail's pixels moved by more than a little,
+  // so compression noise doesn't count but a cut, a pan or a new overlay does.
+  function changed(before, after) {
+    let moved = 0;
+    for (let i = 0; i < after.length; i += 4) {
+      const delta = Math.max(
+        Math.abs(after[i] - before[i]),
+        Math.abs(after[i + 1] - before[i + 1]),
+        Math.abs(after[i + 2] - before[i + 2]),
+      );
+      if (delta > 32 && ++moved > (SIGNATURE_SIDE * SIGNATURE_SIDE) / 100) return true;
+    }
+    return false;
+  }
+
+  // Frames are only checked while someone could see them: the tab is showing and
+  // the video is on screen. A video that played out of sight is hidden again when
+  // it comes back, until its frame has been checked.
+  const onScreen = new WeakSet();
+  const screenObserver = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) {
+        onScreen.add(entry.target);
+        resume(entry.target);
+      } else {
+        onScreen.delete(entry.target);
+      }
+    }
+  });
+  const seen = (video) => !document.hidden && onScreen.has(video);
+
+  function resume(video) {
+    const state = videoStates.get(video);
+    if (!state?.missed || !seen(video)) return;
+    state.missed = false;
+    if (video.dataset.veil === "allow") video.dataset.veil = "pending";
+    checkFrame(video, state);
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) for (const video of liveVideos) resume(video);
+  });
+
   function applyVideo(video, state, result) {
     if (result.verdict === "allow") {
       state.safe += 1;
@@ -249,15 +311,23 @@
     state.lastCheck = performance.now();
     const src = video.currentSrc;
     try {
+      if (video.readyState < 2 || !video.videoWidth) return;
+      // A picture Jev has already judged keeps its verdict.
+      const signature = signatureOf(video);
+      if (state.framesChecked && signature && state.signature && !changed(state.signature, signature)) {
+        if (video.dataset.veil === "pending") video.dataset.veil = state.shown;
+        return;
+      }
       const frame = grabFrame(video);
-      if (!frame) return;
       const result =
         frame === "tainted"
           ? await ask({ type: "checkVideoAt", url: src, time: video.currentTime })
           : await ask({ type: "checkFrame", dataUrl: frame });
       if (video.currentSrc !== src) return;
       state.framesChecked = true;
+      state.signature = signature;
       applyVideo(video, state, result);
+      state.shown = video.dataset.veil;
     } finally {
       state.busy = false;
       if (state.again) {
@@ -280,8 +350,19 @@
   function trackVideo(video) {
     liveVideos.add(video);
     if (videoStates.has(video)) return;
-    const state = { busy: false, again: false, lastCheck: 0, safe: 0, counted: false, framesChecked: false };
+    const state = {
+      busy: false,
+      again: false,
+      lastCheck: 0,
+      safe: 0,
+      counted: false,
+      framesChecked: false,
+      signature: null,
+      shown: null,
+      missed: false,
+    };
     videoStates.set(video, state);
+    screenObserver.observe(video);
 
     video.addEventListener("loadeddata", () => {
       // Keep the first frames hidden until one has been checked.
@@ -294,7 +375,7 @@
     video.addEventListener("seeked", () => checkFrame(video, state));
     video.addEventListener("emptied", () => {
       delete video.dataset.veil;
-      Object.assign(state, { safe: 0, framesChecked: false });
+      Object.assign(state, { safe: 0, framesChecked: false, signature: null });
       checkPoster(video, state);
     });
 
@@ -311,7 +392,9 @@
       }
       const state = videoStates.get(video);
       const playing = !video.paused && !video.ended && video.readyState >= 2;
-      if (playing && now - state.lastCheck >= videoInterval * 1000) checkFrame(video, state);
+      if (!playing || now - state.lastCheck < videoInterval * 1000) continue;
+      if (seen(video)) checkFrame(video, state);
+      else state.missed = true;
     }
   }, 250);
 

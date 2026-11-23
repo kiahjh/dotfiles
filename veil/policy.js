@@ -15,6 +15,8 @@ export const DEFAULT_SETTINGS = {
     bodyFocus: true,
     intimacy: true,
   },
+  // Ask about women's clothing and framing only, not men's.
+  menExempt: true,
   // One extra yes/no question per line, where yes means block.
   extraRules: "",
   // Images whose natural width and height are both under this are icons: let them through.
@@ -26,26 +28,53 @@ export const DEFAULT_SETTINGS = {
   pausedSites: [],
 };
 
+// `instructions` and `criteria` are what Jev is asked. When the menExempt setting is
+// on, a category's `menExempt` replaces them, so that a shirtless man or a man in
+// fitted clothes isn't blocked.
 export const CATEGORIES = {
   nudity: {
     label: "Nudity or sexual content",
     instructions:
       "Does `image` show nudity, partial nudity, or sexual content of any kind?",
+    menExempt: {
+      instructions: "Does `image` show nudity or sexual content?",
+      criteria: {
+        true: "Bare breasts, buttocks or genitals, a man in only his underwear, or sexual activity.",
+        false: "Everyone is covered. A shirtless man or a man in swim trunks doesn't count.",
+      },
+    },
   },
   underwear: {
     label: "Underwear, lingerie or swimwear",
     instructions:
       "Is anyone in `image` wearing underwear, lingerie, a swimsuit, a bikini, or similar?",
+    menExempt: {
+      instructions: "Is a woman or girl in `image` wearing underwear, lingerie, a swimsuit, or a bikini?",
+    },
   },
   revealing: {
     label: "Revealing or tight clothing",
     instructions:
       "Is anyone in `image` wearing revealing or immodest clothing, such as a low neckline, visible cleavage, a bare midriff, a very short skirt or shorts, sheer fabric, or clothing tight enough to emphasize their body?",
+    menExempt: {
+      instructions:
+        "Is a woman or girl in `image` wearing revealing or immodest clothing, such as a low neckline, cleavage, a bare midriff, a short skirt or shorts, sheer fabric, or clothes tight enough to show her figure?",
+    },
   },
   suggestive: {
     label: "Suggestive poses or expressions",
-    instructions:
-      "Is anyone in `image` posing, dressing, or behaving in a way that is suggestive, seductive, flirtatious, or sexualized?",
+    // Without criteria, Jev counted couples posing for ordinary photos.
+    instructions: "Is anyone in `image` posing or behaving in a seductive or sexualized way?",
+    criteria: {
+      true: "A come-hither look, a pose showing off the body, lying or arching provocatively, or sexualized dancing.",
+      false: "An ordinary pose or smile for a photo, a couple standing close or hugging, or everyday activity.",
+    },
+    menExempt: {
+      criteria: {
+        true: "A come-hither look, a pose showing off the body, lying or arching provocatively, or sexualized dancing.",
+        false: "An ordinary pose or smile for a photo, a couple standing close or hugging, everyday activity, or a man who is shirtless or flexing.",
+      },
+    },
   },
   bodyFocus: {
     label: "Framing that focuses on the body",
@@ -57,11 +86,23 @@ export const CATEGORIES = {
       true: "The body or a body part is what the picture is about, such as a cropped torso, a pose that displays curves, or a close-up of legs or cleavage.",
       false: "A face, headshot, portrait, group photo, cartoon, logo, product, or scene, where any body shown is incidental.",
     },
+    menExempt: {
+      instructions:
+        "Is `image` composed to show off a woman's or girl's body, with her chest, buttocks, hips, or legs as the main subject?",
+      criteria: {
+        true: "Her body or a body part is the subject, such as a cropped torso, a pose that displays curves, or a close-up of legs or cleavage.",
+        false: "A face, portrait, group photo, cartoon, logo, product, or scene where any body shown is incidental, or a picture of a man.",
+      },
+    },
   },
   intimacy: {
     label: "Kissing or physical intimacy",
-    instructions:
-      "Does `image` show romantic or sexual physical intimacy, such as kissing, embracing in bed, or caressing?",
+    // Without criteria, Jev counted a couple posing with an arm around each other.
+    instructions: "Does `image` show kissing or sensual physical intimacy?",
+    criteria: {
+      true: "Kissing, lying together in bed, caressing, or a sensual embrace.",
+      false: "People standing or sitting together, an arm around a shoulder or waist, holding hands, a friendly hug, or a posed couple, wedding, or family photo.",
+    },
   },
 };
 
@@ -107,7 +148,7 @@ export function buildQuestions(settings) {
   };
   for (const [name, category] of Object.entries(CATEGORIES)) {
     if (settings.categories[name]) {
-      const { instructions, criteria } = category;
+      const { instructions, criteria } = { ...category, ...(settings.menExempt && category.menExempt) };
       add(name, category.label, { type: "noul", instructions, ...(criteria && { criteria }) });
     }
   }
@@ -132,17 +173,17 @@ export function decide(nouls, { questions, labels }, settings) {
   return { verdict: reasons.length ? "block" : "allow", reasons };
 }
 
-// Jev takes images 280 to 1568 pixels a side. Veil shrinks big ones to `maxSide`
-// on the long side, enlarges small ones to 280 on the short side, and pads the
-// short side when an extreme aspect ratio makes both impossible.
+// Jev takes images 280 to 1568 pixels a side, and charges by the pixel. Veil scales
+// every image to 280 on the short side, the smallest Jev takes, and pads the short
+// side when an extreme aspect ratio would make the long side too long. Against a
+// set of test photos, Jev answered as well at this size as at 512 on the long side.
 export const MIN_SIDE = 280;
 export const MAX_SIDE = 1568;
 
-export function fitSize(width, height, maxSide = 512) {
+export function fitSize(width, height) {
   const long = Math.max(width, height);
   const short = Math.min(width, height);
-  let scale = Math.min(1, maxSide / long);
-  if (short * scale < MIN_SIDE) scale = MIN_SIDE / short;
+  let scale = MIN_SIDE / short;
   if (long * scale > MAX_SIDE) scale = MAX_SIDE / long;
   const drawWidth = Math.max(1, Math.round(width * scale));
   const drawHeight = Math.max(1, Math.round(height * scale));
