@@ -458,17 +458,20 @@ def pick(name):
     """Choose a theme with fzf, previewing each palette."""
     if not shutil.which("fzf"):
         raise SystemExit("theme set needs a theme name (or fzf to pick one).")
-    rows = [f"{theme}\t{generate.palette(theme)['mode']}\t{len(wallpapers(theme))} wallpapers"
-            for theme in generate.names()]
+    # Pad with spaces: fzf expands tabs to fixed stops, which misaligns columns.
+    themes = generate.names()
+    width = max(map(len, themes))
+    rows = [f"{theme:<{width}}  {generate.palette(theme)['mode']:<5}  {len(wallpapers(theme))} wallpapers"
+            for theme in themes]
     launcher = shutil.which("theme") or f"{sys.executable} {Path(__file__)}"
     result = subprocess.run(
-        ["fzf", "--delimiter", "\t", "--nth", "1", "--reverse", "--height", "60%",
+        ["fzf", "--nth", "1", "--reverse", "--height", "60%",
          "--prompt", "theme> ", "--header", f"current: {name or 'none'}",
          "--preview", f"{launcher} swatches {{1}}", "--preview-window", "right:55%"],
         input="\n".join(rows), stdout=subprocess.PIPE, text=True)
     if result.returncode != 0:
         raise SystemExit(0)  # Escape or no match: leave the theme alone.
-    return result.stdout.split("\t")[0].strip()
+    return result.stdout.split()[0]
 
 
 def step(name, offset):

@@ -240,14 +240,16 @@ class Switching(unittest.TestCase):
 
         def fzf(command, **kwargs):
             picked.append((command, kwargs["input"]))
-            return subprocess.CompletedProcess(command, 0, stdout="rose-pine\tdark\t12 wallpapers\n")
+            return subprocess.CompletedProcess(command, 0, stdout="rose-pine         dark   12 wallpapers\n")
 
         with patch("theme.subprocess.run", fzf):
             status, output = self.theme("set", "--only", "opencode")
         command, rows = picked[0]
         self.assertEqual(command[0], "fzf")
         self.assertIn("swatches {1}", " ".join(command))
-        self.assertEqual(sorted(row.split("\t")[0] for row in rows.splitlines()), generate.names())
+        self.assertEqual(sorted(row.split()[0] for row in rows.splitlines()), generate.names())
+        # Columns line up: every mode starts at the same place.
+        self.assertEqual(len({row.index(" dark") if " dark " in row else row.index(" light") for row in rows.splitlines()}), 1)
         self.assertEqual(theme.current(), "rose-pine")
 
     def test_escaping_fzf_leaves_the_theme_alone(self):
