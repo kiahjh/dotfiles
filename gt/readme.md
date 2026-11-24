@@ -55,9 +55,11 @@ grouped in the **Gertrude** category.
 - **Reopen Task** always shows the task list. The others use the source session's
   registered task, and show the list only when there isn't one. They never guess
   from a pane's cwd. Support is not included in disposable task choices.
-- **Finish** requires typing `finish <task>`, **Discard** `discard <task>`, and
-  **Refresh Task Databases** `refresh <task>`, even when passed a task argument.
-  All underlying checks still apply.
+- **Finish** and **Refresh Task Databases** confirm by choosing the one item,
+  which names the task and says what happens. **Discard** loses work, so it
+  requires typing `discard <task>`. Every one confirms, even when passed a task
+  argument, and all underlying checks still apply. Titles stay short, because Rex
+  cuts long ones off. A rejected answer's problem becomes the title.
 
 Once everything is answered, **Open Support** and **Reopen Task** run directly,
 without a terminal. Longer work runs in an independent job session with a readable
@@ -157,6 +159,10 @@ gt refresh-db duo-support
 `refresh-db` intentionally replaces both databases with the latest scrubbed dump;
 it destroys task-local database edits. `setup-env-db` remains an alias for this
 destructive operation. Partial setup/cleanup retains its resource record for retry.
+If removing a finishing task's worktree stops partway, after Git has already
+unregistered it, running finish again deletes the leftover directory itself. It
+does this only when the checkout's `.git` still points to this task's repository
+at a registration that no longer exists.
 If a fork's initial code copy fails, inspect it or explicitly discard it rather
 than treating it as a complete fork.
 

@@ -248,11 +248,31 @@ export function workspaceFinishProblems(task: Workspace): string[] {
   return problems;
 }
 
+// A finish that stopped partway, such as when removing the worktree failed
+// midway, can leave files in a checkout whose Git registration is already gone.
+// Only such a leftover, still pointing into this task's repository, is deleted directly.
+function finishLeftover(task: Workspace): boolean {
+  if (task.phase !== "finishing" || realpathSync(task.directory) !== task.directory) return false;
+  let pointer: string;
+  try {
+    pointer = readFileSync(join(task.directory, ".git"), "utf8");
+  } catch {
+    return false;
+  }
+  const pointed = /^gitdir: (.+)$/.exec(pointer.trim())?.[1];
+  if (!pointed) return false;
+  const gitdir = resolve(task.directory, pointed);
+  return dirname(gitdir) === join(task.gitCommonDir, "worktrees") && !existsSync(gitdir);
+}
+
 export async function finishWorkspace(argument?: string, discard = false): Promise<void> {
   const initial = findWorkspace(argument);
   await withResourceLock(workspaceLock(initial.id), async () => {
     const task = findWorkspace(initial.id);
-    if (existsSync(task.directory)) {
+    const leftover = existsSync(task.directory) && finishLeftover(task);
+    if (leftover) {
+      console.log("Removing what's left of the checkout from an earlier finish that stopped partway.");
+    } else if (existsSync(task.directory)) {
       verifyWorkspace(task);
       const gitDir = realpathSync(git(task.directory, ["rev-parse", "--path-format=absolute", "--git-dir"]));
       if (gitDir === task.gitCommonDir) fail("refusing to delete a main checkout");
@@ -282,7 +302,11 @@ export async function finishWorkspace(argument?: string, discard = false): Promi
     dropWorkspaceDatabases(task);
     task.databasesReady = false;
     writeWorkspace(task);
-    if (existsSync(task.directory)) {
+    if (leftover) {
+      rmSync(task.directory, { recursive: true, force: true });
+      run("git", ["--git-dir", task.gitCommonDir, "worktree", "prune"]);
+      oc("post", "/api/worktree/refresh", { projectID: task.projectID });
+    } else if (existsSync(task.directory)) {
       oc("post", "/api/worktree/refresh", { projectID: task.projectID });
       oc("delete", "/api/worktree", { projectID: task.projectID, directory: task.directory, force: true });
     }

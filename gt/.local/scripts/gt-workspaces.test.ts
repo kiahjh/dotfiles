@@ -253,6 +253,27 @@ test("cleanup failure retains the checkout and resource record for retry", () =>
   });
 });
 
+test("finish completes after a worktree removal that stopped partway, and only then deletes the leftover directly", () => {
+  fixture((f) => {
+    succeeded(f.invoke(["new", "demo", "--no-open"]));
+    const task = f.tasks()[0];
+    // Like a removal that unregistered the worktree but left some files behind.
+    const registration = readFileSync(join(task.directory, ".git"), "utf8").trim().replace(/^gitdir: /, "");
+    rmSync(registration, { recursive: true });
+    rmSync(join(task.directory, "web"), { recursive: true });
+    expect(f.invoke(["finish", "demo"]).status).toBe(1);
+    expect(existsSync(task.directory)).toBe(true);
+    expect(f.tasks()[0].phase).toBe("ready");
+
+    const stuck = f.tasks()[0];
+    writeFileSync(join(f.root, "state", "tasks", `${stuck.id}.json`), JSON.stringify({ ...stuck, phase: "finishing" }));
+    succeeded(f.invoke(["finish", "demo"]));
+    expect(existsSync(task.directory)).toBe(false);
+    expect(f.tasks()).toHaveLength(0);
+    expect(git(join(f.root, "repository"), "branch", "--list", task.branch!)).toBe("");
+  });
+});
+
 test("support is permanent, idempotent, and never provisions or refreshes databases", () => {
   fixture((f) => {
     mkdirSync(join(f.root, "support", ".git"), { recursive: true });

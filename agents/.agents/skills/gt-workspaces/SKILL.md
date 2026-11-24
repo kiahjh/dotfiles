@@ -16,8 +16,8 @@ without a terminal; provisioning and cleanup run in readably named job sessions
 that only show progress. Empty job sessions are removed after their terminals
 close; renamed or repurposed sessions are preserved. `gt rex-plan`/`gt rex-action`
 are internal adapters, not a way to bypass authorization or cleanup checks.
-Destructive palette actions require a task-specific typed confirmation; support
-is never disposable.
+Destructive palette actions require a task-specific confirmation (typed for
+discard); support is never disposable.
 
 - `gt list`: find registered tasks, including adopted Helve worktrees.
 - `gt new <name>`: native worktree from latest origin/master, isolated scrubbed

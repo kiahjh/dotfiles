@@ -153,7 +153,7 @@ function chooseTask(request: RexRequest): Workspace | { ask: RexPrompt } {
 /** Why a new task (or a fork of parent) can't use this name, if it can't. */
 function nameProblem(name: string, parent?: Workspace): string | undefined {
   if (!name) return "enter a name";
-  if (!isValidSlug(name)) return "use letters, digits, '.', '_' or '-', starting with a letter or digit";
+  if (!isValidSlug(name)) return "use only letters, digits, . _ - and start with a letter or digit";
   if (name === MASTER_BRANCH) return `the name can't be ${MASTER_BRANCH}`;
   if (!parent && name === "support") return "support is permanent; use Open Support";
   const title = parent ? `${parent.name}/${name}` : name;
@@ -171,11 +171,11 @@ function nameProblem(name: string, parent?: Workspace): string | undefined {
 function askName(name: string | undefined, prompt: { title: string; placeholder: string; confirm: string }, parent?: Workspace): Resolved | string {
   const problem = name === undefined ? undefined : nameProblem(name, parent);
   if (name !== undefined && !problem) return name;
-  return { ask: { field: "name", kind: "input", prompt: { ...prompt, title: problem ? `${prompt.title}: ${problem}` : prompt.title, value: name } }, problem };
+  return { ask: { field: "name", kind: "input", prompt: { ...prompt, title: problem ? sentence(problem) : prompt.title, value: name } }, problem };
 }
 
 function askPullRequest(value: string | undefined, problem: string | undefined, pullRequests: () => PullRequest[] | undefined): Resolved {
-  const title = problem ? `Review a pull request: ${problem}` : "Review a pull request";
+  const title = problem ? sentence(problem) : "Review a pull request";
   const listed = pullRequests();
   if (!listed) {
     return { ask: { field: "number", kind: "input", prompt: { title, placeholder: "Pull request number, like 943", value, confirm: "Review PR" } }, problem };
@@ -190,12 +190,30 @@ function askPullRequest(value: string | undefined, problem: string | undefined, 
   } } };
 }
 
-const consequences = {
-  finish: (name: string) => `Finish ${name}? Its checkout, databases, and Rex session are removed (it must be clean and merged)`,
-  discard: (name: string) => `Discard ${name}? This deletes its checkout, databases, and Rex session, including uncommitted and unmerged work`,
-  "refresh-db": (name: string) => `Replace ${name}'s databases with the scrubbed snapshot? Local database edits are lost`,
-};
-const confirmLabels = { finish: "Finish task", discard: "Discard task", "refresh-db": "Replace databases" };
+// Rex shows a prompt's title on one short line, so details go in an item's
+// subtitle. Finish and refresh confirm by choosing the one item, whose id is
+// the confirmation phrase; discard loses work, so its phrase is typed.
+function askConfirmation(operation: "finish" | "discard" | "refresh-db", task: Workspace, answer: string | undefined): Resolved {
+  const phrase = rexConfirmation(operation, task);
+  const problem = answer === undefined ? undefined : `type “${phrase}” exactly`;
+  if (operation === "discard") {
+    return { problem, ask: { field: "confirm", kind: "input", prompt: {
+      title: problem ? `Type “${phrase}” exactly to discard` : `Discard ${task.name} and all its work?`,
+      placeholder: `Type “${phrase}” to confirm`, value: answer, confirm: "Discard task",
+    } } };
+  }
+  const item = operation === "finish"
+    ? { title: `Finish ${task.name}`, subtitle: "Removes its checkout, databases, and Rex session. It must be clean and merged.", icon: "branch" }
+    : { title: `Replace ${task.name}'s databases`, subtitle: "Restores the scrubbed snapshot. Local database edits are lost.", icon: "database" };
+  return { problem, ask: { field: "confirm", kind: "pick", prompt: {
+    title: operation === "finish" ? `Finish ${task.name}?` : `Refresh ${task.name}'s databases?`,
+    confirm: operation === "finish" ? "Finish task" : "Replace databases", items: [{ id: phrase, ...item }],
+  } } };
+}
+
+function sentence(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
 
 function resolveRexAction(request: RexRequest, pullRequests: () => PullRequest[] | undefined): Resolved {
   const { operation, args } = request;
@@ -229,15 +247,8 @@ function resolveRexAction(request: RexRequest, pullRequests: () => PullRequest[]
     return typeof name === "string" ? { run: "job", title: `Fork ${task.name}/${name}`, focus: true, task, name } : name;
   }
 
-  // Destructive: always a typed, task-specific confirmation, even with a task argument.
-  const phrase = rexConfirmation(operation, task);
-  if (args.confirm !== phrase) {
-    const problem = args.confirm === undefined ? undefined : `type “${phrase}” exactly`;
-    return { problem, ask: { field: "confirm", kind: "input", prompt: {
-      title: problem ? `${consequences[operation](task.name)}. To confirm, ${problem}` : consequences[operation](task.name),
-      placeholder: `Type “${phrase}” to confirm`, confirm: confirmLabels[operation],
-    } } };
-  }
+  // Destructive: always a task-specific confirmation, even with a task argument.
+  if (args.confirm !== rexConfirmation(operation, task)) return askConfirmation(operation, task, args.confirm);
   const verb = { finish: "Finish", discard: "Discard", "refresh-db": "Refresh databases:" }[operation];
   return { run: "job", title: `${verb} ${task.name}`, focus: false, task };
 }
@@ -325,7 +336,9 @@ export async function runRexAction(operation: string, raw: string): Promise<void
     status("error", "Gertrude task action failed");
     if (!process.stdin.isTTY) throw error;
     console.error(error instanceof GtError || error instanceof Error ? error.message : String(error));
-    console.error("The operation did not finish. Recorded task resources are retained for recovery; use Resume Task Setup when appropriate.");
+    const retries: Record<string, string> = { finish: "run Finish Task again", discard: "run Discard Task again", "refresh-db": "run Refresh Task Databases again" };
+    const retry = retries[operation];
+    console.error(`The operation did not finish. Recorded task resources are retained for recovery; ${retry ?? "use Resume Task Setup when appropriate"}.`);
     // Background jobs aren't on screen; bring this one up so the failure is seen.
     selectSession(request, process.env.REX_SESSION);
     await waitForReturn();

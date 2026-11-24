@@ -81,7 +81,7 @@ assert(count == 9, "expected nine palette actions")
 
 -- Questions go to the palette; answers go back to gt until it says to run.
 local name_question = {field = "name", kind = "input", prompt = {title = "New task", confirm = "Create task"}}
-reset({{ask = name_question}, {ask = {field = "name", kind = "input", prompt = {title = "New task: already exists", value = "taken"}}},
+reset({{ask = name_question}, {ask = {field = "name", kind = "input", prompt = {title = "Taken already exists", value = "taken"}}},
   {run = "job", title = "New demo", focus = true}}, {{"taken"}, {"demo"}})
 local result = registered.gt_new.run(palette, {})
 assert(#prompts == 2 and prompts[1].kind == "input" and prompts[1].prompt.title == "New task")

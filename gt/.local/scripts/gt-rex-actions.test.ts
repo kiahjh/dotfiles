@@ -67,10 +67,11 @@ const asked = (result: RexPlan) => {
 test("Rex plans ask for a task name until it is usable, then run a focused job", () => {
   withTasks(() => {
     expect(asked(plan("new", { args: {} }))).toMatchObject({ field: "name", kind: "input", prompt: { title: "New task" } });
-    for (const [name, problem] of [["", "enter a name"], ["bad name", "use letters"], ["master", "can't be master"],
-      ["support", "support is permanent"], ["demo", "demo already exists"]]) {
+    // The problem is the whole title, because Rex cuts long titles off at the end.
+    for (const [name, problem] of [["", "Enter a name"], ["bad name", "Use only letters"], ["master", "The name can't be master"],
+      ["support", "Support is permanent"], ["demo", "Demo already exists"]]) {
       const question = asked(plan("new", { args: { name } }));
-      expect(question.prompt.title).toContain(problem);
+      expect(question.prompt.title.startsWith(problem)).toBe(true);
       expect(question.prompt.value).toBe(name);
     }
     expect(plan("new", { args: { name: "fresh" } })).toEqual({ run: "job", title: "New fresh", focus: true });
@@ -106,19 +107,34 @@ test("Rex task plans use the source session's task, except reopen, which always 
   });
 });
 
-test("Rex destructive plans require the exact typed phrase and run in the background", () => {
+test("Rex finish and refresh confirm by choosing their one item and run in the background", () => {
   withTasks(() => {
-    for (const [operation, phrase] of [["finish", "finish demo"], ["discard", "discard demo"], ["refresh-db", "refresh demo"]]) {
+    for (const [operation, phrase, title] of [["finish", "finish demo", "Finish demo?"], ["refresh-db", "refresh demo", "Refresh demo's databases?"]]) {
       const context = { sourceSession: "session:demo", args: {} };
       const question = asked(plan(operation, context));
-      expect(question).toMatchObject({ field: "confirm", kind: "input" });
-      expect(question.prompt.placeholder).toContain(phrase);
+      expect(question).toMatchObject({ field: "confirm", kind: "pick", prompt: { title } });
+      expect(question.prompt.items!.map((item) => item.id)).toEqual([phrase]);
+      expect(question.prompt.items![0].subtitle).toBeTruthy();
       for (const wrong of ["", "yes", phrase.toUpperCase()]) {
-        expect(asked(plan(operation, { ...context, args: { confirm: wrong } })).prompt.title).toContain(`type “${phrase}” exactly`);
+        expect(asked(plan(operation, { ...context, args: { confirm: wrong } })).field).toBe("confirm");
       }
-      const result = plan(operation, { ...context, args: { confirm: phrase } });
-      expect(result).toMatchObject({ run: "job", focus: false });
+      expect(plan(operation, { ...context, args: { confirm: phrase } })).toMatchObject({ run: "job", focus: false });
     }
+  });
+});
+
+test("Rex discard requires the exact typed phrase, and a wrong one says so first", () => {
+  withTasks(() => {
+    const context = { sourceSession: "session:demo", args: {} };
+    const question = asked(plan("discard", context));
+    expect(question).toMatchObject({ field: "confirm", kind: "input", prompt: { title: "Discard demo and all its work?" } });
+    expect(question.prompt.placeholder).toContain("discard demo");
+    for (const wrong of ["", "yes", "DISCARD DEMO"]) {
+      const retry = asked(plan("discard", { ...context, args: { confirm: wrong } }));
+      expect(retry.prompt.title).toBe("Type “discard demo” exactly to discard");
+      expect(retry.prompt.value).toBe(wrong);
+    }
+    expect(plan("discard", { ...context, args: { confirm: "discard demo" } })).toMatchObject({ run: "job", focus: false });
   });
 });
 
