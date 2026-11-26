@@ -7,7 +7,19 @@
   "experimental": {
     "background_compaction": true,
     "schedules": true,
-    "image_generate": true
+    "image_generate": {
+      "model": "openai/gpt-image-2"
+    }
+  },
+  "providers": {
+    "openai": {
+      "models": {
+        "gpt-image-2": {
+          "type": "image",
+          "package": "@opencode/ai/providers/openai/images"
+        }
+      }
+    }
   },
   "permissions": [
     {
