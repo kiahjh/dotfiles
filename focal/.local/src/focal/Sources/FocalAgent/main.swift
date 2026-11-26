@@ -8,8 +8,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     let gap = gapPoints()
-    log("starting Focal \(focalVersion) with a \(Int(gap))pt gap")
-    let controller = FocalController(gap: gap)
+    let parking = parkedApps()
+    log("starting Focal \(focalVersion) with a \(Int(gap))pt gap, parking \(parking.sorted())")
+    let controller = FocalController(gap: gap, parking: parking)
     self.controller = controller
     controller.start()
   }
@@ -17,6 +18,15 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
   private func gapPoints() -> CGFloat {
     let requested = ProcessInfo.processInfo.environment["FOCAL_GAP"].flatMap(Double.init) ?? 24
     return CGFloat(min(max(requested, 0), 200))
+  }
+
+  /// FOCAL_PARK: comma-separated bundle IDs.
+  private func parkedApps() -> Set<String> {
+    let list = ProcessInfo.processInfo.environment["FOCAL_PARK"] ?? ""
+    return Set(
+      list.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter {
+        !$0.isEmpty
+      })
   }
 }
 

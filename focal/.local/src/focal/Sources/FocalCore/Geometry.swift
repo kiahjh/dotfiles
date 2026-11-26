@@ -27,6 +27,17 @@ public enum Geometry {
     return CGRect(origin: CGPoint(x: x, y: y), size: size).integral
   }
 
+  /// Where a window goes to be out of sight without hiding its app: past the
+  /// display's bottom right corner with 1pt still on it, or past the bottom
+  /// left if that would put it on another display.
+  public static func parked(_ size: CGSize, on display: CGRect, among displays: [CGRect]) -> CGRect {
+    let right = CGRect(origin: CGPoint(x: display.maxX - 1, y: display.maxY - 1), size: size)
+    let left = CGRect(
+      origin: CGPoint(x: display.minX - size.width + 1, y: display.maxY - 1), size: size)
+    let others = displays.filter { $0 != display }
+    return others.contains(where: { $0.intersects(right) }) ? left : right
+  }
+
   /// Converts a Cocoa rect (origin bottom left of the primary display, y up).
   public static func flipped(_ rect: CGRect, primaryHeight: CGFloat) -> CGRect {
     CGRect(x: rect.minX, y: primaryHeight - rect.maxY, width: rect.width, height: rect.height)

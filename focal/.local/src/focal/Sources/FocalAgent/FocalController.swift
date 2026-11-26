@@ -22,16 +22,26 @@ private struct Screen {
   let area: CGRect
 }
 
+private struct Parked {
+  let window: AXUIElement
+  let frame: CGRect
+}
+
 final class FocalController: NSObject {
   private let gap: CGFloat
+  /// Bundle IDs of apps whose windows are parked instead of hidden.
+  private let parking: Set<String>
   private var world = World()
   private var observers: [pid_t: AXObserver] = [:]
+  /// Parked apps' windows, with the frames to put them back at.
+  private var parked: [pid_t: [Parked]] = [:]
   private var hotKeys: HotKeys?
   private var statusItem: NSStatusItem?
   private var permissionTimer: Timer?
 
-  init(gap: CGFloat) {
+  init(gap: CGFloat, parking: Set<String>) {
     self.gap = gap
+    self.parking = parking
   }
 
   func start() {
@@ -63,6 +73,9 @@ final class FocalController: NSObject {
     center.addObserver(
       self, selector: #selector(didTerminate),
       name: NSWorkspace.didTerminateApplicationNotification, object: nil)
+    center.addObserver(
+      self, selector: #selector(didUnhide), name: NSWorkspace.didUnhideApplicationNotification,
+      object: nil)
     NotificationCenter.default.addObserver(
       self, selector: #selector(screensChanged),
       name: NSApplication.didChangeScreenParametersNotification, object: nil)
@@ -99,7 +112,21 @@ final class FocalController: NSObject {
     guard let app = runningApplication(notification) else { return }
     let pid = app.processIdentifier
     observers.removeValue(forKey: pid)
+    parked.removeValue(forKey: pid)
     render(world.remove(pid))
+  }
+
+  /// A parked app that was hidden unhid itself without becoming active, as
+  /// Rex does to show its quick terminal. Park its windows so they don't
+  /// cover the display.
+  @objc private func didUnhide(_ notification: Notification) {
+    guard let app = runningApplication(notification), parks(app), !app.isActive else { return }
+    let pid = app.processIdentifier
+    guard let home = world.homes[pid], world.layouts[home]?.apps.contains(pid) != true else {
+      return
+    }
+    debug("\(app.localizedName ?? "\(pid)") unhid itself; parking it")
+    park(app, on: home, among: screens())
   }
 
   @objc private func screensChanged() {
@@ -164,6 +191,7 @@ final class FocalController: NSObject {
       for placement in plan.shown {
         guard let app = NSRunningApplication(processIdentifier: placement.app) else { continue }
         if app.isHidden { app.unhide() }
+        unpark(placement.app)
         if let window = Window.main(of: placement.app) {
           Window.place(window, in: Geometry.frame(for: placement.slot, in: screen.area, gap: gap))
         }
@@ -171,8 +199,38 @@ final class FocalController: NSObject {
       for pid in plan.hidden {
         guard let app = NSRunningApplication(processIdentifier: pid), !app.isHidden, !app.isActive
         else { continue }
-        app.hide()
+        if parks(app) {
+          park(app, on: display, among: screens)
+        } else {
+          app.hide()
+        }
       }
+    }
+  }
+
+  /// Moves the app's windows just off the display instead of hiding it, so
+  /// the app can still show a floating panel over other apps without
+  /// bringing them back.
+  private func park(_ app: NSRunningApplication, on display: DisplayID, among screens: [Screen]) {
+    let pid = app.processIdentifier
+    guard parked[pid] == nil, let screen = screens.first(where: { $0.id == display }) else {
+      return
+    }
+    let windows = Window.standard(of: pid).compactMap { window in
+      Window.frame(of: window).map { Parked(window: window, frame: $0) }
+    }
+    guard !windows.isEmpty else { return }
+    for window in windows {
+      let spot = Geometry.parked(window.frame.size, on: screen.frame, among: screens.map(\.frame))
+      Window.move(window.window, to: spot.origin)
+    }
+    parked[pid] = windows
+  }
+
+  /// Puts a parked app's windows back where they were.
+  private func unpark(_ pid: pid_t) {
+    for window in parked.removeValue(forKey: pid) ?? [] {
+      Window.move(window.window, to: window.frame.origin)
     }
   }
 
@@ -180,6 +238,10 @@ final class FocalController: NSObject {
 
   private func isManaged(_ app: NSRunningApplication) -> Bool {
     app.activationPolicy == .regular && app.processIdentifier != getpid() && !app.isTerminated
+  }
+
+  private func parks(_ app: NSRunningApplication) -> Bool {
+    app.bundleIdentifier.map(parking.contains) ?? false
   }
 
   private func runningApplication(_ notification: Notification) -> NSRunningApplication? {

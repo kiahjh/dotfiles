@@ -13,6 +13,15 @@ enum Window {
     return windows(app).first(where: isStandard)
   }
 
+  /// All the app's standard windows.
+  static func standard(of pid: pid_t) -> [AXUIElement] {
+    windows(AXUIElementCreateApplication(pid)).filter(isStandard)
+  }
+
+  static func move(_ window: AXUIElement, to origin: CGPoint) {
+    set(window, kAXPositionAttribute, origin)
+  }
+
   static func frame(of window: AXUIElement) -> CGRect? {
     guard let origin = point(window, kAXPositionAttribute), let size = size(of: window) else {
       return nil

@@ -48,7 +48,12 @@ Every other app on that display is hidden.
 - macOS full-screen windows are left alone.
 - An app with several windows: only its focused window is placed. The others
   stay where they are. (Revisit if this gets annoying.)
-- No exceptions list yet: every regular app follows the rules.
+- **Parked apps** (Rex, for now): instead of being hidden, their windows are
+  moved just past the display's bottom corner, with 1pt left on it. They're
+  out of sight, but the app isn't hidden, so it can float a panel over other
+  apps (Rex's quick terminal, ⌃⌘J) without unhiding its main window over
+  them. Switching to the app puts its windows back. If a parked app was hidden
+  anyway (⌘H) and unhides itself without becoming active, Focal parks it then.
 
 ## Install
 
@@ -64,7 +69,8 @@ temporary Focal menu-bar item stays after that, choose **Restart Agent After
 Granting**.
 
 Change `FOCAL_GAP` in `~/Library/LaunchAgents/com.miciah.focal.plist` to tune the
-gap, or set `FOCAL_DEBUG` to `1` to log every switch to
+gap, list the bundle IDs of apps to park in `FOCAL_PARK` (comma-separated), or
+set `FOCAL_DEBUG` to `1` to log every switch to
 `~/Library/Logs/focal.err.log`. Then rerun `just focal-install`.
 
 `just focal-uninstall` stops and removes it.
@@ -78,7 +84,8 @@ gap, or set `FOCAL_DEBUG` to `1` to log every switch to
   each event does to it, and the frame math.
 - `FocalAgent`: the macOS side.
   - `NSWorkspace` notifications for activation, launch, and termination.
-  - `NSRunningApplication.hide()` / `unhide()` for visibility.
+  - `NSRunningApplication.hide()` / `unhide()` for visibility, and window
+    positions for parked apps.
   - Accessibility (`AXUIElement`) to read and set window frames, and an
     `AXObserver` per app for new windows and focus changes. This needs the
     Accessibility permission.
@@ -89,6 +96,6 @@ gap, or set `FOCAL_DEBUG` to `1` to log every switch to
 
 ## Later
 
-- An exceptions list (never hide, or float without hiding others).
+- More exceptions (float without hiding others).
 - Tunable gap.
 - Pause/resume shortcut.

@@ -57,4 +57,26 @@ final class GeometryTests: XCTestCase {
     XCTAssertEqual(Geometry.display(of: CGRect(x: 100, y: 900, width: 600, height: 400), among: displays), 1)
     XCTAssertNil(Geometry.display(of: CGRect(x: 9000, y: 9000, width: 10, height: 10), among: displays))
   }
+
+  func testParkedWindowsKeepOnePointOnTheirDisplay() {
+    let display = CGRect(x: 0, y: 0, width: 1512, height: 982)
+    let parked = Geometry.parked(CGSize(width: 1464, height: 901), on: display, among: [display])
+
+    XCTAssertEqual(parked, CGRect(x: 1511, y: 981, width: 1464, height: 901))
+    XCTAssertEqual(Geometry.display(of: parked, among: [(1, display)]), 1)
+  }
+
+  func testParkedWindowsAvoidTheNeighboringDisplay() {
+    let left = CGRect(x: 0, y: 0, width: 1512, height: 982)
+    let right = CGRect(x: 1512, y: 0, width: 1920, height: 1080)
+    let size = CGSize(width: 1464, height: 901)
+
+    let parked = Geometry.parked(size, on: left, among: [left, right])
+    XCTAssertEqual(parked, CGRect(x: -1463, y: 981, width: 1464, height: 901))
+    XCTAssertEqual(Geometry.display(of: parked, among: [(1, left), (2, right)]), 1)
+
+    // Nothing is below the right display's corner.
+    XCTAssertEqual(
+      Geometry.parked(size, on: right, among: [left, right]).origin, CGPoint(x: 3431, y: 1079))
+  }
 }

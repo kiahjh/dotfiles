@@ -29,6 +29,8 @@
   <dict>
     <key>FOCAL_GAP</key>
     <string>24</string>
+    <key>FOCAL_PARK</key>
+    <string>com.superlogical.rex</string>
     <key>FOCAL_DEBUG</key>
     <string>0</string>
   </dict>
